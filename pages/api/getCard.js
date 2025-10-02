@@ -37,11 +37,16 @@ export default async function handler(req, res) {
       return res.status(404).json({ error: `找不到卡片資料 uid=${uid}` });
     }
 
-    // 判斷是否首次開啟
-    const is_first_open = !card.opened;
-    card.opened = true; // 標記已經開過
+    // 判斷是否首次開啟：status=ACTIVE 但沒打開過
+    let is_first_open = false;
+    if (card.status === "ACTIVE" && !card.opened) {
+      is_first_open = true;
+    }
 
-    // 更新回 Redis
+    // 標記已經開過
+    card.opened = true;
+
+    // 更新回 Redis（仍用 JSON 存）
     await redis.set(`card:${uid}`, JSON.stringify(card));
 
     return res.json({ card, is_first_open });
