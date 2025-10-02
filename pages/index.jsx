@@ -1,21 +1,42 @@
 "use client";
-import { useEffect } from "react";
 
-export default function IndexPage() {
+import { useEffect } from "react";
+import { useRouter } from "next/router";
+
+export default function Home() {
+  const router = useRouter();
+
   useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    const d = params.get("d");
-    const uuid = params.get("uuid");
-    if (!uuid) return;
-    fetch(`/api/verify?d=${d}&uuid=${uuid}`)
-      .then(res => res.json())
-      .then(data => {
-        if (data.status === "PENDING") {
-          window.location.href = `/activate?token=${data.token}&d=${d}`;
-        } else if (data.status === "ACTIVE") {
-          window.location.href = `/book?token=${data.token}`;
+    async function checkVerify() {
+      const params = new URLSearchParams(window.location.search);
+      const d = params.get("d");
+      const uuid = params.get("uuid");
+      if (!d || !uuid) return;
+
+      try {
+        const res = await fetch(`/api/verify?d=${d}&uuid=${uuid}`);
+        const data = await res.json();
+
+        if (data.error) {
+          alert("驗證失敗：" + data.error);
+          return;
         }
-      });
-  }, []);
-  return <p style={{textAlign:"center",padding:"2rem"}}>⏳ 驗證中...</p>;
+
+        if (data.status === "PENDING") {
+          // 開卡
+          router.push(`/activate?token=${data.token}&d=${d}`);
+        } else if (data.status === "ACTIVE") {
+          // 已啟用 → 帶 token 跳轉到生日書
+          const uid = uuid.slice(0, 14);
+          router.push(`/book?uid=${uid}&token=${data.token}`);
+        }
+      } catch (err) {
+        console.error("驗證錯誤:", err);
+      }
+    }
+
+    checkVerify();
+  }, [router]);
+
+  return <p>驗證中，請稍候…</p>;
 }
