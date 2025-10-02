@@ -3,19 +3,35 @@ import { redis } from "../../lib/redis";
 async function readCard(uid) {
   const key = `card:${uid}`;
   try {
-    const str = await redis.get(key);
-    if (typeof str === "string") {
-      try { return JSON.parse(str); } catch (e) { console.error("JSON parse error", e); }
+    const val = await redis.get(key);
+    if (!val) return null;
+
+    // ✅ JSON 字串
+    if (typeof val === "string") {
+      try {
+        return JSON.parse(val);
+      } catch (e) {
+        console.error("JSON parse error", e);
+        return { raw: val };
+      }
+    }
+
+    // ✅ 已經是物件
+    if (typeof val === "object") {
+      return val;
     }
   } catch (e) {
     console.error("redis.get error", e);
   }
+
+  // ✅ fallback: Redis Hash
   try {
     const hash = await redis.hgetall(key);
     if (hash && Object.keys(hash).length > 0) return hash;
   } catch (e) {
     console.error("redis.hgetall error", e);
   }
+
   return null;
 }
 
