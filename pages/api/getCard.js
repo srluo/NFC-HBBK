@@ -1,28 +1,20 @@
-import { redis } from "@/lib/redis";
+import { redis } from "../../lib/redis";
 
 export default async function handler(req, res) {
   const { token } = req.query;
   if (!token) return res.status(400).json({ error: "缺少 token" });
 
-  try {
-    const decoded = Buffer.from(token, "base64").toString("utf8");
-    const [uid] = decoded.split(":");
+  const [uid] = Buffer.from(token, "base64").toString().split(":");
 
-    const cardKey = `card:${uid}`;
-    const card = await redis.hgetall(cardKey);
-    if (!card || !card.status) {
-      return res.status(404).json({ error: "卡片未開通" });
-    }
+  let card = await redis.get(`card:${uid}`);
+  card = card ? JSON.parse(card) : null;
 
-    let isFirstOpen = false;
-    if (!card.first_opened_at) {
-      isFirstOpen = true;
-      await redis.hset(cardKey, { first_opened_at: Date.now() });
-    }
-
-    return res.json({ card, is_first_open: isFirstOpen });
-  } catch (err) {
-    console.error(err);
-    return res.status(500).json({ error: "系統錯誤" });
+  if (!card) {
+    return res.status(404).json({ error: "找不到卡片資料" });
   }
+
+  return res.json({
+    card,
+    is_first_open: card.first_opened ? false : true
+  });
 }

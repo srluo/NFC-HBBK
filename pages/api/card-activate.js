@@ -1,39 +1,33 @@
-import { redis } from "@/lib/redis";
-import { calcZodiac } from "@/lib/zodiac";
+import { redis } from "../../lib/redis";
+import { calcZodiac } from "../../lib/zodiac";
 
 export default async function handler(req, res) {
   if (req.method !== "POST") return res.status(405).end();
 
-  try {
-    const { token, user_name, blood_type, hobbies, birth_time, d } = req.body;
-    if (!token || !user_name) {
-      return res.status(400).json({ error: "缺少必要參數" });
-    }
+  const { token, user_name, blood_type, hobbies, birth_time, d } = req.body;
+  if (!token) return res.status(400).json({ error: "缺少 token" });
 
-    const decoded = Buffer.from(token, "base64").toString("utf8");
-    const [uid] = decoded.split(":");
+  const [uid, birthday, issuedAt, ts] = Buffer.from(token, "base64").toString().split(":");
 
-    const { lunarDate, zodiac, constellation } = calcZodiac(d);
+  // 計算生肖、星座（含農曆）
+  const zodiacData = calcZodiac(d);
 
-    const cardKey = `card:${uid}`;
-    await redis.hset(cardKey, {
-      status: "ACTIVE",
-      user_name,
-      blood_type,
-      hobbies,
-      birth_time,
-      birthday: d,
-      lunar_birthday: lunarDate,
-      zodiac,
-      constellation,
-      points: 20,
-      created_at: Date.now(),
-      updated_at: Date.now(),
-    });
+  const card = {
+    status: "ACTIVE",
+    user_name,
+    blood_type,
+    hobbies,
+    birth_time,
+    birthday: d,
+    lunar_birthday: zodiacData.lunar,
+    zodiac: zodiacData.zodiac,
+    constellation: zodiacData.constellation,
+    points: 20,
+    last_ts: ts,
+    last_seen: new Date().toLocaleString("zh-TW", { timeZone: "Asia/Taipei" })
+  };
 
-    return res.json({ ok: true });
-  } catch (err) {
-    console.error(err);
-    return res.status(500).json({ error: "系統錯誤" });
-  }
+  await redis.set(`card:${uid}`, JSON.stringify(card));
+
+  return res.json({ ok: true });
 }
