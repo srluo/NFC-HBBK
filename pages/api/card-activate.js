@@ -63,6 +63,14 @@ export default async function handler(req, res) {
     // 讀取原有資料
     let existing = (await readCard(uid)) || {};
 
+    // 判斷是否第一次 ACTIVE
+    let first_time = false;
+    let points = Number(existing.points || 0);
+    if (!existing.status || existing.status !== "ACTIVE") {
+      points += 20; // 🎁 開卡禮只送一次
+      first_time = true;
+    }
+
     // merge 更新
     const card = {
       ...existing,
@@ -75,7 +83,7 @@ export default async function handler(req, res) {
       lunar_birthday: lunarDate,
       zodiac,
       constellation,
-      points: Number(existing.points || 0) + 20, // 每次開卡禮加 20
+      points,
       last_ts: ts || existing.last_ts,
       last_seen: safeNowString(),
       updated_at: Date.now(),
@@ -83,7 +91,7 @@ export default async function handler(req, res) {
 
     await writeCard(uid, card);
 
-    return res.json({ ok: true, card });
+    return res.json({ ok: true, first_time, card });
   } catch (err) {
     console.error("activate fatal error:", err);
     return res.status(500).json({ error: "伺服器錯誤" });
