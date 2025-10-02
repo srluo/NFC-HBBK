@@ -5,13 +5,17 @@ async function readCard(uid) {
   try {
     const str = await redis.get(key);
     if (typeof str === "string") {
-      try { return JSON.parse(str); } catch {}
+      try { return JSON.parse(str); } catch (e) { console.error("JSON parse error", e); }
     }
-  } catch (e) {}
+  } catch (e) {
+    console.error("redis.get error", e);
+  }
   try {
     const hash = await redis.hgetall(key);
     if (hash && Object.keys(hash).length > 0) return hash;
-  } catch (e) {}
+  } catch (e) {
+    console.error("redis.hgetall error", e);
+  }
   return null;
 }
 
@@ -20,16 +24,24 @@ export default async function handler(req, res) {
   if (!token) return res.status(400).json({ error: "缺少 token" });
 
   try {
-    const [uid] = Buffer.from(token, "base64").toString().split(":");
+    // 解碼 token → 取出 uid
+    const decoded = Buffer.from(token, "base64").toString();
+    const [uid] = decoded.split(":");
+
+    if (!uid) {
+      return res.status(400).json({ error: "無效 token" });
+    }
 
     let card = await readCard(uid);
-    if (!card) return res.status(404).json({ error: "找不到卡片資料" });
+    if (!card) {
+      return res.status(404).json({ error: `找不到卡片資料 uid=${uid}` });
+    }
 
     // 判斷是否首次開啟
     const is_first_open = !card.opened;
-    card.opened = true; // 一旦開過，就標記
+    card.opened = true; // 標記已經開過
 
-    // 寫回 Redis
+    // 更新回 Redis
     await redis.set(`card:${uid}`, JSON.stringify(card));
 
     return res.json({ card, is_first_open });
