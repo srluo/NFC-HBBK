@@ -17,7 +17,6 @@ export default function Activate() {
     const urlParams = new URLSearchParams(window.location.search);
     const d = urlParams.get("d") || "";
     const token = urlParams.get("token") || "";
-    console.log("DEBUG URL params:", { d, token }); // 🟢 檢查是否抓到
     setForm((prev) => ({
       ...prev,
       birthday: d,
@@ -31,7 +30,6 @@ export default function Activate() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    console.log("DEBUG submit form:", form); // 🟢 確認送出時有帶 token
     setStatus("loading");
 
     try {
