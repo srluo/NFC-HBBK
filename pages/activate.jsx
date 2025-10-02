@@ -17,10 +17,11 @@ export default function Activate() {
     const urlParams = new URLSearchParams(window.location.search);
     const d = urlParams.get("d") || "";
     const token = urlParams.get("token") || "";
+    console.log("DEBUG URL params:", { d, token }); // 🟢 檢查是否抓到
     setForm((prev) => ({
       ...prev,
-      birthday: d,   // ✅ 自動填生日
-      token          // ✅ 自動填 Token
+      birthday: d,
+      token
     }));
   }, []);
 
@@ -30,6 +31,7 @@ export default function Activate() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    console.log("DEBUG submit form:", form); // 🟢 確認送出時有帶 token
     setStatus("loading");
 
     try {
@@ -73,7 +75,7 @@ export default function Activate() {
           <input
             name="birthday"
             value={form.birthday}
-            readOnly // ✅ 使用者不能改生日
+            readOnly
           />
         </div>
         <div>
@@ -120,9 +122,6 @@ export default function Activate() {
             <option value="亥時">亥時 (21:00-23:00)</option>
           </select>
         </div>
-
-        {/* ✅ 隱藏 Token，不讓使用者看到 */}
-        <input type="hidden" name="token" value={form.token} />
 
         <button type="submit">送出</button>
       </form>
