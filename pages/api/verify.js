@@ -26,11 +26,7 @@ async function readCard(uid) {
   try {
     const str = await redis.get(key);
     if (typeof str === "string") {
-      try {
-        return JSON.parse(str);
-      } catch (e) {
-        console.error("JSON parse error", e);
-      }
+      try { return JSON.parse(str); } catch (e) { console.error("JSON parse error", e); }
     }
   } catch (e) {
     console.error("redis.get error", e);
@@ -73,9 +69,7 @@ export default async function handler(req, res) {
     }
 
     let card = await readCard(uid);
-
     if (!card) {
-      // 🚫 不要再新建 PENDING，直接回錯誤
       return res.status(404).json({ error: `找不到卡片 uid=${uid}` });
     }
 
@@ -84,7 +78,8 @@ export default async function handler(req, res) {
       return res.status(403).json({ error: "TS 不合法 (重播攻擊)" });
     }
 
-    // 更新卡片最後使用時間
+    // 更新卡片最後使用時間，補上 uid
+    card.uid = uid;
     card.last_ts = ts;
     card.last_seen = safeNowString();
     await writeCard(uid, card);
