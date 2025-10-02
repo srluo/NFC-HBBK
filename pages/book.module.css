@@ -1,0 +1,55 @@
+.container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 100vh;
+  background: linear-gradient(135deg, #fdfbfb, #ebedee);
+  font-family: "Microsoft JhengHei", "Noto Sans TC", sans-serif;
+}
+
+.card {
+  background: #fff;
+  padding: 2rem;
+  border-radius: 20px;
+  box-shadow: 0 6px 18px rgba(0,0,0,0.15);
+  text-align: center;
+  width: 360px;
+}
+
+.iconBox {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.icon {
+  width: 64px;
+  height: 64px;
+}
+
+h3 {
+  margin-top: 0.5rem;
+  margin-bottom: 1rem;
+  font-size: 1.5rem;
+  color: #333;
+}
+
+p {
+  margin: 0.3rem 0;
+  color: #555;
+}
+
+.loading {
+  text-align: center;
+  font-size: 1.2rem;
+  padding: 2rem;
+}
+
+.error {
+  text-align: center;
+  font-size: 1.2rem;
+  padding: 2rem;
+  color: red;
+}
