@@ -71,9 +71,10 @@ export default async function handler(req, res) {
       first_time = true;
     }
 
-    // merge 更新
+    // merge 更新，確保 uid 永遠存在
     const card = {
       ...existing,
+      uid, // ✅ 強制存 uid
       status: "ACTIVE",
       user_name,
       blood_type: blood_type || existing.blood_type || "",
