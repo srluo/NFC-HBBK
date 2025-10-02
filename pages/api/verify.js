@@ -96,3 +96,7 @@ export default async function handler(req, res) {
     const status = card.status === "ACTIVE" ? "ACTIVE" : "PENDING";
     return res.json({ status, token });
   } catch (err) {
+    console.error("verify fatal error:", err);
+    return res.status(500).json({ error: "伺服器錯誤" });
+  }
+}
