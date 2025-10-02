@@ -25,7 +25,14 @@ export default async function handler(req, res) {
     let card = await readCard(uid);
     if (!card) return res.status(404).json({ error: "找不到卡片資料" });
 
-    return res.json({ card, is_first_open: false });
+    // 判斷是否首次開啟
+    const is_first_open = !card.opened;
+    card.opened = true; // 一旦開過，就標記
+
+    // 寫回 Redis
+    await redis.set(`card:${uid}`, JSON.stringify(card));
+
+    return res.json({ card, is_first_open });
   } catch (err) {
     console.error("getCard fatal error:", err);
     return res.status(500).json({ error: "伺服器錯誤" });
