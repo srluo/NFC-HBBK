@@ -1,17 +1,32 @@
 "use client";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 
 export default function ActivatePage() {
   const [status, setStatus] = useState("idle");
   const [form, setForm] = useState({
-    uid: "",
-    name: "",
+    user_name: "",
     blood_type: "",
     hobbies: "",
     birth_time: "",
     token: "",
     d: "",
+    uid: "", // 額外保留方便跳轉
   });
+
+  // 初始化：從 URL 取 d 與 token
+  useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const d = urlParams.get("d");
+    const token = urlParams.get("token");
+
+    if (token) {
+      const decoded = Buffer.from(token, "base64").toString();
+      const [uid] = decoded.split(":");
+      setForm((prev) => ({ ...prev, d, token, uid }));
+    } else {
+      setStatus("❌ 缺少 token，請重新感應卡片");
+    }
+  }, []);
 
   const handleChange = (e) => {
     setForm({ ...form, [e.target.name]: e.target.value });
@@ -19,7 +34,7 @@ export default function ActivatePage() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setStatus("loading");
+    setStatus("loading...");
 
     try {
       const res = await fetch("/api/card-activate", {
@@ -33,7 +48,7 @@ export default function ActivatePage() {
         setStatus(`error: ${data.error || "unknown error"}`);
       } else {
         setStatus("✅ 卡片啟用成功！");
-        // 自動跳轉到生日書展示頁
+        // 自動跳轉到生日書頁
         window.location.href = `/book?uid=${form.uid}&token=${form.token}`;
       }
     } catch (err) {
@@ -47,9 +62,9 @@ export default function ActivatePage() {
       <form onSubmit={handleSubmit}>
         <input
           type="text"
-          name="name"
+          name="user_name"
           placeholder="姓名/暱稱"
-          value={form.name}
+          value={form.user_name}
           onChange={handleChange}
           required
         />
