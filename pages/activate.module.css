@@ -1,0 +1,66 @@
+.page {
+  font-family: "Microsoft JhengHei", "Noto Sans TC", sans-serif;
+  background: linear-gradient(135deg, #f9f5e7, #fceabb);
+  min-height: 100vh;
+  padding: 2rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.title {
+  font-size: 1.8rem;
+  color: #d2691e;
+  margin-bottom: 1.5rem;
+}
+
+.card {
+  background: #fff;
+  padding: 1.5rem;
+  border-radius: 16px;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.15);
+  width: 100%;
+  max-width: 420px;
+}
+
+.card label {
+  display: block;
+  font-weight: bold;
+  margin: 0.5rem 0 0.2rem;
+}
+
+.card input,
+.card select {
+  width: 100%;
+  padding: 0.6rem;
+  margin-bottom: 1rem;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  font-size: 1rem;
+}
+
+.button {
+  width: 100%;
+  padding: 0.8rem;
+  background: #ff8c42;
+  color: #fff;
+  font-weight: bold;
+  border: none;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.button:hover {
+  background: #e67a33;
+}
+
+.statusBox {
+  margin-top: 1rem;
+  padding: 0.8rem;
+  background: #fff9f2;
+  border: 1px solid #f0d4b4;
+  border-radius: 8px;
+  text-align: center;
+  font-size: 0.9rem;
+}

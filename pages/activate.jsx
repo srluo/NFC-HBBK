@@ -1,5 +1,6 @@
 "use client";
 import { useState, useEffect } from "react";
+import styles from "./activate.module.css"; // 引入專用樣式
 
 export default function Activate() {
   const [status, setStatus] = useState("idle");
@@ -12,7 +13,6 @@ export default function Activate() {
     birth_time: ""
   });
 
-  // 自動帶入 URL 上的 d=生日 與 token
   useEffect(() => {
     const urlParams = new URLSearchParams(window.location.search);
     const d = urlParams.get("d") || "";
@@ -56,77 +56,73 @@ export default function Activate() {
   };
 
   return (
-    <div style={{ padding: "2rem", fontFamily: "sans-serif" }}>
-      <h2>🔑 卡片開卡手續</h2>
-      <form onSubmit={handleSubmit}>
-        <div>
-          <label>姓名/暱稱：</label>
-          <input
-            name="user_name"
-            value={form.user_name}
-            onChange={handleChange}
-            required
-          />
-        </div>
-        <div>
-          <label>生日：</label>
-          <input
-            name="birthday"
-            value={form.birthday}
-            readOnly
-          />
-        </div>
-        <div>
-          <label>血型：</label>
-          <select
-            name="blood_type"
-            value={form.blood_type}
-            onChange={handleChange}
-          >
-            <option value="">-- 請選擇 --</option>
-            <option value="A">A 型</option>
-            <option value="B">B 型</option>
-            <option value="O">O 型</option>
-            <option value="AB">AB 型</option>
-          </select>
-        </div>
-        <div>
-          <label>興趣嗜好：</label>
-          <input
-            name="hobbies"
-            value={form.hobbies}
-            onChange={handleChange}
-          />
-        </div>
-        <div>
-          <label>出生時辰：</label>
-          <select
-            name="birth_time"
-            value={form.birth_time}
-            onChange={handleChange}
-          >
-            <option value="">-- 請選擇 --</option>
-            <option value="子時">子時 (23:00-01:00)</option>
-            <option value="丑時">丑時 (01:00-03:00)</option>
-            <option value="寅時">寅時 (03:00-05:00)</option>
-            <option value="卯時">卯時 (05:00-07:00)</option>
-            <option value="辰時">辰時 (07:00-09:00)</option>
-            <option value="巳時">巳時 (09:00-11:00)</option>
-            <option value="午時">午時 (11:00-13:00)</option>
-            <option value="未時">未時 (13:00-15:00)</option>
-            <option value="申時">申時 (15:00-17:00)</option>
-            <option value="酉時">酉時 (17:00-19:00)</option>
-            <option value="戌時">戌時 (19:00-21:00)</option>
-            <option value="亥時">亥時 (21:00-23:00)</option>
-          </select>
-        </div>
+    <div className={styles.page}>
+      <h2 className={styles.title}>✨ 開啟我的生日書</h2>
+      <form className={styles.card} onSubmit={handleSubmit}>
+        <label>姓名/暱稱</label>
+        <input
+          name="user_name"
+          value={form.user_name}
+          onChange={handleChange}
+          required
+        />
 
-        <button type="submit">送出</button>
+        <label>生日</label>
+        <input
+          name="birthday"
+          value={form.birthday}
+          readOnly
+        />
+
+        <label>血型</label>
+        <select
+          name="blood_type"
+          value={form.blood_type}
+          onChange={handleChange}
+        >
+          <option value="">-- 請選擇 --</option>
+          <option value="A">A 型</option>
+          <option value="B">B 型</option>
+          <option value="O">O 型</option>
+          <option value="AB">AB 型</option>
+        </select>
+
+        <label>興趣嗜好</label>
+        <input
+          name="hobbies"
+          value={form.hobbies}
+          onChange={handleChange}
+        />
+
+        <label>出生時辰</label>
+        <select
+          name="birth_time"
+          value={form.birth_time}
+          onChange={handleChange}
+        >
+          <option value="">-- 請選擇 --</option>
+          <option value="子時">子時 (23:00-01:00)</option>
+          <option value="丑時">丑時 (01:00-03:00)</option>
+          <option value="寅時">寅時 (03:00-05:00)</option>
+          <option value="卯時">卯時 (05:00-07:00)</option>
+          <option value="辰時">辰時 (07:00-09:00)</option>
+          <option value="巳時">巳時 (09:00-11:00)</option>
+          <option value="午時">午時 (11:00-13:00)</option>
+          <option value="未時">未時 (13:00-15:00)</option>
+          <option value="申時">申時 (15:00-17:00)</option>
+          <option value="酉時">酉時 (17:00-19:00)</option>
+          <option value="戌時">戌時 (19:00-21:00)</option>
+          <option value="亥時">亥時 (21:00-23:00)</option>
+        </select>
+
+        <button type="submit" className={styles.button}>送出開卡 ✨</button>
       </form>
 
-      <div style={{ marginTop: "1rem" }}>
-        <strong>狀態：</strong> {status}
-      </div>
+      {status !== "idle" && (
+        <div className={styles.statusBox}>
+          <strong>狀態：</strong> {status}
+        </div>
+      )}
     </div>
   );
 }
