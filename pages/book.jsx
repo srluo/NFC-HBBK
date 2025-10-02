@@ -25,7 +25,7 @@ export default function BookPage() {
           setError(data.error || "讀取失敗");
         } else {
           setCard(data.card);
-          setIsFirstOpen(data.is_first_open || false);
+          setIsFirstOpen(data.is_first_open);
         }
       } catch (err) {
         setError(err.message);
@@ -44,6 +44,7 @@ export default function BookPage() {
   return (
     <div style={{ padding: "1.5rem", maxWidth: "600px", margin: "0 auto" }}>
       {isFirstOpen ? (
+        // ✅ 首次開啟 → 完整生日書
         <>
           <h1 style={{ fontSize: "1.8rem", marginBottom: "1rem" }}>
             🎂 我的生日書（首次開卡）
@@ -79,6 +80,7 @@ export default function BookPage() {
           </div>
         </>
       ) : (
+        // ✅ 再次開啟 → 縮圖 + 點數 + 功能選單
         <>
           <h1 style={{ fontSize: "1.8rem", marginBottom: "1rem" }}>
             🎂 我的生日書
