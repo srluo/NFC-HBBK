@@ -49,16 +49,18 @@ export default async function handler(req, res) {
   if (req.method !== "POST") return res.status(405).end();
 
   try {
-    const { token, user_name, blood_type, hobbies, birth_time, d } = req.body || {};
-    if (!token || !user_name || !d) {
-      return res.status(400).json({ error: "缺少必要參數" });
+    const { token, user_name, blood_type, hobbies, birth_time, birthday } = req.body || {};
+    if (!token || !user_name || !birthday) {
+      return res.status(400).json({ error: "缺少必要參數", got: req.body });
     }
 
-    const [uid, birthday, issuedAt, ts] = Buffer.from(token, "base64")
+    // 解析 token
+    const [uid, issuedBirthday, issuedAt, ts] = Buffer.from(token, "base64")
       .toString()
       .split(":");
 
-    const { lunarDate, zodiac, constellation } = calcZodiac(d);
+    // 用生日計算農曆/生肖/星座
+    const { lunarDate, zodiac, constellation } = calcZodiac(birthday);
 
     // 讀取原有資料
     let existing = (await readCard(uid)) || {};
@@ -71,16 +73,16 @@ export default async function handler(req, res) {
       first_time = true;
     }
 
-    // merge 更新，確保 uid 永遠存在
+    // merge 更新
     const card = {
       ...existing,
-      uid, // ✅ 強制存 uid
+      uid,
       status: "ACTIVE",
       user_name,
       blood_type: blood_type || existing.blood_type || "",
       hobbies: hobbies || existing.hobbies || "",
       birth_time: birth_time || existing.birth_time || "",
-      birthday: d,
+      birthday,                // ✅ 保持清楚語意
       lunar_birthday: lunarDate,
       zodiac,
       constellation,
