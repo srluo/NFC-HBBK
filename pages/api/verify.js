@@ -24,19 +24,36 @@ function safeNowString() {
 async function readCard(uid) {
   const key = `card:${uid}`;
   try {
-    const str = await redis.get(key);
-    if (typeof str === "string") {
-      try { return JSON.parse(str); } catch (e) { console.error("JSON parse error", e); }
+    const val = await redis.get(key);
+    if (!val) return null;
+
+    // ✅ JSON 字串
+    if (typeof val === "string") {
+      try {
+        return JSON.parse(val);
+      } catch (e) {
+        console.error("JSON parse error", e);
+        // 如果不能 parse，就直接包在 raw 回傳
+        return { raw: val };
+      }
+    }
+
+    // ✅ 直接是物件（某些版本誤寫）
+    if (typeof val === "object") {
+      return val;
     }
   } catch (e) {
     console.error("redis.get error", e);
   }
+
+  // ✅ fallback: Redis Hash
   try {
     const hash = await redis.hgetall(key);
     if (hash && Object.keys(hash).length > 0) return hash;
   } catch (e) {
     console.error("redis.hgetall error", e);
   }
+
   return null;
 }
 
