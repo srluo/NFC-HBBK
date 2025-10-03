@@ -1,0 +1,6 @@
+<svg viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg">
+  <path d="M6 16c8 0 14 6 14 16s-6 16-14 16" stroke="#333" stroke-width="4" fill="none"/>
+  <path d="M58 16c-8 0-14 6-14 16s6 16 14 16" stroke="#333" stroke-width="4" fill="none"/>
+  <line x1="20" y1="32" x2="44" y2="32" stroke="#333" stroke-width="4"/>
+  <text x="32" y="60" text-anchor="middle" font-size="8" font-family="Arial" fill="#333">Pisces</text>
+</svg>

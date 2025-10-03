@@ -1,0 +1,5 @@
+<svg viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg">
+  <path d="M10 26c0-10 8-16 14-16s14 6 14 16v32" stroke="#333" stroke-width="4" fill="none"/>
+  <path d="M54 26c0-10-8-16-14-16s-14 6-14 16" stroke="#333" stroke-width="4" fill="none"/>
+  <text x="32" y="60" text-anchor="middle" font-size="8" font-family="Arial" fill="#333">Aries</text>
+</svg>

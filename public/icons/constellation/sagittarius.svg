@@ -1,0 +1,5 @@
+<svg viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg">
+  <line x1="12" y1="52" x2="52" y2="12" stroke="#333" stroke-width="4"/>
+  <polyline points="32,12 52,12 52,32" stroke="#333" stroke-width="4" fill="none"/>
+  <text x="32" y="60" text-anchor="middle" font-size="8" font-family="Arial" fill="#333">Sagittarius</text>
+</svg>
