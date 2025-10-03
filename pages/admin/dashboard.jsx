@@ -1,4 +1,3 @@
-
 "use client";
 import { useEffect, useMemo, useState } from "react";
 
@@ -31,11 +30,11 @@ export default function Dashboard() {
     try {
       const res = await fetch("/api/admin/cards", { headers: { Authorization: `Bearer ${token}` } });
       const data = await res.json();
-      if (res.ok && data.ok) {
-        setCards(data.cards);
+      if (res.ok && !data.error) {
+        setCards(data.cards || []);
         setStatus("");
       } else {
-        setStatus("❌ 讀取失敗");
+        setStatus(`❌ ${data.error || "讀取失敗"}`);
       }
     } catch {
       setStatus("❌ 系統錯誤");
@@ -100,6 +99,24 @@ export default function Dashboard() {
     else alert("匯入失敗: " + (data.error || "未知錯誤"));
   }
 
+  function renderStatusLabel(status) {
+    const base = {
+      display: "inline-block",
+      padding: "2px 8px",
+      borderRadius: "8px",
+      fontSize: "0.85rem",
+      fontWeight: "bold",
+    };
+    switch (status) {
+      case "ACTIVE":
+        return <span style={{ ...base, background: "#e0f7e9", color: "#0a8a3f" }}>ACTIVE</span>;
+      case "BLOCKED":
+        return <span style={{ ...base, background: "#fdecea", color: "#c62828" }}>BLOCKED</span>;
+      default:
+        return <span style={{ ...base, background: "#f0f0f0", color: "#666" }}>PENDING</span>;
+    }
+  }
+
   return (
     <div style={{ padding: "1rem", fontFamily: "Microsoft JhengHei" }}>
       <h2>📋 卡片管理</h2>
@@ -111,8 +128,8 @@ export default function Dashboard() {
       </div>
 
       {status ? <p>{status}</p> : (
-        <table border="1" cellPadding="6" style={{ width: "100%", maxWidth: 1000 }}>
-          <thead>
+        <table border="1" cellPadding="6" style={{ width: "100%", maxWidth: 1000, background: "#fff" }}>
+          <thead style={{ background: "#f7f7f7" }}>
             <tr>
               <th>UID</th>
               <th>姓名</th>
@@ -124,20 +141,26 @@ export default function Dashboard() {
             </tr>
           </thead>
           <tbody>
-            {filtered.map((c) => (
-              <tr key={c.uid}>
-                <td>{c.uid}</td>
-                <td>{c.user_name || "-"}</td>
-                <td>{c.birthday || "-"}</td>
-                <td>{c.status || "-"}</td>
-                <td>{c.points ?? 0}</td>
-                <td>{c.last_seen || "-"}</td>
-                <td>
-                  <button onClick={() => openEdit(c)}>編輯</button>{" "}
-                  <button onClick={() => deleteCard(c.uid)}>刪除</button>
-                </td>
+            {filtered.length === 0 ? (
+              <tr>
+                <td colSpan="7" style={{ textAlign: "center", padding: "1rem" }}>沒有資料</td>
               </tr>
-            ))}
+            ) : (
+              filtered.map((c) => (
+                <tr key={c.uid}>
+                  <td>{c.uid}</td>
+                  <td>{c.user_name || "-"}</td>
+                  <td>{c.birthday || "-"}</td>
+                  <td>{renderStatusLabel(c.status)}</td>
+                  <td>{c.points ?? 0}</td>
+                  <td>{c.last_seen || "-"}</td>
+                  <td>
+                    <button onClick={() => openEdit(c)}>編輯</button>{" "}
+                    <button onClick={() => deleteCard(c.uid)}>刪除</button>
+                  </td>
+                </tr>
+              ))
+            )}
           </tbody>
         </table>
       )}
