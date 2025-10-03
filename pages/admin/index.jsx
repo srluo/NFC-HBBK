@@ -1,9 +1,8 @@
+
 "use client";
 import { useState } from "react";
-import { useRouter } from "next/navigation";
 
 export default function AdminLogin() {
-  const router = useRouter();
   const [form, setForm] = useState({ user: "", pass: "" });
   const [status, setStatus] = useState("");
 
@@ -19,9 +18,9 @@ export default function AdminLogin() {
         body: JSON.stringify(form),
       });
       const data = await res.json();
-      if (res.ok) {
+      if (res.ok && data.ok) {
         localStorage.setItem("admin_token", data.token);
-        router.push("/admin/dashboard");
+        window.location.href = "/admin/dashboard";
       } else {
         setStatus("❌ " + (data.error || "登入失敗"));
       }
@@ -31,9 +30,9 @@ export default function AdminLogin() {
   };
 
   return (
-    <div style={{ maxWidth: "400px", margin: "2rem auto", fontFamily: "sans-serif" }}>
+    <div style={{ maxWidth: 720, margin: "2rem auto", fontFamily: "Microsoft JhengHei" }}>
       <h2>🔐 管理員登入</h2>
-      <form onSubmit={handleSubmit}>
+      <form onSubmit={handleSubmit} style={{ display: "flex", gap: "1rem", alignItems: "end" }}>
         <div>
           <label>帳號：</label>
           <input name="user" value={form.user} onChange={handleChange} required />

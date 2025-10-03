@@ -1,6 +1,7 @@
+
 "use client";
 import { useState, useEffect } from "react";
-import styles from "./activate.module.css"; // 引入專用樣式
+import styles from "./activate.module.css";
 
 export default function Activate() {
   const [status, setStatus] = useState("idle");
@@ -115,6 +116,7 @@ export default function Activate() {
           <option value="亥時">亥時 (21:00-23:00)</option>
         </select>
 
+        <input type="hidden" name="token" value={form.token} />
         <button type="submit" className={styles.button}>送出開卡 ✨</button>
       </form>
 

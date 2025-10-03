@@ -1,3 +1,4 @@
+
 import jwt from "jsonwebtoken";
 
 export default function handler(req, res) {
@@ -5,9 +6,9 @@ export default function handler(req, res) {
 
   const { user, pass } = req.body || {};
   if (user === process.env.ADMIN_USER && pass === process.env.ADMIN_PASS) {
-    const token = jwt.sign({ user }, process.env.JWT_SECRET, { expiresIn: "2h" });
+    const token = jwt.sign({ user }, process.env.JWT_SECRET, { expiresIn: "12h" });
     return res.json({ ok: true, token });
   } else {
-    return res.status(401).json({ error: "帳號或密碼錯誤" });
+    return res.status(401).json({ ok: false, error: "帳號或密碼錯誤" });
   }
 }

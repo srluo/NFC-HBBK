@@ -1,3 +1,4 @@
+
 "use client";
 import { useState, useEffect } from "react";
 import styles from "./book.module.css";
@@ -5,25 +6,26 @@ import styles from "./book.module.css";
 export default function Book() {
   const [status, setStatus] = useState("loading");
   const [card, setCard] = useState(null);
+  const [isFirstOpen, setIsFirstOpen] = useState(false);
 
   useEffect(() => {
     const urlParams = new URLSearchParams(window.location.search);
-    const uid = urlParams.get("uid");
     const token = urlParams.get("token");
 
-    if (!uid || !token) {
-      setStatus("❌ 缺少必要參數");
+    if (!token) {
+      setStatus("❌ 缺少 token 參數");
       return;
     }
 
     async function fetchCard() {
       try {
-        const res = await fetch(`/api/getCard?uid=${uid}&token=${token}`);
+        const res = await fetch(`/api/getCard?token=${token}`);
         const data = await res.json();
-        if (!res.ok || !data.ok) {
+        if (!res.ok) {
           setStatus(`❌ 錯誤: ${data.error || "讀取失敗"}`);
         } else {
           setCard(data.card);
+          setIsFirstOpen(!!data.is_first_open);
           setStatus("ok");
         }
       } catch (err) {
@@ -46,26 +48,37 @@ export default function Book() {
             src={`/icons/constellation/${card.constellation}.svg`}
             alt={card.constellation}
             className={styles.icon}
-            onError={(e) => { e.target.src = "/icons/default.svg"; }}
+            onError={(e) => { e.currentTarget.src = "/icons/default.svg"; }}
           />
           <img
             src={`/icons/zodiac/${card.zodiac}.svg`}
             alt={card.zodiac}
             className={styles.icon}
-            onError={(e) => { e.target.src = "/icons/default.svg"; }}
+            onError={(e) => { e.currentTarget.src = "/icons/default.svg"; }}
           />
         </div>
 
-        <h3>{card.user_name || "未命名"}</h3>
-        <p>生日：{card.birthday}</p>
-        <p>農曆生日：{card.lunar_birthday}</p>
-        <p>生肖：{card.zodiac}</p>
-        <p>星座：{card.constellation}</p>
-        <p>血型：{card.blood_type}</p>
-        <p>嗜好：{card.hobbies}</p>
-        <p>出生時辰：{card.birth_time}</p>
-        <hr />
-        <p>目前點數：<strong>{card.points}</strong></p>
+        {isFirstOpen ? (
+          <>
+            <h3 className={styles.titleH3}>{card.user_name || "未命名"}</h3>
+            <p>生日：{card.birthday}</p>
+            <p>農曆生日：{card.lunar_birthday}</p>
+            <p>生肖：{card.zodiac}</p>
+            <p>星座：{card.constellation}</p>
+            <p>血型：{card.blood_type}</p>
+            <p>嗜好：{card.hobbies}</p>
+            <p>出生時辰：{card.birth_time}</p>
+            <hr />
+            <p>目前點數：<strong>{card.points}</strong></p>
+          </>
+        ) : (
+          <>
+            <h3 className={styles.titleH3}>{card.user_name || "未命名"}</h3>
+            <p>生日：{card.birthday}</p>
+            <hr />
+            <p>目前點數：<strong>{card.points}</strong></p>
+          </>
+        )}
       </div>
     </div>
   );
