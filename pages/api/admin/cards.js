@@ -3,101 +3,89 @@ import { redis } from "../../../lib/redis";
 import jwt from "jsonwebtoken";
 
 export default async function handler(req, res) {
-  const { method } = req;
-
-  // ✅ 管理端驗證
-  const token = req.headers.authorization?.split(" ")[1];
-  if (!token) return res.status(401).json({ error: "未授權" });
-
+  // 🔐 驗證管理員 JWT
+  const auth = req.headers.authorization;
+  if (!auth) return res.status(401).json({ error: "未授權" });
+  const token = auth.replace("Bearer ", "");
   try {
     jwt.verify(token, process.env.JWT_SECRET);
-  } catch (err) {
+  } catch {
     return res.status(401).json({ error: "Token 無效" });
   }
 
-  // 📌 讀取全部卡片資料（列表）
-  if (method === "GET") {
-    try {
-      const keys = await redis.keys("card:*");
-      const cards = await Promise.all(
-        keys.map(async (key) => {
-          let data = null;
+  const keyPrefix = "card:";
 
-          // 先嘗試 JSON
-          const str = await redis.get(key);
-          if (str) {
-            try {
-              data = JSON.parse(str);
-            } catch (e) {
-              console.error(`JSON parse error on ${key}`, e);
-            }
-          }
-
-          // 若 JSON 沒有，就試 Hash
-          if (!data) {
-            const hash = await redis.hgetall(key);
-            if (hash && Object.keys(hash).length > 0) {
-              data = hash;
-            }
-          }
-
-          // 組合預設值，避免 undefined 導致前端表格出錯
-          const uid = data?.uid || key.replace("card:", "");
-          return {
-            uid,
-            user_name: data?.user_name || "-",
-            birthday: data?.birthday || "-",
-            status: data?.status || "-",
-            points: Number(data?.points || 0),
-            last_seen: data?.last_seen || "-",
-          };
-        })
-      );
-
-      return res.json({ cards });
-    } catch (err) {
-      console.error("admin/cards GET error", err);
-      return res.status(500).json({ error: "伺服器錯誤" });
+  try {
+    // 📋 讀取所有卡片
+    if (req.method === "GET") {
+      const keys = await redis.keys(`${keyPrefix}*`);
+      const cards = [];
+      for (const k of keys) {
+        const val = await redis.get(k);
+        if (!val) continue;
+        try {
+          const obj = JSON.parse(val);
+          cards.push(obj);
+        } catch {
+          // 若是 hash fallback
+          const hash = await redis.hgetall(k);
+          if (hash && Object.keys(hash).length > 0) cards.push(hash);
+        }
+      }
+      return res.json({ ok: true, cards });
     }
-  }
 
-  // 📌 批次匯入 CSV
-  if (method === "POST") {
-    try {
-      const { csv } = req.body;
-      if (!csv) return res.status(400).json({ error: "缺少 CSV 內容" });
+    // ➕ 新增單張 or 批次匯入
+    if (req.method === "POST") {
+      const { mode } = req.body;
 
-      const lines = csv.trim().split("\n");
-      const header = lines.shift().split(",");
-      const uidIdx = header.indexOf("uid");
-      const birthdayIdx = header.indexOf("birthday");
-      const pointsIdx = header.indexOf("points");
-
-      if (uidIdx === -1) return res.status(400).json({ error: "CSV 缺少 uid 欄位" });
-
-      for (const line of lines) {
-        const cols = line.split(",");
-        const uid = cols[uidIdx];
-        const birthday = birthdayIdx !== -1 ? cols[birthdayIdx] : "";
-        const points = pointsIdx !== -1 ? Number(cols[pointsIdx]) : 0;
-
-        const card = {
-          uid,
-          birthday,
-          points,
-          status: "PENDING",
-          created_at: Date.now(),
-        };
-
-        await redis.set(`card:${uid}`, JSON.stringify(card));
+      if (mode === "single") {
+        const { card } = req.body;
+        if (!card.uid) return res.status(400).json({ error: "缺少 UID" });
+        await redis.set(`${keyPrefix}${card.uid}`, JSON.stringify(card));
+        return res.json({ ok: true });
       }
 
-      return res.json({ ok: true });
-    } catch (err) {
-      console.error("admin/cards POST error", err);
-      return res.status(500).json({ error: "伺服器錯誤" });
+      if (mode === "csv") {
+        const { csvText } = req.body;
+        if (!csvText) return res.status(400).json({ error: "缺少 CSV" });
+        const lines = csvText.trim().split("\n");
+        let created = 0;
+        for (let i = 1; i < lines.length; i++) {
+          const [uid, birthday, points] = lines[i].split(",");
+          if (!uid) continue;
+          const card = {
+            uid,
+            birthday,
+            points: Number(points) || 0,
+            status: "PENDING",
+          };
+          await redis.set(`${keyPrefix}${uid}`, JSON.stringify(card));
+          created++;
+        }
+        return res.json({ ok: true, created });
+      }
     }
-  }
 
-  return res.status(405).end();
+    // ✏️ 編輯卡片
+    if (req.method === "PATCH") {
+      const { card } = req.body;
+      if (!card || !card.uid) return res.status(400).json({ error: "缺少卡片資料" });
+      await redis.set(`${keyPrefix}${card.uid}`, JSON.stringify(card));
+      return res.json({ ok: true });
+    }
+
+    // 🗑 刪除卡片
+    if (req.method === "DELETE") {
+      const { uid } = req.body;
+      if (!uid) return res.status(400).json({ error: "缺少 UID" });
+      await redis.del(`${keyPrefix}${uid}`);
+      return res.json({ ok: true });
+    }
+
+    res.status(405).json({ error: "Method Not Allowed" });
+  } catch (err) {
+    console.error("cards.js error:", err);
+    res.status(500).json({ error: "伺服器錯誤" });
+  }
 }
