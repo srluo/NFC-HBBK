@@ -1,6 +1,7 @@
 "use client";
 import { useState, useEffect } from "react";
 import styles from "./book.module.css";
+import { zodiacMap, constellationMap } from "../../lib/iconMap";
 
 export default function Book() {
   const [status, setStatus] = useState("loading");
@@ -42,13 +43,13 @@ export default function Book() {
       <div className={styles.card}>
         <div className={styles.iconBox}>
           <img
-            src={`/icons/constellation/${card.constellation}.svg`}
+            src={`/icons/constellation/${constellationMap[card.constellation] || "default"}.svg`}
             alt={card.constellation}
             className={styles.icon}
             onError={(e) => { e.target.src = "/icons/default.svg"; }}
           />
           <img
-            src={`/icons/zodiac/${card.zodiac}.svg`}
+            src={`/icons/zodiac/${zodiacMap[card.zodiac] || "default"}.svg`}
             alt={card.zodiac}
             className={styles.icon}
             onError={(e) => { e.target.src = "/icons/default.svg"; }}
