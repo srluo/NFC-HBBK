@@ -1,4 +1,3 @@
-
 import { redis } from "../../lib/redis";
 import { calcZodiac } from "../../lib/zodiac";
 
@@ -16,7 +15,7 @@ function safeNowString() {
       second: "2-digit",
     });
     return fmt.format(now);
-  } catch {
+  } catch (e) {
     const t = new Date(now.getTime() + 8 * 60 * 60 * 1000);
     return t.toISOString().replace("T", " ").slice(0, 19);
   }
@@ -27,13 +26,17 @@ async function readCard(uid) {
   try {
     const str = await redis.get(key);
     if (typeof str === "string") {
-      try { return JSON.parse(str); } catch {}
+      try { return JSON.parse(str); } catch (e) { console.error("JSON parse error", e); }
     }
-  } catch {}
+  } catch (e) {
+    console.error("redis.get error", e);
+  }
   try {
     const hash = await redis.hgetall(key);
     if (hash && Object.keys(hash).length > 0) return hash;
-  } catch {}
+  } catch (e) {
+    console.error("redis.hgetall error", e);
+  }
   return null;
 }
 
@@ -46,24 +49,31 @@ export default async function handler(req, res) {
   if (req.method !== "POST") return res.status(405).end();
 
   try {
-    const { token, user_name, blood_type, hobbies, birth_time, birthday: d } = req.body || {};
-    if (!token || !user_name || !d) {
-      return res.status(400).json({ error: "缺少必要參數" });
+    const { token, user_name, blood_type, hobbies, birth_time, birthday } = req.body || {};
+    if (!token || !user_name || !birthday) {
+      return res.status(400).json({ error: "缺少必要參數", got: req.body });
     }
 
-    const [uid, birthdayFromToken, issuedAt, ts] = Buffer.from(token, "base64").toString().split(":");
+    // 解析 token
+    const [uid, issuedBirthday, issuedAt, ts] = Buffer.from(token, "base64")
+      .toString()
+      .split(":");
 
-    const { lunarDate, zodiac, constellation } = calcZodiac(d);
+    // 用生日計算農曆/生肖/星座
+    const { lunarDate, zodiac, constellation } = calcZodiac(birthday);
 
+    // 讀取原有資料
     let existing = (await readCard(uid)) || {};
 
+    // 判斷是否第一次 ACTIVE
     let first_time = false;
     let points = Number(existing.points || 0);
     if (!existing.status || existing.status !== "ACTIVE") {
-      points += 20; // 開卡禮
+      points += 20; // 🎁 開卡禮只送一次
       first_time = true;
     }
 
+    // merge 更新
     const card = {
       ...existing,
       uid,
@@ -72,7 +82,7 @@ export default async function handler(req, res) {
       blood_type: blood_type || existing.blood_type || "",
       hobbies: hobbies || existing.hobbies || "",
       birth_time: birth_time || existing.birth_time || "",
-      birthday: d,
+      birthday,                // ✅ 保持清楚語意
       lunar_birthday: lunarDate,
       zodiac,
       constellation,
