@@ -1,6 +1,5 @@
 import { redis } from "../../../lib/redis";
 import jwt from "jsonwebtoken";
-console.log("REDIS_URL:", process.env.UPSTASH_REDIS_REST_URL);
 
 export default async function handler(req, res) {
   const auth = req.headers.authorization || "";
@@ -12,65 +11,40 @@ export default async function handler(req, res) {
   } catch (e) {
     return res.status(401).json({ error: "無效 token" });
   }
-  
+
   if (req.method === "GET") {
-    const keys = await redis.keys("card:*");
-    const cards = [];
-    for (const k of keys) {
-      const str = await redis.get(k);
-      if (!str) continue;
-      try {
-        const obj = JSON.parse(str);
-        if (!obj.uid) obj.uid = k.replace("card:", "");
-        cards.push(obj);
-      } catch (e) {
-        console.warn(`⚠️ parse error: ${k}`, e);
+    try {
+      const keys = await redis.keys("card:*");
+      console.log("📝 Redis keys:", keys);
+
+      const cards = [];
+      for (const k of keys) {
+        try {
+          const str = await redis.get(k);
+
+          if (!str) continue;
+          if (str === "[object Object]") {
+            console.warn(`⚠️ 壞資料 ${k}，自動刪除`);
+            await redis.del(k);
+            continue;
+          }
+
+          const obj = JSON.parse(str);
+          if (!obj.uid) obj.uid = k.replace("card:", "");
+          cards.push(obj);
+
+        } catch (e) {
+          console.warn(`⚠️ parse error: ${k}`, e);
+          // 自動刪除 parse 失敗的 key，避免下次再炸
+          await redis.del(k);
+        }
       }
-    }
-    return res.json({ ok: true, cards });
-  }
 
-  if (req.method === "POST") {
-    const { mode, card, csvText } = req.body || {};
-    if (mode === "single" && card) {
-      const key = `card:${card.uid}`;
-      await redis.set(key, JSON.stringify(card));
-      return res.json({ ok: true });
+      return res.json({ ok: true, cards });
+    } catch (e) {
+      console.error("admin/cards fatal error:", e);
+      return res.status(500).json({ error: "伺服器錯誤" });
     }
-    if (mode === "csv" && csvText) {
-      const rows = csvText.trim().split("\n").slice(1);
-      let created = 0;
-      for (const row of rows) {
-        const [uid, birthday, points] = row.split(",");
-        if (!uid) continue;
-        const card = {
-          uid,
-          birthday,
-          points: Number(points) || 0,
-          status: "PENDING",
-          updated_at: Date.now(),
-        };
-        await redis.set(`card:${uid}`, JSON.stringify(card));
-        created++;
-      }
-      return res.json({ ok: true, created });
-    }
-    return res.status(400).json({ error: "未知操作" });
-  }
-
-  if (req.method === "PATCH") {
-    const { card } = req.body || {};
-    if (!card?.uid) return res.status(400).json({ error: "缺少 UID" });
-    const key = `card:${card.uid}`;
-    await redis.set(key, JSON.stringify(card));
-    return res.json({ ok: true });
-  }
-
-  if (req.method === "DELETE") {
-    const { uid } = req.body || {};
-    if (!uid) return res.status(400).json({ error: "缺少 UID" });
-    await redis.del(`card:${uid}`);
-    return res.json({ ok: true });
   }
 
   return res.status(405).end();
