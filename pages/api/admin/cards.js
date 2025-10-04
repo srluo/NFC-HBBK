@@ -15,6 +15,7 @@ export default async function handler(req, res) {
   if (req.method === "GET") {
     const keys = await redis.keys("card:*");
     const cards = [];
+    console.log("REDIS_URL:", process.env.UPSTASH_REDIS_REST_URL);
     for (const k of keys) {
       const str = await redis.get(k);
       if (!str) continue;
