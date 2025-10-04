@@ -14,7 +14,9 @@ export default async function handler(req, res) {
 
   if (req.method === "GET") {
     try {
-      const keys = await redis.keys("card:*");
+      //const keys = await redis.keys("card:*");
+      const keys = await redis.keys("*");
+      console.log("ALL Redis keys:", keys);
       const cards = [];
       for (const k of keys) {
         const str = await redis.get(k);
