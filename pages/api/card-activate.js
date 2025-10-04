@@ -15,23 +15,38 @@ function safeNowString() {
       second: "2-digit",
     });
     return fmt.format(now);
-  } catch {
+  } catch (e) {
     const t = new Date(now.getTime() + 8 * 60 * 60 * 1000);
     return t.toISOString().replace("T", " ").slice(0, 19);
   }
 }
 
-// ✅ 改成從 HASH 讀
+// ✅ 改為讀取 Hash
 async function readCard(uid) {
   const key = `card:${uid}`;
-  const hash = await redis.hgetall(key);
-  return Object.keys(hash).length > 0 ? hash : null;
+  try {
+    const hash = await redis.hgetall(key);
+    if (hash && Object.keys(hash).length > 0) return hash;
+    return null;
+  } catch (e) {
+    console.error("❌ redis.hgetall error:", e);
+    return null;
+  }
 }
 
-// ✅ 改成寫入 HASH（覆蓋/新增欄位）
+// ✅ 改為寫入 Hash
 async function writeCard(uid, card) {
   const key = `card:${uid}`;
-  await redis.hset(key, card);
+  try {
+    // 轉換數值 → 字串，確保一致性
+    const hashData = {};
+    for (const [k, v] of Object.entries(card)) {
+      hashData[k] = typeof v === "string" ? v : JSON.stringify(v);
+    }
+    await redis.hset(key, hashData);
+  } catch (e) {
+    console.error("❌ redis.hset error:", e);
+  }
 }
 
 export default async function handler(req, res) {
@@ -43,22 +58,26 @@ export default async function handler(req, res) {
       return res.status(400).json({ error: "缺少必要參數", got: req.body });
     }
 
+    // 解析 token
     const [uid, issuedBirthday, issuedAt, ts] = Buffer.from(token, "base64")
       .toString()
       .split(":");
 
+    // 計算生肖 / 星座 / 農曆
     const { lunarDate, zodiac, constellation } = calcZodiac(birthday);
 
+    // 讀取原有資料（Hash）
     const existing = (await readCard(uid)) || {};
 
-    // 點數判斷
+    // 判斷是否第一次 ACTIVE
     let first_time = false;
     let points = Number(existing.points || 0);
     if (!existing.status || existing.status !== "ACTIVE") {
-      points += 20;
+      points += 20; // 🎁 開卡禮
       first_time = true;
     }
 
+    // 組合新資料
     const card = {
       ...existing,
       uid,
@@ -77,6 +96,7 @@ export default async function handler(req, res) {
       updated_at: Date.now().toString(),
     };
 
+    // 寫回 Hash
     await writeCard(uid, card);
 
     return res.json({ ok: true, first_time, card });
