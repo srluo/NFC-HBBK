@@ -23,23 +23,18 @@ function safeNowString() {
 
 async function readCard(uid) {
   const key = `card:${uid}`;
-  try {
-    const str = await redis.get(key);
-    if (!str) return null;
-    return JSON.parse(str);
-  } catch (e) {
-    console.error("❌ redis.get or JSON.parse error:", e);
-    return null;
-  }
+  const hash = await redis.hgetall(key);
+  return Object.keys(hash).length > 0 ? hash : null;
 }
 
 async function writeCard(uid, card) {
   const key = `card:${uid}`;
-  try {
-    await redis.set(key, JSON.stringify(card));
-  } catch (e) {
-    console.error("❌ redis.set error:", e);
+  // Redis hash 的值一律是字串
+  const strCard = {};
+  for (const [k, v] of Object.entries(card)) {
+    strCard[k] = typeof v === "string" ? v : JSON.stringify(v).replace(/^"|"$/g, '');
   }
+  await redis.hset(key, strCard);
 }
 
 export default async function handler(req, res) {
@@ -59,7 +54,7 @@ export default async function handler(req, res) {
     // 計算生肖 / 星座 / 農曆
     const { lunarDate, zodiac, constellation } = calcZodiac(birthday);
 
-    // 讀取原有資料
+    // 讀取原有資料（hash）
     const existing = (await readCard(uid)) || {};
 
     // 判斷是否第一次 ACTIVE
@@ -83,13 +78,13 @@ export default async function handler(req, res) {
       lunar_birthday: lunarDate,
       zodiac,
       constellation,
-      points,
-      last_ts: ts || existing.last_ts,
+      points: String(points),
+      last_ts: ts || existing.last_ts || "",
       last_seen: safeNowString(),
-      updated_at: Date.now(),
+      updated_at: String(Date.now()),
     };
 
-    // 寫回 Redis（JSON）
+    // 寫回 Redis（HASH）
     await writeCard(uid, card);
 
     return res.json({ ok: true, first_time, card });
