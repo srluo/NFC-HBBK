@@ -8,44 +8,49 @@ export default async function handler(req, res) {
 
   try {
     jwt.verify(token, process.env.JWT_SECRET);
-  } catch (e) {
+  } catch {
     return res.status(401).json({ error: "無效 token" });
   }
 
+  // 讀取全部
   if (req.method === "GET") {
-    try {
-      const keys = await redis.keys("card:*");
-      console.log("📝 Redis keys:", keys);
+    const keys = await redis.keys("card:*");
+    const cards = [];
+    for (const k of keys) {
+      const hash = await redis.hgetall(k);
+      if (Object.keys(hash).length > 0) cards.push(hash);
+    }
+    return res.json({ ok: true, cards });
+  }
 
-      const cards = [];
-      for (const k of keys) {
-        try {
-          const str = await redis.get(k);
-
-          if (!str) continue;
-          if (str === "[object Object]") {
-            console.warn(`⚠️ 壞資料 ${k}，自動刪除`);
-            await redis.del(k);
-            continue;
-          }
-
-          const obj = JSON.parse(str);
-          if (!obj.uid) obj.uid = k.replace("card:", "");
-          cards.push(obj);
-
-        } catch (e) {
-          console.warn(`⚠️ parse error: ${k}`, e);
-          // 自動刪除 parse 失敗的 key，避免下次再炸
-          await redis.del(k);
-        }
+  // 新增 / 批次匯入 / 編輯
+  if (req.method === "POST" || req.method === "PATCH") {
+    const { mode, card, csvText } = req.body || {};
+    if (mode === "single" || mode === "patch") {
+      if (!card?.uid) return res.status(400).json({ error: "缺少 UID" });
+      await redis.hset(`card:${card.uid}`, card);
+      return res.json({ ok: true });
+    }
+    if (mode === "csv" && csvText) {
+      const lines = csvText.trim().split("\n").slice(1);
+      let created = 0;
+      for (const line of lines) {
+        const [uid, birthday, points] = line.split(",");
+        if (!uid) continue;
+        await redis.hset(`card:${uid}`, { uid, birthday, points, status: "PENDING" });
+        created++;
       }
-
-      return res.json({ ok: true, cards });
-    } catch (e) {
-      console.error("admin/cards fatal error:", e);
-      return res.status(500).json({ error: "伺服器錯誤" });
+      return res.json({ ok: true, created });
     }
   }
 
-  return res.status(405).end();
+  // 刪除
+  if (req.method === "DELETE") {
+    const { uid } = req.body || {};
+    if (!uid) return res.status(400).json({ error: "缺少 UID" });
+    await redis.del(`card:${uid}`);
+    return res.json({ ok: true });
+  }
+
+  res.status(405).end();
 }
