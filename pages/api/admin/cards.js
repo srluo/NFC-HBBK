@@ -1,5 +1,6 @@
 import { redis } from "../../../lib/redis";
 import jwt from "jsonwebtoken";
+console.log("REDIS_URL:", process.env.UPSTASH_REDIS_REST_URL);
 
 export default async function handler(req, res) {
   const auth = req.headers.authorization || "";
@@ -11,7 +12,7 @@ export default async function handler(req, res) {
   } catch (e) {
     return res.status(401).json({ error: "無效 token" });
   }
-  console.log("REDIS_URL:", process.env.UPSTASH_REDIS_REST_URL);
+  
   if (req.method === "GET") {
     const keys = await redis.keys("card:*");
     const cards = [];
