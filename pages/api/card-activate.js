@@ -15,37 +15,23 @@ function safeNowString() {
       second: "2-digit",
     });
     return fmt.format(now);
-  } catch (e) {
+  } catch {
     const t = new Date(now.getTime() + 8 * 60 * 60 * 1000);
     return t.toISOString().replace("T", " ").slice(0, 19);
   }
 }
 
-// ✅ 改成 Hash 讀取
+// ✅ 改成從 HASH 讀
 async function readCard(uid) {
   const key = `card:${uid}`;
-  try {
-    const hash = await redis.hgetall(key);
-    if (hash && Object.keys(hash).length > 0) {
-      // 數字欄位轉型
-      if (hash.points) hash.points = Number(hash.points);
-      return hash;
-    }
-    return null;
-  } catch (e) {
-    console.error("❌ redis.hgetall error:", e);
-    return null;
-  }
+  const hash = await redis.hgetall(key);
+  return Object.keys(hash).length > 0 ? hash : null;
 }
 
-// ✅ 改成 Hash 寫入
+// ✅ 改成寫入 HASH（覆蓋/新增欄位）
 async function writeCard(uid, card) {
   const key = `card:${uid}`;
-  try {
-    await redis.hset(key, card);
-  } catch (e) {
-    console.error("❌ redis.hset error:", e);
-  }
+  await redis.hset(key, card);
 }
 
 export default async function handler(req, res) {
@@ -57,26 +43,22 @@ export default async function handler(req, res) {
       return res.status(400).json({ error: "缺少必要參數", got: req.body });
     }
 
-    // 解析 token
     const [uid, issuedBirthday, issuedAt, ts] = Buffer.from(token, "base64")
       .toString()
       .split(":");
 
-    // 計算生肖 / 星座 / 農曆
     const { lunarDate, zodiac, constellation } = calcZodiac(birthday);
 
-    // 讀取原有資料
     const existing = (await readCard(uid)) || {};
 
-    // 判斷是否第一次 ACTIVE
+    // 點數判斷
     let first_time = false;
     let points = Number(existing.points || 0);
     if (!existing.status || existing.status !== "ACTIVE") {
-      points += 20; // 🎁 開卡禮
+      points += 20;
       first_time = true;
     }
 
-    // 合併新資料
     const card = {
       ...existing,
       uid,
@@ -89,13 +71,12 @@ export default async function handler(req, res) {
       lunar_birthday: lunarDate,
       zodiac,
       constellation,
-      points,
-      last_ts: ts || existing.last_ts,
+      points: points.toString(),
+      last_ts: ts || existing.last_ts || "",
       last_seen: safeNowString(),
-      updated_at: Date.now(),
+      updated_at: Date.now().toString(),
     };
 
-    // ✅ Hash 寫回 Redis
     await writeCard(uid, card);
 
     return res.json({ ok: true, first_time, card });
