@@ -25,24 +25,21 @@ async function readCard(uid) {
   const key = `card:${uid}`;
   try {
     const str = await redis.get(key);
-    if (typeof str === "string") {
-      try { return JSON.parse(str); } catch (e) { console.error("JSON parse error", e); }
-    }
+    if (!str) return null;
+    return JSON.parse(str);
   } catch (e) {
-    console.error("redis.get error", e);
+    console.error("❌ redis.get or JSON.parse error:", e);
+    return null;
   }
-  try {
-    const hash = await redis.hgetall(key);
-    if (hash && Object.keys(hash).length > 0) return hash;
-  } catch (e) {
-    console.error("redis.hgetall error", e);
-  }
-  return null;
 }
 
 async function writeCard(uid, card) {
   const key = `card:${uid}`;
-  await redis.set(key, JSON.stringify(card));
+  try {
+    await redis.set(key, JSON.stringify(card));
+  } catch (e) {
+    console.error("❌ redis.set error:", e);
+  }
 }
 
 export default async function handler(req, res) {
@@ -59,21 +56,21 @@ export default async function handler(req, res) {
       .toString()
       .split(":");
 
-    // 用生日計算農曆/生肖/星座
+    // 計算生肖 / 星座 / 農曆
     const { lunarDate, zodiac, constellation } = calcZodiac(birthday);
 
     // 讀取原有資料
-    let existing = (await readCard(uid)) || {};
+    const existing = (await readCard(uid)) || {};
 
     // 判斷是否第一次 ACTIVE
     let first_time = false;
     let points = Number(existing.points || 0);
     if (!existing.status || existing.status !== "ACTIVE") {
-      points += 20; // 🎁 開卡禮只送一次
+      points += 20; // 🎁 開卡禮
       first_time = true;
     }
 
-    // merge 更新
+    // 合併新資料
     const card = {
       ...existing,
       uid,
@@ -82,7 +79,7 @@ export default async function handler(req, res) {
       blood_type: blood_type || existing.blood_type || "",
       hobbies: hobbies || existing.hobbies || "",
       birth_time: birth_time || existing.birth_time || "",
-      birthday,                // ✅ 保持清楚語意
+      birthday,
       lunar_birthday: lunarDate,
       zodiac,
       constellation,
@@ -92,6 +89,7 @@ export default async function handler(req, res) {
       updated_at: Date.now(),
     };
 
+    // 寫回 Redis（JSON）
     await writeCard(uid, card);
 
     return res.json({ ok: true, first_time, card });
