@@ -11,11 +11,10 @@ export default async function handler(req, res) {
   } catch (e) {
     return res.status(401).json({ error: "無效 token" });
   }
-
+  console.log("REDIS_URL:", process.env.UPSTASH_REDIS_REST_URL);
   if (req.method === "GET") {
     const keys = await redis.keys("card:*");
     const cards = [];
-    console.log("REDIS_URL:", process.env.UPSTASH_REDIS_REST_URL);
     for (const k of keys) {
       const str = await redis.get(k);
       if (!str) continue;
