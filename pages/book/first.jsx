@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import styles from "./first.module.css";
 import { zodiacMap, constellationMap } from "../../lib/iconMap";
+import { getLuckyNumber } from "@/lib/luckyNumber";  // ⬅️ 新增這行
 
 export default function FirstBookPage() {
   const [card, setCard] = useState(null);
@@ -15,6 +16,7 @@ export default function FirstBookPage() {
   const router = useRouter();
   const token = searchParams.get("token");
 
+  // 🟡 第一步：抓卡片資料
   useEffect(() => {
     if (!token) {
       setStatus("❌ 缺少 token");
@@ -28,7 +30,21 @@ export default function FirstBookPage() {
         const data = await res.json();
         if (res.ok && data.card) {
           console.log("[first.jsx] getCard response:", data);
-          setCard(data.card);
+
+          // 🟢 計算幸運數字
+          let lucky = null;
+          if (data.card.birthday) {
+            const { masterNumber, number } = getLuckyNumber(data.card.birthday.toString());
+            lucky = masterNumber
+              ? `⭐ ${masterNumber}（大師數字）`
+              : number;
+          }
+
+          setCard({
+            ...data.card,
+            lucky_number: lucky || null, // ⬅️ 將 lucky number 注入 card 狀態
+          });
+
           setStatus("ok");
         } else {
           setStatus(`❌ ${data.error || "讀取失敗"}`);
