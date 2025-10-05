@@ -41,7 +41,7 @@ export default async function handler(req, res) {
     const rlc = uuid.slice(24);
 
     if (tp !== "HB") {
-      return res.status(400).json({ ok: false, error: "TP 不符" });
+      return res.status(400).json({ ok: false, error: "TP 不符（非生日卡）" });
     }
     if (ts.length !== 8 || rlc.length !== 8) {
       return res.status(400).json({ ok: false, error: "TS / RLC 長度錯誤" });
@@ -65,7 +65,7 @@ export default async function handler(req, res) {
     }
 
     if (card.last_ts && hexLE(ts, card.last_ts)) {
-      return res.status(403).json({ ok: false, error: "TS 不合法 (重播攻擊)" });
+      return res.status(403).json({ ok: false, error: "TS 已過期 (無效網址)" });
     }
 
     await redis.hset(key, {
