@@ -1,29 +1,34 @@
 "use client";
 import { useEffect, useState } from "react";
-import { useRouter } from "next/router";
-import styles from "./book.module.css";
+import { useSearchParams, useRouter } from "next/navigation";
+import styles from "./first.module.css";
 import { zodiacMap, constellationMap } from "../../lib/iconMap";
 
-export default function FirstOpenBook() {
-  const router = useRouter();
-  const { token } = router.query;
+export default function FirstBookPage() {
   const [card, setCard] = useState(null);
   const [symbols, setSymbols] = useState(null);
   const [quote, setQuote] = useState("");
   const [status, setStatus] = useState("loading");
 
+  const searchParams = useSearchParams();
+  const router = useRouter();
+  const token = searchParams.get("token");
+
   useEffect(() => {
-    if (!token) return;
+    if (!token) {
+      setStatus("❌ 缺少 token");
+      return;
+    }
 
     async function fetchCard() {
       try {
         const res = await fetch(`/api/getCard?token=${token}`);
         const data = await res.json();
-        if (!res.ok || data.error) {
-          setStatus(`❌ 錯誤: ${data.error || "讀取失敗"}`);
-        } else {
+        if (res.ok && !data.error) {
           setCard(data.card);
           setStatus("ok");
+        } else {
+          setStatus(`❌ ${data.error || "讀取失敗"}`);
         }
       } catch (err) {
         console.error(err);
@@ -34,20 +39,25 @@ export default function FirstOpenBook() {
     fetchCard();
   }, [token]);
 
+  // 🌸💎🔢 + 每日一句
   useEffect(() => {
     if (!card) return;
-    // 載入 symbols.json
+
+    // 1. symbols.json
     fetch("/data/symbols.json")
-      .then(res => res.json())
-      .then(data => {
-        const month = parseInt(card.birthday.slice(4, 6), 10);
-        const symbol = data.find(item => item.month === month);
+      .then((res) => res.json())
+      .then((data) => {
+        const month = parseInt(card.birthday.slice(5, 7), 10);
+        const symbol = data.find((item) => item.month === month);
         setSymbols(symbol || null);
-      });
-    // 載入每日一句
+      })
+      .catch((err) => console.error("symbols.json error", err));
+
+    // 2. dailyQuote API
     fetch("/api/dailyQuote")
-      .then(res => res.json())
-      .then(data => setQuote(data.quote));
+      .then((res) => res.json())
+      .then((data) => setQuote(data.quote))
+      .catch((err) => console.error("dailyQuote error", err));
   }, [card]);
 
   if (status === "loading") return <p className={styles.loading}>⏳ 載入中...</p>;
@@ -55,68 +65,57 @@ export default function FirstOpenBook() {
 
   return (
     <div className={styles.container}>
-      <div className={styles.card}>
-        {/* 星座 & 生肖 ICON */}
+      {/* 大標題區塊 */}
+      <header className={styles.header}>
         <div className={styles.iconBox}>
           <img
             src={`/icons/constellation/${constellationMap[card.constellation] || "default"}.svg`}
             alt={card.constellation}
             className={styles.icon}
-            onError={(e) => { e.target.src = "/icons/default.svg"; }}
           />
           <img
             src={`/icons/zodiac/${zodiacMap[card.zodiac] || "default"}.svg`}
             alt={card.zodiac}
             className={styles.icon}
-            onError={(e) => { e.target.src = "/icons/default.svg"; }}
           />
         </div>
+        <h1 className={styles.title}>{card.user_name || "你的生日書"}</h1>
+        <p className={styles.subtitle}>
+          {card.birthday} ｜ {card.constellation}座 · {card.zodiac}
+        </p>
+      </header>
 
-        <h2 className={styles.title}>🎁 {card.user_name} 的生日書</h2>
-        <p className={styles.paragraph}>生日：{card.birthday}</p>
-        <p className={styles.paragraph}>農曆生日：{card.lunar_birthday}</p>
-        <p className={styles.paragraph}>生肖：{card.zodiac}</p>
-        <p className={styles.paragraph}>星座：{card.constellation}</p>
-
-        {/* 🌸💎🔢 象徵區 */}
-        {symbols && (
-          <div style={{ textAlign: "center", margin: "1rem 0" }}>
-            <p>🌸 {symbols.flower}　💎 {symbols.stone}　🔢 {symbols.number}</p>
-          </div>
+      {/* 生日象徵與描述 */}
+      <section className={styles.section}>
+        <h2>🌸 生日象徵</h2>
+        {symbols ? (
+          <p>
+            🌸 {symbols.flower}　💎 {symbols.stone}　🔢 {symbols.number}
+          </p>
+        ) : (
+          <p>資料載入中...</p>
         )}
+      </section>
 
-        {/* 🎉 開卡禮訊息 */}
-        <div style={{ textAlign: "center", marginTop: "1rem", marginBottom: "1rem" }}>
-          <p style={{ fontSize: "1.2rem", fontWeight: "bold" }}>🎉 恭喜開卡成功！</p>
-          <p>你獲得 <strong>{card.points}</strong> 點探索點數 🎈</p>
-        </div>
+      <section className={styles.section}>
+        <h2>✨ 性格描述</h2>
+        <p>這裡未來會放入根據生日生成的專屬性格描述。</p>
+      </section>
 
-        {/* 📜 每日一句 */}
-        {quote && (
-          <div style={{ textAlign: "center", marginTop: "1rem", fontStyle: "italic", color: "#555" }}>
-            「{quote}」
-          </div>
-        )}
+      <section className={styles.section}>
+        <h2>📅 今日行動建議</h2>
+        {quote ? <p>「{quote}」</p> : <p>載入中...</p>}
+      </section>
 
-        {/* 按鈕 → 進入一般頁面 */}
-        <div style={{ textAlign: "center", marginTop: "1.5rem" }}>
-          <button
-            style={{
-              padding: "10px 20px",
-              background: "#333",
-              color: "#fff",
-              borderRadius: "8px",
-              border: "none",
-              cursor: "pointer",
-            }}
-            onClick={() => {
-              router.push(`/book?token=${token}`);
-            }}
-          >
-            進入生日書 ➡
-          </button>
-        </div>
+      {/* 點數提示 */}
+      <div className={styles.walletBox}>
+        <p>🎉 恭喜獲得 <strong>{card.points}</strong> 點探索點數！</p>
       </div>
+
+      {/* 返回主頁 */}
+      <button className={styles.backBtn} onClick={() => router.push(`/book?token=${token}`)}>
+        返回卡片主頁
+      </button>
     </div>
   );
 }
