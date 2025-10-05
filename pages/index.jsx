@@ -54,7 +54,7 @@ export default function Home() {
       {errorMsg ? (
         <>
           <p style={{ fontSize: "1.2rem", color: "#d00", fontWeight: "bold" }}>⚠️ {errorMsg}</p>
-          <p style={{ marginTop: "1rem" }}>請重新感應生日卡以繼續。</p>
+          <p style={{ marginTop: "1rem" }}>請重新感應您的生日卡。</p>
         </>
       ) : (
         <p>🔄 驗證中，請稍候…</p>
