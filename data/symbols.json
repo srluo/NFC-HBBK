@@ -1,0 +1,17 @@
+{
+  "01": {
+    "flower": { "zh": "康乃馨", "en": "Carnation", "img": "carnation.svg" },
+    "stone": { "zh": "石榴石", "en": "Garnet", "img": "garnet.svg" },
+    "lucky_number": 1
+  },
+  "02": {
+    "flower": { "zh": "紫羅蘭", "en": "Violet", "img": "violet.svg" },
+    "stone": { "zh": "紫水晶", "en": "Amethyst", "img": "amethyst.svg" },
+    "lucky_number": 2
+  },
+  "03": {
+    "flower": { "zh": "水仙花", "en": "Daffodil", "img": "daffodil.svg" },
+    "stone": { "zh": "海藍寶", "en": "Aquamarine", "img": "aquamarine.svg" },
+    "lucky_number": 3
+  }
+}

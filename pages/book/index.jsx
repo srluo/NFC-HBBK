@@ -1,30 +1,39 @@
 "use client";
-import { useState, useEffect } from "react";
+import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import styles from "./book.module.css";
 import { zodiacMap, constellationMap } from "../../lib/iconMap";
 
 export default function Book() {
-  const [status, setStatus] = useState("loading");
   const [card, setCard] = useState(null);
+  const [status, setStatus] = useState("loading");
+  const [token, setToken] = useState(null);
+  const router = useRouter();
 
   useEffect(() => {
     const urlParams = new URLSearchParams(window.location.search);
-    const token = urlParams.get("token");
-
-    if (!token) {
+    const t = urlParams.get("token");
+    if (!t) {
       setStatus("❌ 缺少 token 參數");
       return;
     }
+    setToken(t);
 
     async function fetchCard() {
       try {
-        const res = await fetch(`/api/getCard?token=${token}`);
+        const res = await fetch(`/api/getCard?token=${t}`);
         const data = await res.json();
-        if (!res.ok || data.error) {
-          setStatus(`❌ 錯誤: ${data.error || "讀取失敗"}`);
-        } else {
+        if (res.ok && !data.error) {
+          // ✅ 首次開卡 → 自動跳轉到完整生日書頁面
+          if (data.is_first_open) {
+            router.replace(`/book/first?token=${t}`);
+            return;
+          }
+
           setCard(data.card);
           setStatus("ok");
+        } else {
+          setStatus(`❌ 錯誤: ${data.error || "讀取失敗"}`);
         }
       } catch (err) {
         console.error(err);
@@ -33,41 +42,47 @@ export default function Book() {
     }
 
     fetchCard();
-  }, []);
+  }, [router]);
 
   if (status === "loading") return <p className={styles.loading}>⏳ 載入中...</p>;
   if (status !== "ok") return <p className={styles.error}>{status}</p>;
 
   return (
     <div className={styles.container}>
-      <div className={styles.card}>
+      {/* 卡片封面區 */}
+      <div className={styles.cardHeader}>
         <div className={styles.iconBox}>
           <img
             src={`/icons/constellation/${constellationMap[card.constellation] || "default"}.svg`}
             alt={card.constellation}
             className={styles.icon}
-            onError={(e) => { e.target.src = "/icons/default.svg"; }}
           />
           <img
             src={`/icons/zodiac/${zodiacMap[card.zodiac] || "default"}.svg`}
             alt={card.zodiac}
             className={styles.icon}
-            onError={(e) => { e.target.src = "/icons/default.svg"; }}
           />
         </div>
+        <h3>{card.user_name || "未命名"}</h3>
+        <p>{card.birthday}</p>
+        <button
+          className={styles.expandBtn}
+          onClick={() => router.push(`/book/first?token=${token}`)}
+        >
+          📖 展開完整生日書
+        </button>
+      </div>
 
-        <h3 className={styles.title}>{card.user_name || "未命名"}</h3>
-        <p className={styles.paragraph}>生日：{card.birthday}</p>
-        <p className={styles.paragraph}>農曆生日：{card.lunar_birthday}</p>
-        <p className={styles.paragraph}>生肖：{card.zodiac}</p>
-        <p className={styles.paragraph}>星座：{card.constellation}</p>
-        <p className={styles.paragraph}>血型：{card.blood_type}</p>
-        <p className={styles.paragraph}>嗜好：{card.hobbies}</p>
-        <p className={styles.paragraph}>出生時辰：{card.birth_time}</p>
-        <hr />
-        <p className={styles.paragraph}>
-          目前點數：<strong>{card.points}</strong>
-        </p>
+      {/* 錢包區 */}
+      <div className={styles.walletBox}>
+        <p>目前點數：<strong>{card.points}</strong></p>
+      </div>
+
+      {/* 服務選單 */}
+      <div className={styles.menuBox}>
+        <button>🔮 占卜</button>
+        <button>🌠 紫微流年</button>
+        <button>🧠 MBTI 測驗</button>
       </div>
     </div>
   );

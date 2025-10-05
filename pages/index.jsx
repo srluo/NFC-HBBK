@@ -7,7 +7,7 @@ export default function Home() {
   const router = useRouter();
 
   useEffect(() => {
-    const run = async () => {
+    async function checkVerify() {
       const params = new URLSearchParams(window.location.search);
       const d = params.get("d");
       const uuid = params.get("uuid");
@@ -22,24 +22,31 @@ export default function Home() {
           return;
         }
 
+        const token = data.token;
+
         if (data.status === "PENDING") {
-          // ⏳ 尚未開卡 → 轉至 activate
-          router.push(`/activate?token=${encodeURIComponent(data.token)}&d=${d}`);
+          // 🟡 未開卡 → 跳轉 activate
+          router.push(`/activate?token=${token}&d=${d}`);
         } else if (data.status === "ACTIVE") {
-          // ✅ 已開卡 → 直接進入生日書頁
-          const uid = uuid.slice(0, 14);
-          router.push(`/book?uid=${uid}&token=${encodeURIComponent(data.token)}`);
-        } else {
-          alert("未知的卡片狀態：" + data.status);
+          // 🟢 已開卡 → 先查 getCard 判斷是否首次開啟
+          const checkRes = await fetch(`/api/getCard?token=${token}`);
+          const checkData = await checkRes.json();
+
+          if (checkRes.ok && checkData.is_first_open) {
+            // 🎁 首次開啟 → 跳轉禮物卡頁面
+            router.push(`/book/first?token=${token}`);
+          } else {
+            // 🔄 之後 → 一般卡片頁
+            router.push(`/book?token=${token}`);
+          }
         }
       } catch (err) {
         console.error("驗證錯誤:", err);
-        alert("系統錯誤，請重新感應");
       }
-    };
+    }
 
-    run();
+    checkVerify();
   }, [router]);
 
-  return <p>⏳ 驗證中，請稍候…</p>;
+  return <p>驗證中，請稍候…</p>;
 }

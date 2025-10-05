@@ -1,57 +1,104 @@
 .container {
-  font-family: "Microsoft JhengHei", "Noto Sans TC", sans-serif;
-  background: linear-gradient(135deg, #f9f5e7, #fceabb);
   min-height: 100vh;
-  padding: 2rem;
-  display: flex;
-  justify-content: center;
-  align-items: center;
+  background: linear-gradient(135deg, #fdfcfb, #e2d1c3);
+  padding: 1rem;
+  font-family: "Microsoft JhengHei", "Noto Sans TC", sans-serif;
 }
 
-.card {
-  background: #fff;
-  padding: 1.5rem;
-  border-radius: 16px;
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
-  width: 100%;
-  max-width: 420px;
+.loading, .error {
   text-align: center;
+  margin-top: 2rem;
+}
+
+.giftCard {
+  background: #fff;
+  border-radius: 20px;
+  padding: 1.5rem;
+  max-width: 420px;
+  margin: 2rem auto;
+  text-align: center;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.1);
+}
+
+.bigTitle {
+  font-size: 1.8rem;
+  margin-bottom: 1rem;
+  color: #d2691e;
 }
 
 .iconBox {
   display: flex;
   justify-content: center;
   gap: 1rem;
-  margin-bottom: 1rem;
+  margin: 1rem 0;
 }
 
 .icon {
-  width: 48px;
-  height: 48px;
+  width: 64px;
+  height: 64px;
 }
 
-.title {
+.userName {
   font-size: 1.5rem;
-  color: #d2691e;
-  margin-top: 0.5rem;
-  margin-bottom: 1rem;
+  margin: 0.5rem 0;
 }
 
 .paragraph {
-  margin: 0.3rem 0;
+  margin: 0.25rem 0;
   color: #555;
 }
 
-.loading {
-  text-align: center;
-  margin-top: 2rem;
-  font-size: 1.2rem;
-  color: #999;
+.giftBox {
+  background: #fff9e5;
+  padding: 0.8rem;
+  border-radius: 10px;
+  margin-top: 1rem;
+  font-weight: bold;
 }
 
-.error {
+.descBox {
+  margin-top: 1.5rem;
+  text-align: left;
+}
+
+/* 非首次登入 */
+.cardHeader {
+  background: #fff;
+  padding: 1rem;
+  border-radius: 16px;
+  max-width: 420px;
+  margin: 1rem auto;
   text-align: center;
-  margin-top: 2rem;
-  font-size: 1rem;
-  color: red;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+}
+
+.expandBtn {
+  margin-top: 0.5rem;
+  padding: 0.5rem 1rem;
+  border: none;
+  background: #d2691e;
+  color: #fff;
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+.walletBox, .menuBox {
+  background: #fff;
+  padding: 1rem;
+  border-radius: 16px;
+  max-width: 420px;
+  margin: 1rem auto;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+  text-align: center;
+}
+
+.menuBox button {
+  display: block;
+  width: 100%;
+  margin: 0.5rem 0;
+  padding: 0.6rem;
+  border: none;
+  background: #f0f0f0;
+  border-radius: 8px;
+  cursor: pointer;
 }
