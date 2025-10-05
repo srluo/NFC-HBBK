@@ -1,10 +1,11 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/router";
 
 export default function Home() {
   const router = useRouter();
+  const [errorMsg, setErrorMsg] = useState("");
 
   useEffect(() => {
     async function checkVerify() {
@@ -17,8 +18,9 @@ export default function Home() {
         const res = await fetch(`/api/verify?d=${d}&uuid=${uuid}`);
         const data = await res.json();
 
-        if (data.error) {
-          alert("驗證失敗：" + data.error);
+        if (!res.ok || data.error) {
+          console.warn("[index.jsx] 驗證失敗:", data.error);
+          setErrorMsg(data.error || "驗證失敗，請重新感應生日卡");
           return;
         }
 
@@ -28,25 +30,35 @@ export default function Home() {
           // 🟡 未開卡 → 跳轉 activate
           router.push(`/activate?token=${token}&d=${d}`);
         } else if (data.status === "ACTIVE") {
-          // 🟢 已開卡 → 先查 getCard 判斷是否首次開啟
+          // 🟢 已開卡 → 判斷首次開啟
           const checkRes = await fetch(`/api/getCard?token=${token}`);
           const checkData = await checkRes.json();
 
           if (checkRes.ok && checkData.is_first_open) {
-            // 🎁 首次開啟 → 跳轉禮物卡頁面
             router.push(`/book/first?token=${token}`);
           } else {
-            // 🔄 之後 → 一般卡片頁
             router.push(`/book?token=${token}`);
           }
         }
       } catch (err) {
         console.error("驗證錯誤:", err);
+        setErrorMsg("系統錯誤，請稍後再試");
       }
     }
 
     checkVerify();
   }, [router]);
 
-  return <p>驗證中，請稍候…</p>;
+  return (
+    <div style={{ textAlign: "center", marginTop: "3rem", fontFamily: "Microsoft JhengHei" }}>
+      {errorMsg ? (
+        <>
+          <p style={{ fontSize: "1.2rem", color: "#d00", fontWeight: "bold" }}>⚠️ {errorMsg}</p>
+          <p style={{ marginTop: "1rem" }}>請重新感應生日卡以繼續。</p>
+        </>
+      ) : (
+        <p>🔄 驗證中，請稍候…</p>
+      )}
+    </div>
+  );
 }
