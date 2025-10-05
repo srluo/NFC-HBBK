@@ -6,33 +6,25 @@ import { zodiacMap, constellationMap } from "../../lib/iconMap";
 
 export default function FirstBookPage() {
   const [card, setCard] = useState(null);
-  const [symbol, setSymbol] = useState(null);
   const [status, setStatus] = useState("loading");
+  const [symbolData, setSymbolData] = useState(null);
   const searchParams = useSearchParams();
   const router = useRouter();
   const token = searchParams.get("token");
 
+  // ✅ 載入生日卡資料
   useEffect(() => {
     if (!token) {
       setStatus("❌ 缺少 token");
       return;
     }
 
-    async function fetchData() {
+    async function fetchCard() {
       try {
-        // 1️⃣ 先抓卡片資料
         const res = await fetch(`/api/getCard?token=${token}`);
         const data = await res.json();
         if (res.ok && !data.error) {
           setCard(data.card);
-
-          // 2️⃣ 根據生日取出月份，載入 symbols.json
-          const month = Number(data.card.birthday.slice(4, 6));
-          const symRes = await fetch("/data/symbols.json");
-          const symData = await symRes.json();
-          const found = symData.find((item) => item.month === month);
-          setSymbol(found || null);
-
           setStatus("ok");
         } else {
           setStatus(`❌ ${data.error || "讀取失敗"}`);
@@ -43,15 +35,46 @@ export default function FirstBookPage() {
       }
     }
 
-    fetchData();
+    fetchCard();
   }, [token]);
+
+  // ✅ 載入 symbols.json（靜態生日象徵資料）
+  useEffect(() => {
+    async function loadSymbols() {
+      try {
+        const res = await fetch("/data/symbols.json");
+        if (!res.ok) {
+          console.error("❌ symbols.json 載入失敗", res.status);
+          return;
+        }
+        const data = await res.json();
+        setSymbolData(data);
+        console.log("✅ symbols.json 載入成功");
+      } catch (e) {
+        console.error("symbols.json 載入錯誤", e);
+      }
+    }
+    loadSymbols();
+  }, []);
 
   if (status === "loading") return <p className={styles.loading}>⏳ 載入中...</p>;
   if (status !== "ok") return <p className={styles.error}>{status}</p>;
 
+  // ✅ 確保生日格式正確，再取月份
+  let month = null;
+  if (card && typeof card.birthday === "string") {
+    // 格式：YYYYMMDD 或 YYYY-MM-DD
+    const clean = card.birthday.replace(/-/g, "");
+    if (clean.length >= 6) {
+      month = parseInt(clean.slice(4, 6), 10);
+    }
+  }
+
+  const symbol = symbolData?.find((s) => s.month === month);
+
   return (
     <div className={styles.container}>
-      {/* ⭐ 頭部區塊：圖示 + 名稱 + 生日 */}
+      {/* 大標題區塊 */}
       <header className={styles.header}>
         <div className={styles.iconBox}>
           <img
@@ -76,35 +99,33 @@ export default function FirstBookPage() {
         <h2>🌸 生日象徵</h2>
         {symbol ? (
           <div>
-            <p style={{ fontSize: "1.1rem" }}>
-              {symbol.symbol} {symbol.description}
-            </p>
-            <p>🌸 {symbol.flower}：{symbol.flower_meaning}</p>
-            <p>💎 {symbol.stone}：{symbol.stone_meaning}</p>
+            <p>{symbol.symbol} {symbol.flower}（{symbol.flower_meaning}）</p>
+            <p>💎 {symbol.stone}（{symbol.stone_meaning}）</p>
+            <p>{symbol.description}</p>
           </div>
         ) : (
           <p>資料載入中...</p>
         )}
       </section>
 
-      {/* ✨ 性格描述（預留） */}
+      {/* ✨ 性格描述（未來擴充） */}
       <section className={styles.section}>
         <h2>✨ 性格描述</h2>
         <p>這裡未來會放入根據生日生成的專屬性格描述。</p>
       </section>
 
-      {/* 📅 今日行動建議（預留每日一句） */}
+      {/* 📅 每日一句（暫時隨機） */}
       <section className={styles.section}>
         <h2>📅 今日行動建議</h2>
         <p>這裡會放入每日一句智慧或行動建議。</p>
       </section>
 
-      {/* 🎉 點數提示 */}
+      {/* 點數提示 */}
       <div className={styles.walletBox}>
         <p>🎉 恭喜獲得 <strong>{card.points}</strong> 點探索點數！</p>
       </div>
 
-      {/* 返回主頁按鈕 */}
+      {/* 返回主頁 */}
       <button className={styles.backBtn} onClick={() => router.push(`/book?token=${token}`)}>
         返回卡片主頁
       </button>
