@@ -105,12 +105,12 @@ export default function FirstBookPage() {
       <header className={styles.header}>
         <div className={styles.iconBox}>
           <img
-            src={`/icons/constellation/${constellationMap[card.constellation] || "default"}.svg`}
+            src={`/icons/constellation/${constellationMap[card.constellation] || "default"}.png`}
             alt={card.constellation}
             className={styles.icon}
           />
           <img
-            src={`/icons/zodiac/${zodiacMap[card.zodiac] || "default"}.svg`}
+            src={`/icons/zodiac/${zodiacMap[card.zodiac] || "default"}.png`}
             alt={card.zodiac}
             className={styles.icon}
           />
