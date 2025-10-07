@@ -63,7 +63,7 @@ export default function Book() {
             className={styles.icon}
           />
         </div>
-        <h3>{card.user_name || "未命名"}</h3>
+        <h2>{card.user_name || "未命名"}</h2>
         <p>{card.birthday}</p>
         <button
           className={styles.expandBtn}
