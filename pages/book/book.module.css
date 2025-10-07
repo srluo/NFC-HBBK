@@ -3,6 +3,7 @@
   background: linear-gradient(135deg, #fdfcfb, #e2d1c3);
   padding: 1rem;
   font-family: "Microsoft JhengHei", "Noto Sans TC", sans-serif;
+  font-size: 1.2em
 }
 
 .loading, .error {
@@ -70,6 +71,7 @@
   margin: 1rem auto;
   text-align: center;
   box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+  font-size: 1.2em
 }
 
 .expandBtn {
@@ -80,6 +82,7 @@
   color: #fff;
   border-radius: 8px;
   cursor: pointer;
+  font-size: 1.2em
 }
 
 .walletBox, .menuBox {
@@ -101,4 +104,5 @@
   background: #f0f0f0;
   border-radius: 8px;
   cursor: pointer;
+  font-size: 1.2em
 }
