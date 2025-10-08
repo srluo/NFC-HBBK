@@ -43,18 +43,19 @@ export default function Book() {
   }, [router]);
 
   // 狀態呈現
-  if (status === "loading") return <p className={styles.loading}>⏳ 載入中...</p>;
-  if (status !== "ok") return (
-    <div className={styles.errorBox}>
-      <p className={styles.error}>{status}</p>
-      <p className={styles.tip}>請重新感應生日卡 📱</p>
-    </div>
-  );
+  if (status === "loading") return <p className={styles.text}>⏳ 載入中...</p>;
+  if (status !== "ok")
+    return (
+      <div className={styles.errorBox}>
+        <p className={styles.error}>{status}</p>
+        <p className={styles.tip}>請重新感應生日卡 📱</p>
+      </div>
+    );
 
   return (
     <div className={styles.container}>
       <div className={styles.pageContent}>
-        {/* 🔶 卡片區塊 */}
+        {/* 🔶 卡片主體 */}
         <div className={styles.cardHeader}>
           <div className={styles.iconBox}>
             <img
@@ -69,7 +70,8 @@ export default function Book() {
             />
           </div>
           <h2 className={styles.title}>{card.user_name || "未命名"}</h2>
-          <p>{card.birthday}</p>
+          <p className={styles.text}>{card.birthday}</p>
+
           <button
             className={styles.expandBtn}
             onClick={() => router.push(`/book/first?token=${token}`)}
@@ -80,7 +82,9 @@ export default function Book() {
 
         {/* 💰 點數區 */}
         <div className={styles.walletBox}>
-          <p>目前點數：<strong>{card.points}</strong></p>
+          <p className={styles.text}>
+            目前點數：<strong>{card.points}</strong>
+          </p>
         </div>
 
         {/* 🔮 服務選單 */}
@@ -89,24 +93,32 @@ export default function Book() {
           <button className={styles.menuBtn}>🌠 紫微流年</button>
           <button className={styles.menuBtn}>🧠 MBTI 測驗</button>
         </div>
+      </div>
 
-      {/* 🧾 Footer 固定貼底 */}
+      {/* 🧾 Footer 區 */}
       <footer className={styles.footer}>
         <div className={styles.shareButtons}>
           <button
             className={`${styles.shareBtn} ${styles.buyBtn}`}
-            onClick={() => window.open("https://www.nfctogo.com/birthdaybook", "_blank")}
+            onClick={() =>
+              window.open("https://nfctogo.com/birthdaybook", "_blank")
+            }
           >
             🛍️ 購買生日卡
           </button>
           <button
             className={`${styles.shareBtn} ${styles.siteBtn}`}
-            onClick={() => window.open("https://www.nfctogo.com", "_blank")}
+            onClick={() => window.open("https://nfctogo.com", "_blank")}
           >
             🌐 前往 NFCTOGO 官網
           </button>
         </div>
-        <p>©2025 NFC靈動生日書 · Powered by <a href="https://lin.ee/Uh4T1Ip" target="_blank">NFCTOGO</a></p>
+        <p className={styles.footerText}>
+          ©2025 NFC靈動生日書 · Powered by{" "}
+          <a href="https://lin.ee/Uh4T1Ip" target="_blank" rel="noreferrer">
+            NFCTOGO
+          </a>
+        </p>
       </footer>
     </div>
   );
