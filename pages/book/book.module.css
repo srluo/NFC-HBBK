@@ -1,11 +1,9 @@
 /* ============================================
-   📘 NFC 生日書共用樣式 (v1.42 Final)
-   適用：/book/index.jsx, /book/first.jsx
-   --------------------------------------------
-   設計語言：溫暖奶油色系、柔光陰影、圓角卡片風格
+📘 NFC 生日書共用樣式 (v1.45 Final)
+設計語言：溫暖奶油色系、圓角卡片、行銷導向 footer
 ============================================ */
 
-/* 🔸 頁面背景與基本字體設定 */
+/* 頁面容器 */
 .container {
   min-height: 100vh;
   background: linear-gradient(135deg, #fff9e6, #fceabb);
@@ -13,9 +11,19 @@
   font-family: "Microsoft JhengHei", "Noto Sans TC", sans-serif;
   font-size: 1rem;
   color: #333;
+  display: flex;
+  flex-direction: column;
 }
 
-/* 載入與錯誤提示 */
+/* 主內容：防止 footer 撐開 */
+.pageContent {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+}
+
+/* 載入與錯誤訊息 */
 .loading,
 .error {
   text-align: center;
@@ -23,8 +31,21 @@
   font-weight: 500;
 }
 
+/* 錯誤提示頁 */
+.errorBox {
+  text-align: center;
+  padding: 3rem 1rem;
+  color: #b00;
+}
+
+.tip {
+  margin-top: 1rem;
+  font-size: 1rem;
+  color: #444;
+}
+
 /* ============================================
-   🎴 主卡片封面區 (book/index.jsx)
+🎴 主卡片封面
 ============================================ */
 .cardHeader {
   background: #fff;
@@ -66,38 +87,7 @@
 }
 
 /* ============================================
-   🪙 點數與服務選單
-============================================ */
-.walletBox,
-.menuBox {
-  background: #fff;
-  padding: 1rem;
-  border-radius: 16px;
-  max-width: 420px;
-  margin: 1rem auto;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-  text-align: center;
-}
-
-.menuBox button {
-  display: block;
-  width: 100%;
-  margin: 0.5rem 0;
-  padding: 0.7rem;
-  border: none;
-  background: #f8f8f8;
-  border-radius: 10px;
-  cursor: pointer;
-  font-size: 1rem;
-  transition: background 0.2s ease;
-}
-
-.menuBox button:hover {
-  background: #f0e6d2;
-}
-
-/* ============================================
-   🌸 生日象徵 / AI摘要 / 行動建議 區塊
+🌸 生日象徵 / AI摘要 / 今日建議 區塊
 ============================================ */
 .descBox {
   background: #fffaf2;
@@ -130,8 +120,9 @@
 }
 
 /* ============================================
-   🎁 開卡成功提示 / 返回按鈕
+🎁 點數與返回按鈕
 ============================================ */
+.walletBox,
 .giftBox {
   background: #fff9e5;
   padding: 1rem;
@@ -142,11 +133,10 @@
   box-shadow: 0 2px 5px rgba(0, 0, 0, 0.06);
 }
 
-/* 返回主頁按鈕 */
 .expandBtn {
   display: block;
   width: 90%;
-  margin: 1.8rem auto 2rem;
+  margin: 1.8rem auto 1rem;
   padding: 0.9rem;
   font-size: 1.05rem;
   border: none;
@@ -166,21 +156,97 @@
 }
 
 /* ============================================
-   🧭 響應式設計
+🦶 Footer 區塊（行銷導向）
+============================================ */
+.footer {
+  margin-top: auto;
+  text-align: center;
+  font-size: 0.85rem;
+  color: #777;
+  padding: 1rem 0 2rem;
+  border-top: 1px dashed rgba(0, 0, 0, 0.1);
+}
+
+.footer p {
+  margin: 0.6rem 0;
+}
+
+.footer a {
+  color: #d2691e;
+  text-decoration: none;
+  font-weight: 600;
+}
+
+.footer a:hover {
+  text-decoration: underline;
+}
+
+/* 按鈕群組 */
+.shareButtons {
+  display: flex;
+  justify-content: center;
+  gap: 1rem;
+  margin-top: 0.5rem;
+}
+
+/* 通用按鈕 */
+.shareBtn {
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+  border: none;
+  border-radius: 8px;
+  padding: 0.6rem 1rem;
+  font-size: 0.9rem;
+  cursor: pointer;
+  color: #fff;
+  font-weight: 500;
+  transition: transform 0.2s ease;
+}
+
+.shareBtn:hover {
+  transform: translateY(-2px);
+  opacity: 0.9;
+}
+
+/* 🛍️ 購買按鈕 */
+.buyBtn {
+  background: linear-gradient(90deg, #ff9966, #ff5e62);
+}
+
+/* 🌐 官網按鈕 */
+.siteBtn {
+  background: linear-gradient(90deg, #4facfe, #00f2fe);
+}
+
+/* ============================================
+📱 RWD 手機版
 ============================================ */
 @media (max-width: 480px) {
   .icon {
     width: 72px;
     height: 72px;
   }
+
   .iconSmall {
     width: 68px;
     height: 68px;
   }
+
   .bigTitle {
     font-size: 1.5rem;
   }
+
   .descBox {
     padding: 0.9rem 1rem;
+  }
+
+  .shareButtons {
+    flex-direction: column;
+    gap: 0.6rem;
+  }
+
+  .shareBtn {
+    justify-content: center;
   }
 }
