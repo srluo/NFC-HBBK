@@ -1,0 +1,30 @@
+{
+  "zodiac": {
+    "牡羊座": { "en": "aries", "emoji": "♈", "file": "aries.png" },
+    "金牛座": { "en": "taurus", "emoji": "♉", "file": "taurus.png" },
+    "雙子座": { "en": "gemini", "emoji": "♊", "file": "gemini.png" },
+    "巨蟹座": { "en": "cancer", "emoji": "♋", "file": "cancer.png" },
+    "獅子座": { "en": "leo", "emoji": "♌", "file": "leo.png" },
+    "處女座": { "en": "virgo", "emoji": "♍", "file": "virgo.png" },
+    "天秤座": { "en": "libra", "emoji": "♎", "file": "libra.png" },
+    "天蠍座": { "en": "scorpio", "emoji": "♏", "file": "scorpio.png" },
+    "射手座": { "en": "sagittarius", "emoji": "♐", "file": "sagittarius.png" },
+    "摩羯座": { "en": "capricorn", "emoji": "♑", "file": "capricorn.png" },
+    "水瓶座": { "en": "aquarius", "emoji": "♒", "file": "aquarius.png" },
+    "雙魚座": { "en": "pisces", "emoji": "♓", "file": "pisces.png" }
+  },
+  "zodiac_ch": {
+    "鼠": { "en": "rat", "emoji": "🐭", "file": "rat.png" },
+    "牛": { "en": "ox", "emoji": "🐮", "file": "ox.png" },
+    "虎": { "en": "tiger", "emoji": "🐯", "file": "tiger.png" },
+    "兔": { "en": "rabbit", "emoji": "🐰", "file": "rabbit.png" },
+    "龍": { "en": "dragon", "emoji": "🐉", "file": "dragon.png" },
+    "蛇": { "en": "snake", "emoji": "🐍", "file": "snake.png" },
+    "馬": { "en": "horse", "emoji": "🐴", "file": "horse.png" },
+    "羊": { "en": "goat", "emoji": "🐑", "file": "goat.png" },
+    "猴": { "en": "monkey", "emoji": "🐒", "file": "monkey.png" },
+    "雞": { "en": "rooster", "emoji": "🐓", "file": "rooster.png" },
+    "狗": { "en": "dog", "emoji": "🐶", "file": "dog.png" },
+    "豬": { "en": "pig", "emoji": "🐷", "file": "pig.png" }
+  }
+}
