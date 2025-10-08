@@ -21,13 +21,6 @@ function safeNowString() {
   }
 }
 
-function hexLE(a, b) {
-  const na = parseInt(a, 16);
-  const nb = parseInt(b, 16);
-  if (Number.isNaN(na) || Number.isNaN(nb)) return false;
-  return na <= nb;
-}
-
 export default async function handler(req, res) {
   try {
     const { d, uuid } = req.query;
@@ -35,16 +28,18 @@ export default async function handler(req, res) {
       return res.status(400).json({ ok: false, error: "缺少參數" });
     }
 
+    // 🧩 解析 UUID 結構
     const uid = uuid.slice(0, 14);
-    const tp = uuid.slice(14, 16);
-    const ts = uuid.slice(16, 24);
+    const tp  = uuid.slice(14, 16);
+    const ts  = uuid.slice(16, 24);
     const rlc = uuid.slice(24);
 
-    // ✅ TP 驗證
+    // ✅ TP 專案代碼驗證
     if (tp !== "HB") {
       return res.status(400).json({ ok: false, error: "TP 不符（非生日卡）" });
     }
 
+    // ✅ 基本長度檢查
     if (ts.length !== 8 || rlc.length !== 8) {
       return res.status(400).json({ ok: false, error: "TS / RLC 長度錯誤" });
     }
@@ -62,19 +57,21 @@ export default async function handler(req, res) {
       return res.status(403).json({ ok: false, error: "RLC 驗證失敗" });
     }
 
-    // ✅ 讀取卡片資料
     const key = `card:${uid}`;
     const card = await redis.hgetall(key);
+
     if (!card || Object.keys(card).length === 0) {
       return res.status(404).json({ ok: false, error: `找不到卡片 uid=${uid}` });
     }
 
-    // ✅ TS 遞增驗證
-    if (card.last_ts && hexLE(ts, card.last_ts)) {
-      return res.status(403).json({ ok: false, error: "TS 已過期 (無效網址)" });
+    // ✅ 修正版 TS 檢查：只阻擋「倒退」的 TS
+    const lastTs = card.last_ts || "00000000";
+    if (parseInt(ts, 16) < parseInt(lastTs, 16)) {
+      console.warn(`⚠️ TS 倒退 (${ts} < ${lastTs})，可能為重播`);
+      return res.status(403).json({ ok: false, error: "TS 無效 (重播攻擊?)" });
     }
 
-    // ✅ 更新使用紀錄
+    // ✅ 更新卡片時間資訊
     await redis.hset(key, {
       uid,
       last_ts: ts,
@@ -82,8 +79,9 @@ export default async function handler(req, res) {
       updated_at: Date.now().toString(),
     });
 
-    // ✅ 建立一次性 token（1000 秒有效）
+    // ✅ 建立一次性 token（用於後續開卡與展示）
     const token = Buffer.from(`${uid}:${d}:${Date.now()}:${ts}`).toString("base64");
+
     const status = card.status === "ACTIVE" ? "ACTIVE" : "PENDING";
 
     return res.json({ ok: true, status, token });
