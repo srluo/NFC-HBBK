@@ -48,7 +48,6 @@ export default function Book() {
 
   return (
     <div className={styles.container}>
-      {/* 卡片封面區 */}
       <div className={styles.cardHeader}>
         <div className={styles.iconBox}>
           <img
@@ -74,12 +73,10 @@ export default function Book() {
         </button>
       </div>
 
-      {/* 錢包區 */}
       <div className={styles.walletBox}>
         <p>目前點數：<strong>{card.points}</strong></p>
       </div>
 
-      {/* 服務選單 */}
       <div className={styles.menuBox}>
         <button>🔮 占卜</button>
         <button>🌠 紫微流年</button>
