@@ -156,6 +156,9 @@ export default function FirstBookPage() {
       <button className={styles.expandBtn} onClick={() => router.push(`/book?token=${token}`)}>
         返回生日卡主頁
       </button>
+      <footer className={styles.footer}>
+        ©2025 NFC靈動生日書 · Powered by <a href="https://www.nfctogo.com" target="_blank">NFCTOGO</a>
+      </footer>
     </div>
   );
 }

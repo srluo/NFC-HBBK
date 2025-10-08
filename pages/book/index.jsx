@@ -82,6 +82,9 @@ export default function Book() {
         <button>🌠 紫微流年</button>
         <button>🧠 MBTI 測驗</button>
       </div>
+      <footer className={styles.footer}>
+        ©2025 NFC靈動生日書 · Powered by <a href="https://www.nfctogo.com" target="_blank">NFCTOGO</a>
+      </footer>
     </div>
   );
 }
