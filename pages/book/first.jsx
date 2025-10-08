@@ -16,6 +16,7 @@ export default function FirstBookPage() {
   const router = useRouter();
   const token = searchParams.get("token");
 
+  // 🟡 1. 取得卡片資料
   useEffect(() => {
     if (!token) {
       setStatus("error");
@@ -47,6 +48,7 @@ export default function FirstBookPage() {
     fetchCard();
   }, [token, router]);
 
+  // 🟢 2. 讀取生日象徵資料
   useEffect(() => {
     if (!card) return;
     const month = parseInt(card.birthday.toString().slice(4, 6), 10);
@@ -56,6 +58,7 @@ export default function FirstBookPage() {
       .catch(console.error);
   }, [card]);
 
+  // 🔮 3. 每日行動建議
   useEffect(() => {
     if (!card) return;
     const seed = encodeURIComponent(`${card.constellation}-${card.zodiac}`);
@@ -65,6 +68,7 @@ export default function FirstBookPage() {
       .catch(console.error);
   }, [card]);
 
+  // 🔸 狀態
   if (status === "loading") return <p className={styles.loading}>⏳ 載入中...</p>;
   if (status === "error") {
     return (
@@ -75,10 +79,12 @@ export default function FirstBookPage() {
     );
   }
 
+  // ✅ 主畫面
   return (
     <div className={styles.container}>
       <div className={styles.pageContent}>
-        <header className={styles.cardHeader}>
+        {/* 卡片頭 */}
+        <div className={styles.cardHeader}>
           <div className={styles.iconBox}>
             <img
               src={`/icons/constellation/${constellationMap[card.constellation] || "default"}.png`}
@@ -91,13 +97,12 @@ export default function FirstBookPage() {
               className={styles.icon}
             />
           </div>
-          <h1 className={styles.bigTitle}>{card.user_name || "你的生日書"}</h1>
-          <p className={styles.paragraph}>
-            {card.birthday} ｜ {card.constellation} · {card.zodiac}
-          </p>
-        </header>
+          <h2>{card.user_name || "你的生日書"}</h2>
+          <p>{card.birthday} ｜ {card.constellation}座 · {card.zodiac}</p>
+        </div>
 
-        <section className={styles.descBox}>
+        {/* 🌸 生日象徵 */}
+        <div className={styles.walletBox}>
           <h3>🌸 生日象徵</h3>
           {symbol ? (
             <>
@@ -108,43 +113,48 @@ export default function FirstBookPage() {
           ) : (
             <p>載入中...</p>
           )}
-        </section>
+        </div>
 
-        <section className={styles.descBox}>
+        {/* 🤖 AI 摘要 */}
+        <div className={styles.walletBox}>
           <h3>🔮 AI 個性摘要</h3>
-          <p>{card.ai_summary || symbol?.description || "正在生成..."}</p>
-        </section>
+          <p>{card.ai_summary || symbol?.description || "資料生成中..."}</p>
+        </div>
 
-        <section className={styles.descBox}>
+        {/* ☀️ 行動建議 */}
+        <div className={styles.walletBox}>
           <h3>🌞 今日行動建議</h3>
           <p>{quote || "祝你有美好的一天！"}</p>
-        </section>
+        </div>
 
+        {/* 🎁 點數 */}
         <div className={styles.walletBox}>
           <p>🎉 恭喜獲得 <strong>{card.points}</strong> 點探索點數！</p>
         </div>
 
+        {/* 返回主頁 */}
         <button className={styles.expandBtn} onClick={() => router.push(`/book?token=${token}`)}>
           返回生日卡主頁
         </button>
       </div>
 
+      {/* Footer 一致化 */}
       <footer className={styles.footer}>
         <div className={styles.shareButtons}>
           <button
             className={`${styles.shareBtn} ${styles.buyBtn}`}
-            onClick={() => window.open("https://nfctogo.com/birthdaybook", "_blank")}
+            onClick={() => window.open("https://www.nfctogo.com/birthdaybook", "_blank")}
           >
             🛍️ 購買生日卡
           </button>
           <button
             className={`${styles.shareBtn} ${styles.siteBtn}`}
-            onClick={() => window.open("https://nfctogo.com", "_blank")}
+            onClick={() => window.open("https://www.nfctogo.com", "_blank")}
           >
             🌐 前往 NFCTOGO 官網
           </button>
         </div>
-        <p>©2025 NFC靈動生日書 · Powered by <a href="https://www.nfctogo.com" target="_blank">NFCTOGO</a></p>
+        <p>©2025 NFC靈動生日書 · Powered by <a href="https://lin.ee/Uh4T1Ip" target="_blank">NFCTOGO</a></p>
       </footer>
     </div>
   );
