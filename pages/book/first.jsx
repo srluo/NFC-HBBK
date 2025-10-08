@@ -115,7 +115,7 @@ export default function FirstBookPage() {
       {/* AI 摘要 */}
       <section className={styles.section}>
         <h3>🤖 AI 個性摘要</h3>
-        <p>{symbol?.description || "資料載入中..."}</p>
+        <p>{card.ai_summary || "資料載入中..."}</p>
       </section>
 
       {/* 行動建議 */}
