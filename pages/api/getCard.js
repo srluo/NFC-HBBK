@@ -1,6 +1,6 @@
 import { redis } from "../../lib/redis";
 
-const TOKEN_TTL_MS = 1000 * 1000; // 約 16 分鐘有效
+//const TOKEN_TTL_MS = 1000 * 1000; // 約 16 分鐘有效
 
 async function readCard(uid) {
   const key = `card:${uid}`;
@@ -56,11 +56,11 @@ export default async function handler(req, res) {
     if (isNaN(issuedAt)) {
       console.warn("⚠️ issuedAt 無法解析:", issuedAtRaw);
     } else {
-      const age = Date.now() - issuedAt;
-      if (age > TOKEN_TTL_MS) {
-        console.warn(`⚠️ Token 已過期 (${Math.floor(age / 1000)} 秒)`);
-        return res.status(403).json({ ok: false, error: "Token 已過期 (timeout)" });
-      }
+      //const age = Date.now() - issuedAt;
+      //if (age > TOKEN_TTL_MS) {
+        //console.warn(`⚠️ Token 已過期 (${Math.floor(age / 1000)} 秒)`);
+        //return res.status(403).json({ ok: false, error: "Token 已過期 (timeout)" });
+      //}
     }
 
     // ✅ 查詢卡片
