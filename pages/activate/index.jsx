@@ -1,9 +1,10 @@
-
 "use client";
 import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import styles from "./activate.module.css";
 
 export default function Activate() {
+  const router = useRouter();
   const [status, setStatus] = useState("idle");
   const [form, setForm] = useState({
     token: "",
@@ -41,14 +42,22 @@ export default function Activate() {
       });
 
       const data = await res.json();
-      if (!res.ok) {
+      if (!res.ok || !data.ok) {
         setStatus(`❌ 錯誤: ${data.error || "未知錯誤"}`);
+        return;
+      }
+
+      // 🎯 新增：自動導向 /book
+      if (data.first_time) {
+        setStatus(`🎉 開卡成功！已獲得 20 點開卡禮，目前點數：${data.card.points}`);
+        setTimeout(() => {
+          router.push(`/book/first?token=${form.token}`);
+        }, 1000);
       } else {
-        if (data.first_time) {
-          setStatus(`🎉 開卡成功！已獲得 20 點開卡禮，目前點數：${data.card.points}`);
-        } else {
-          setStatus(`✅ 資料更新成功，目前點數：${data.card.points}`);
-        }
+        setStatus(`✅ 資料更新成功，目前點數：${data.card.points}`);
+        setTimeout(() => {
+            router.push(`/book/first?token=${form.token}`);
+        }, 1500);
       }
     } catch (err) {
       console.error(err);
@@ -60,7 +69,7 @@ export default function Activate() {
     <div className={styles.page}>
       <h2 className={styles.title}>✨ 開啟我的生日書</h2>
       <form className={styles.card} onSubmit={handleSubmit}>
-        <label>姓名/暱稱</label>
+        <label>姓名 / 暱稱</label>
         <input
           name="user_name"
           value={form.user_name}

@@ -2,7 +2,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import styles from "./book.module.css";
-import { zodiacMap, zodiacChMap } from "../../lib/iconMap";
+import { constellationMap, zodiacMap } from "../../lib/iconMap";
 
 export default function Book() {
   const [card, setCard] = useState(null);
@@ -29,7 +29,6 @@ export default function Book() {
             router.replace(`/book/first?token=${t}`);
             return;
           }
-
           setCard(data.card);
           setStatus("ok");
         } else {
@@ -47,20 +46,19 @@ export default function Book() {
   if (status === "loading") return <p className={styles.loading}>⏳ 載入中...</p>;
   if (status !== "ok") return <p className={styles.error}>{status}</p>;
 
-  // 新版欄位：card.zodiac = 星座、card.zodiac_ch = 生肖
   return (
     <div className={styles.container}>
       {/* 卡片封面區 */}
       <div className={styles.cardHeader}>
         <div className={styles.iconBox}>
           <img
-            src={`/icons/zodiac_en/${zodiacMap[card.zodiac] || "default"}.png`}
-            alt={card.zodiac}
+            src={`/icons/constellation/${constellationMap[card.constellation] || "default"}.png`}
+            alt={card.constellation}
             className={styles.icon}
           />
           <img
-            src={`/icons/zodiac_ch/${zodiacChMap[card.zodiac_ch] || "default"}.png`}
-            alt={card.zodiac_ch}
+            src={`/icons/zodiac/${zodiacMap[card.zodiac] || "default"}.png`}
+            alt={card.zodiac}
             className={styles.iconSmall}
           />
         </div>
