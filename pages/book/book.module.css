@@ -1,66 +1,29 @@
-/* ==========================
-📘 NFC 生日書 v1.46f-final
-無 build error，class 命名統一
-========================== */
-
 .container {
-  min-height: 100dvh;
+  min-height: 100vh;
   background: linear-gradient(135deg, #fff9e6, #fceabb);
-  padding: 1.5rem 1rem;
+  padding: 1.5rem;
   font-family: "Microsoft JhengHei", "Noto Sans TC", sans-serif;
   font-size: 1rem;
+}
+
+/* 狀態文字 */
+.loading, .error {
+  text-align: center;
+  margin-top: 2rem;
   color: #333;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
 }
 
-/* 主內容 */
-.pageContent {
-  flex: 1;
-  width: 100%;
-  max-width: 420px;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: flex-start;
-}
-
-/* 白卡主體 */
+/* 卡片封面 */
 .cardHeader {
   background: #fff;
   border-radius: 20px;
-  padding: 2rem 1.5rem;
-  width: 100%;
+  padding: 1.5rem;
+  max-width: 420px;
+  margin: 1.5rem auto;
   text-align: center;
   box-shadow: 0 4px 16px rgba(0,0,0,0.1);
-  margin-bottom: 1rem;
 }
 
-/* 標題樣式 */
-.title {
-  font-size: 1.5rem;
-  margin-bottom: 0.3rem;
-  color: #333;
-}
-
-/* 小標題 (section 標題，如 h3) */
-.sectionTitle {
-  font-size: 1.2rem;
-  font-weight: 600;
-  color: #444;
-  margin-bottom: 0.6rem;
-  text-align: center;
-}
-
-/* 一般文字樣式 */
-.text {
-  font-size: 1rem;
-  color: #555;
-  line-height: 1.5;
-}
-
-/* icon 區 */
 .iconBox {
   display: flex;
   justify-content: center;
@@ -69,122 +32,105 @@
 }
 
 .icon {
-  width: 80px;
-  height: 80px;
+  width: 96px;
+  height: 96px;
 }
 
-/* 按鈕：展開完整書 */
 .expandBtn {
-  margin-top: 0.8rem;
-  padding: 0.6rem 1rem;
+  margin-top: 0.5rem;
+  padding: 0.6rem 1.2rem;
   border: none;
   background: #d2691e;
   color: #fff;
   border-radius: 8px;
-  font-size: 1rem;
   cursor: pointer;
-  box-shadow: 0 3px 6px rgba(0,0,0,0.15);
+  font-size: 1rem;
 }
 
-/* 點數區 */
+/* 錢包 */
 .walletBox {
   background: #fff;
-  border-radius: 16px;
   padding: 1rem;
-  width: 100%;
+  border-radius: 16px;
   max-width: 420px;
+  margin: 1rem auto;
   text-align: center;
-  margin-bottom: 1rem;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
 }
 
-/* 功能選單 */
+/* 菜單 */
 .menuBox {
   background: #fff;
-  border-radius: 16px;
   padding: 1rem;
-  width: 100%;
+  border-radius: 16px;
   max-width: 420px;
+  margin: 1rem auto;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
   text-align: center;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.08);
-  margin-bottom: 2.5rem;
 }
 
-.menuBtn {
+.menuBox button {
   display: block;
   width: 100%;
-  margin: 0.5rem 0;
-  padding: 0.7rem;
+  margin: 0.4rem 0;
+  padding: 0.6rem;
   border: none;
-  background: #f5f5f5;
+  background: #f0f0f0;
   border-radius: 8px;
   cursor: pointer;
   font-size: 1rem;
+}
+
+/* Section */
+.section {
+  background: #fff;
+  border-radius: 16px;
+  padding: 1rem;
+  margin: 1rem auto;
+  max-width: 420px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+}
+
+.section h3 {
+  font-size: 1.3rem;
+  margin-bottom: 0.3rem;
+  color: #d2691e;
 }
 
 /* Footer */
 .footer {
-  flex-shrink: 0;
-  width: 100%;
   text-align: center;
-  font-size: 0.85rem;
-  color: #777;
-  border-top: 1px dashed rgba(0,0,0,0.1);
-  padding: 1rem 0 2rem;
+  margin-top: 1.5rem;
+  padding-bottom: 1rem;
 }
 
-.footerText {
-  margin: 0.5rem 0 0;
-  color: #999;
-  font-size: 0.8rem;
-}
-
-.shareButtons {
-  display: flex;
-  justify-content: center;
-  gap: 1rem;
-  margin-top: 0.6rem;
-}
-
-.shareBtn {
+.footerBtn {
+  display: block;
+  width: 100%;
+  max-width: 420px;
+  margin: 0.5rem auto;
+  padding: 0.7rem;
+  font-size: 1rem;
   border: none;
-  border-radius: 8px;
-  padding: 0.7rem 1rem;
-  font-size: 0.9rem;
+  border-radius: 10px;
   color: #fff;
   cursor: pointer;
-  font-weight: 600;
-  min-width: 140px;
-  box-shadow: 0 2px 6px rgba(0,0,0,0.1);
-  transition: transform 0.2s ease;
-}
-
-.shareBtn:hover {
-  transform: translateY(-2px);
 }
 
 .buyBtn {
-  background: linear-gradient(90deg, #ff9966, #ff5e62);
+  background: linear-gradient(90deg, #ff7f50, #ff6347);
 }
 
 .siteBtn {
-  background: linear-gradient(90deg, #4facfe, #00f2fe);
+  background: linear-gradient(90deg, #40c0ff, #0099cc);
 }
 
-/* 錯誤狀態 */
-.errorBox {
-  text-align: center;
-  padding: 2rem;
+.backBtn {
+  background: #d2691e;
 }
 
-.error {
-  color: #d00;
-  font-weight: bold;
-  font-size: 1.1rem;
-}
-
-.tip {
-  color: #666;
-  margin-top: 0.5rem;
-  font-size: 0.9rem;
+.copy {
+  font-size: 0.85rem;
+  color: #777;
+  margin-top: 0.6rem;
 }
