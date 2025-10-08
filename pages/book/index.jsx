@@ -58,7 +58,7 @@ export default function Book() {
           <img
             src={`/icons/zodiac/${zodiacMap[card.zodiac] || "default"}.png`}
             alt={card.zodiac}
-            className={styles.iconSmall}
+            className={styles.icon}
           />
         </div>
 
