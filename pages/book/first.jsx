@@ -80,25 +80,25 @@ export default function FirstBookPage() {
 
   return (
     <div className={styles.container}>
-      {/* Header */}
-      <header className={styles.header}>
-        <div className={styles.iconBox}>
-          <img
-            src={`/icons/constellation/${constellationMap[card.constellation] || "default"}.png`}
-            alt={card.constellation}
-            className={styles.icon}
-          />
-          <img
-            src={`/icons/zodiac/${zodiacMap[card.zodiac] || "default"}.png`}
-            alt={card.zodiac}
-            className={styles.icon}
-          />
-        </div>
-        <h1 className={styles.title}>{card.user_name}</h1>
-        <p className={styles.subtitle}>
-          {card.birthday} ｜ {card.constellation}座 · {card.zodiac}
-        </p>
-      </header>
+    {/* Header */}
+    <header className={styles.header}>
+      <div className={styles.iconBox}>
+        <img
+          src={`/icons/constellation/${constellationMap[card.constellation] || "default"}.png`}
+          alt={card.constellation}
+          className={styles.icon}
+        />
+        <img
+          src={`/icons/zodiac/${zodiacMap[card.zodiac] || "default"}.png`}
+          alt={card.zodiac}
+          className={styles.icon}
+        />
+      </div>
+      <h1 className={styles.title}>{card.user_name}</h1>
+      <p className={styles.subtitle}>
+        {card.birthday} ｜ {card.constellation} · {card.zodiac}
+      </p>
+    </header>
 
       {/* 生日象徵 */}
       <section className={styles.section}>
