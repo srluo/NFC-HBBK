@@ -60,13 +60,6 @@ export default function Book() {
     }
   }, [router]);
 
-<<<<<<< Updated upstream
-=======
-<<<<<<< HEAD
-=======
-  // 狀態呈現
->>>>>>> 0ec071facc4e90707e29c27b1fba2e24f24305f4
->>>>>>> Stashed changes
   if (status === "loading") return <p className={styles.text}>⏳ 載入中...</p>;
   if (status !== "ok")
     return (
@@ -79,13 +72,6 @@ export default function Book() {
   return (
     <div className={styles.container}>
       <div className={styles.pageContent}>
-<<<<<<< Updated upstream
-=======
-<<<<<<< HEAD
-=======
-        {/* 🔶 卡片主體 */}
->>>>>>> 0ec071facc4e90707e29c27b1fba2e24f24305f4
->>>>>>> Stashed changes
         <div className={styles.cardHeader}>
           <div className={styles.iconBox}>
             <img
@@ -101,13 +87,6 @@ export default function Book() {
           </div>
           <h2 className={styles.title}>{card.user_name || "未命名"}</h2>
           <p className={styles.text}>{card.birthday}</p>
-<<<<<<< Updated upstream
-=======
-<<<<<<< HEAD
-=======
-
->>>>>>> 0ec071facc4e90707e29c27b1fba2e24f24305f4
->>>>>>> Stashed changes
           <button
             className={styles.expandBtn}
             onClick={() => router.push(`/book/first?token=${token}`)}
@@ -129,28 +108,11 @@ export default function Book() {
         </div>
       </div>
 
-<<<<<<< Updated upstream
-=======
-<<<<<<< HEAD
-=======
-      {/* 🧾 Footer 區 */}
->>>>>>> 0ec071facc4e90707e29c27b1fba2e24f24305f4
->>>>>>> Stashed changes
       <footer className={styles.footer}>
         <div className={styles.shareButtons}>
           <button
             className={`${styles.shareBtn} ${styles.buyBtn}`}
-<<<<<<< Updated upstream
             onClick={() => window.open("https://nfctogo.com/birthdaybook", "_blank")}
-=======
-<<<<<<< HEAD
-            onClick={() => window.open("https://nfctogo.com/birthdaybook", "_blank")}
-=======
-            onClick={() =>
-              window.open("https://nfctogo.com/birthdaybook", "_blank")
-            }
->>>>>>> 0ec071facc4e90707e29c27b1fba2e24f24305f4
->>>>>>> Stashed changes
           >
             🛍️ 購買生日卡
           </button>
@@ -163,15 +125,7 @@ export default function Book() {
         </div>
         <p className={styles.footerText}>
           ©2025 NFC靈動生日書 · Powered by{" "}
-<<<<<<< Updated upstream
           <a href="https://nfctogo.com" target="_blank" rel="noreferrer">
-=======
-<<<<<<< HEAD
-          <a href="https://nfctogo.com" target="_blank" rel="noreferrer">
-=======
-          <a href="https://lin.ee/Uh4T1Ip" target="_blank" rel="noreferrer">
->>>>>>> 0ec071facc4e90707e29c27b1fba2e24f24305f4
->>>>>>> Stashed changes
             NFCTOGO
           </a>
         </p>
