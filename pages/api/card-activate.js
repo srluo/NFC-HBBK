@@ -15,7 +15,7 @@ function safeNowString() {
       second: "2-digit",
     });
     return fmt.format(now);
-  } catch (e) {
+  } catch {
     const t = new Date(now.getTime() + 8 * 60 * 60 * 1000);
     return t.toISOString().replace("T", " ").slice(0, 19);
   }
@@ -38,7 +38,6 @@ async function readCard(uid) {
 async function writeCard(uid, card) {
   const key = `card:${uid}`;
   try {
-    // 轉換數值 → 字串，確保一致性
     const hashData = {};
     for (const [k, v] of Object.entries(card)) {
       hashData[k] = typeof v === "string" ? v : JSON.stringify(v);
@@ -50,26 +49,32 @@ async function writeCard(uid, card) {
 }
 
 export default async function handler(req, res) {
-  if (req.method !== "POST") return res.status(405).end();
+  if (req.method !== "POST") {
+    return res.status(405).json({ ok: false, error: "Method Not Allowed" });
+  }
 
   try {
     const { token, user_name, blood_type, hobbies, birth_time, birthday } = req.body || {};
     if (!token || !user_name || !birthday) {
-      return res.status(400).json({ error: "缺少必要參數", got: req.body });
+      return res.status(400).json({ ok: false, error: "缺少必要參數", got: req.body });
     }
 
     // 解析 token
-    const [uid, issuedBirthday, issuedAt, ts] = Buffer.from(token, "base64")
-      .toString()
-      .split(":");
+    const [uid, issuedBirthday, issuedAt, ts] = Buffer.from(token, "base64").toString().split(":");
+    if (!uid || uid.length < 10) {
+      return res.status(403).json({ ok: false, error: "無效 token 或 UID" });
+    }
+
+    // ✅ 確認卡片存在（防偽）
+    const existing = await readCard(uid);
+    if (!existing) {
+      return res.status(403).json({ ok: false, error: `UID 不存在，非法卡片 (uid=${uid})` });
+    }
 
     // 計算生肖 / 星座 / 農曆
     const { lunarDate, zodiac, constellation } = calcZodiac(birthday);
 
-    // 讀取原有資料（Hash）
-    const existing = (await readCard(uid)) || {};
-
-    // 判斷是否第一次 ACTIVE
+    // 判斷是否首次 ACTIVE
     let first_time = false;
     let points = Number(existing.points || 0);
     if (!existing.status || existing.status !== "ACTIVE") {
@@ -90,18 +95,26 @@ export default async function handler(req, res) {
       lunar_birthday: lunarDate,
       zodiac,
       constellation,
+      opened: "true",
       points: points.toString(),
       last_ts: ts || existing.last_ts || "",
       last_seen: safeNowString(),
       updated_at: Date.now().toString(),
     };
 
-    // 寫回 Hash
+    // 寫回 Redis
     await writeCard(uid, card);
 
-    return res.json({ ok: true, first_time, card });
+    return res.json({
+      ok: true,
+      first_time,
+      card,
+      message: first_time
+        ? "🎉 開卡成功！已啟動生日書"
+        : "卡片已開啟過 📖",
+    });
   } catch (err) {
     console.error("activate fatal error:", err);
-    return res.status(500).json({ error: "伺服器錯誤" });
+    return res.status(500).json({ ok: false, error: "伺服器錯誤" });
   }
 }
