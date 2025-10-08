@@ -134,3 +134,24 @@
   color: #777;
   margin-top: 0.6rem;
 }
+
+/* Header 區塊微調 */
+.header {
+  text-align: center;
+  margin-bottom: 1.2rem;
+}
+
+.title {
+  font-size: 1.8rem;
+  font-weight: bold;
+  color: #333;
+  text-align: center;
+  margin: 0.5rem 0 0.3rem 0;
+}
+
+.subtitle {
+  font-size: 1rem;
+  color: #555;
+  margin-top: 0;
+  text-align: center;
+}
