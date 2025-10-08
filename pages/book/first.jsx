@@ -97,13 +97,13 @@ export default function FirstBookPage() {
               className={styles.icon}
             />
           </div>
-          <h2>{card.user_name || "你的生日書"}</h2>
+          <h2 className={styles.title}>{card.user_name || "你的生日書"}</h2>
           <p>{card.birthday} ｜ {card.constellation}座 · {card.zodiac}</p>
         </div>
 
         {/* 🌸 生日象徵 */}
         <div className={styles.walletBox}>
-          <h3>🌸 生日象徵</h3>
+          <h3 className={styles.sectionTitle}>🌸 生日象徵</h3>
           {symbol ? (
             <>
               <p>花：<strong>{symbol.flower}</strong> — {symbol.flower_meaning}</p>
@@ -117,19 +117,22 @@ export default function FirstBookPage() {
 
         {/* 🤖 AI 摘要 */}
         <div className={styles.walletBox}>
-          <h3>🔮 AI 個性摘要</h3>
+          <h3 className={styles.sectionTitle}>🔮 AI 個性摘要</h3>
           <p>{card.ai_summary || symbol?.description || "資料生成中..."}</p>
         </div>
 
         {/* ☀️ 行動建議 */}
         <div className={styles.walletBox}>
-          <h3>🌞 今日行動建議</h3>
+          <h3 className={styles.sectionTitle}>🌞 今日行動建議</h3>
           <p>{quote || "祝你有美好的一天！"}</p>
         </div>
 
         {/* 🎁 點數 */}
         <div className={styles.walletBox}>
-          <p>🎉 恭喜獲得 <strong>{card.points}</strong> 點探索點數！</p>
+          <h3 className={styles.sectionTitle}>🎁 點數獎勵</h3>
+          <p className={styles.text}>
+              恭喜獲得 <strong>{card.points}</strong> 點探索點數！
+          </p>
         </div>
 
         {/* 返回主頁 */}

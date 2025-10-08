@@ -68,7 +68,7 @@ export default function Book() {
               className={styles.icon}
             />
           </div>
-          <h2>{card.user_name || "未命名"}</h2>
+          <h2 className={styles.title}>{card.user_name || "未命名"}</h2>
           <p>{card.birthday}</p>
           <button
             className={styles.expandBtn}
@@ -85,11 +85,10 @@ export default function Book() {
 
         {/* 🔮 服務選單 */}
         <div className={styles.menuBox}>
-          <button>🔮 占卜</button>
-          <button>🌠 紫微流年</button>
-          <button>🧠 MBTI 測驗</button>
+          <button className={styles.menuBtn}>🔮 占卜</button>
+          <button className={styles.menuBtn}>🌠 紫微流年</button>
+          <button className={styles.menuBtn}>🧠 MBTI 測驗</button>
         </div>
-      </div>
 
       {/* 🧾 Footer 固定貼底 */}
       <footer className={styles.footer}>
