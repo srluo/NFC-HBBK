@@ -26,8 +26,9 @@ function safeNowString() {
 async function writeCard(uid, card) {
   const key = `card:${uid}`;
   const hashData = {};
+  const hashData = {};
   for (const [k, v] of Object.entries(card)) {
-    hashData[k] = typeof v === "string" ? v : JSON.stringify(v);
+    hashData[k] = String(v ?? "");
   }
   await redis.hset(key, hashData);
 }
