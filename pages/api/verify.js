@@ -28,18 +28,14 @@ export default async function handler(req, res) {
       return res.status(400).json({ ok: false, error: "缺少參數" });
     }
 
-    // 🧩 解析 UUID 結構
     const uid = uuid.slice(0, 14);
     const tp  = uuid.slice(14, 16);
     const ts  = uuid.slice(16, 24);
     const rlc = uuid.slice(24);
 
-    // ✅ TP 專案代碼驗證
     if (tp !== "HB") {
       return res.status(400).json({ ok: false, error: "TP 不符（非生日卡）" });
     }
-
-    // ✅ 基本長度檢查
     if (ts.length !== 8 || rlc.length !== 8) {
       return res.status(400).json({ ok: false, error: "TS / RLC 長度錯誤" });
     }
@@ -52,26 +48,22 @@ export default async function handler(req, res) {
       console.error("sign error:", e);
       return res.status(400).json({ ok: false, error: "TS/RLC 驗算失敗" });
     }
-
     if (!expectRlc || expectRlc.toLowerCase() !== rlc.toLowerCase()) {
       return res.status(403).json({ ok: false, error: "RLC 驗證失敗" });
     }
 
     const key = `card:${uid}`;
     const card = await redis.hgetall(key);
-
     if (!card || Object.keys(card).length === 0) {
       return res.status(404).json({ ok: false, error: `找不到卡片 uid=${uid}` });
     }
 
-    // ✅ 修正版 TS 檢查：只阻擋「倒退」的 TS
+    // ✅ TS 只擋倒退，不擋同值
     const lastTs = card.last_ts || "00000000";
     if (parseInt(ts, 16) < parseInt(lastTs, 16)) {
-      console.warn(`⚠️ TS 倒退 (${ts} < ${lastTs})，可能為重播`);
       return res.status(403).json({ ok: false, error: "TS 無效 (重播攻擊?)" });
     }
 
-    // ✅ 更新卡片時間資訊
     await redis.hset(key, {
       uid,
       last_ts: ts,
@@ -79,9 +71,7 @@ export default async function handler(req, res) {
       updated_at: Date.now().toString(),
     });
 
-    // ✅ 建立一次性 token（用於後續開卡與展示）
     const token = Buffer.from(`${uid}:${d}:${Date.now()}:${ts}`).toString("base64");
-
     const status = card.status === "ACTIVE" ? "ACTIVE" : "PENDING";
 
     return res.json({ ok: true, status, token });

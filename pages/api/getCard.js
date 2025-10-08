@@ -1,7 +1,5 @@
 import { redis } from "../../lib/redis";
 
-//const TOKEN_TTL_MS = 1000 * 1000; // 約 16 分鐘有效
-
 async function readCard(uid) {
   const key = `card:${uid}`;
   try {
@@ -12,77 +10,50 @@ async function readCard(uid) {
       return hash;
     }
   } catch (e) {
-    console.error("❌ redis.hgetall error:", e);
+    console.error("redis.hgetall error", e);
+  }
+
+  try {
+    const val = await redis.get(key);
+    if (val) return JSON.parse(val);
+  } catch (e) {
+    console.error("redis.get error", e);
   }
   return null;
 }
 
 async function writeCard(uid, card) {
   const key = `card:${uid}`;
-  try {
-    const flat = {};
-    for (const [k, v] of Object.entries(card)) {
-      flat[k] = typeof v === "object" ? JSON.stringify(v) : String(v);
-    }
-    await redis.hset(key, flat);
-  } catch (e) {
-    console.error("❌ redis.hset error:", e);
+  const flatCard = {};
+  for (const [k, v] of Object.entries(card)) {
+    flatCard[k] = String(v ?? "");
   }
+  await redis.hset(key, flatCard);
 }
 
 export default async function handler(req, res) {
   const { token } = req.query;
-  if (!token) {
-    return res.status(400).json({ ok: false, error: "缺少 token" });
-  }
+  if (!token) return res.status(400).json({ error: "缺少 token" });
 
   try {
-    // ✅ 解碼 token
     const decoded = Buffer.from(token, "base64").toString();
-    const parts = decoded.split(":");
+    const [uid] = decoded.split(":");
+    if (!uid) return res.status(400).json({ error: "無效 token" });
 
-    if (parts.length < 4) {
-      return res.status(400).json({ ok: false, error: "Token 結構錯誤" });
-    }
+    let card = await readCard(uid);
+    if (!card) return res.status(404).json({ error: `找不到卡片資料 uid=${uid}` });
 
-    const [uid, birthday, issuedAtRaw, ts] = parts;
-
-    if (!uid || !issuedAtRaw) {
-      return res.status(400).json({ ok: false, error: "無效 token (缺少欄位)" });
-    }
-
-    // ✅ Token 時效檢查（加上 NaN 防呆）
-    const issuedAt = parseInt(issuedAtRaw, 10);
-    if (isNaN(issuedAt)) {
-      console.warn("⚠️ issuedAt 無法解析:", issuedAtRaw);
-    } else {
-      //const age = Date.now() - issuedAt;
-      //if (age > TOKEN_TTL_MS) {
-        //console.warn(`⚠️ Token 已過期 (${Math.floor(age / 1000)} 秒)`);
-        //return res.status(403).json({ ok: false, error: "Token 已過期 (timeout)" });
-      //}
-    }
-
-    // ✅ 查詢卡片
-    const card = await readCard(uid);
-    if (!card) {
-      return res.status(404).json({ ok: false, error: `找不到卡片 uid=${uid}` });
-    }
-
-    // ✅ 判斷首次開啟
     let is_first_open = false;
     if (card.status === "ACTIVE" && (!card.opened || card.opened === "false")) {
       is_first_open = true;
     }
 
-    // ✅ 標記卡片為「已開啟」
-    card.opened = true;
+    card.opened = "true";
     await writeCard(uid, card);
 
-    // ✅ 回傳統一格式
-    return res.json({ ok: true, card, is_first_open });
+    return res.json({ card, is_first_open });
   } catch (err) {
-    console.error("🔥 getCard fatal error:", err);
-    return res.status(500).json({ ok: false, error: "伺服器錯誤" });
+    console.error("getCard fatal error:", err);
+    return res.status(500).json({ error: "伺服器錯誤" });
   }
 }

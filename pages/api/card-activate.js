@@ -1,6 +1,5 @@
 import { redis } from "../../lib/redis";
 import { calcZodiac } from "../../lib/zodiac";
-import { generateAISummary } from "../../lib/ai"; // ✅ 新增：AI Summary 函數
 
 function safeNowString() {
   const now = new Date();
@@ -22,10 +21,19 @@ function safeNowString() {
   }
 }
 
-// ✅ Redis Hash 寫入輔助
+async function readCard(uid) {
+  const key = `card:${uid}`;
+  try {
+    const hash = await redis.hgetall(key);
+    if (hash && Object.keys(hash).length > 0) return hash;
+    return null;
+  } catch {
+    return null;
+  }
+}
+
 async function writeCard(uid, card) {
   const key = `card:${uid}`;
-  const hashData = {};
   const hashData = {};
   for (const [k, v] of Object.entries(card)) {
     hashData[k] = String(v ?? "");
@@ -34,70 +42,44 @@ async function writeCard(uid, card) {
 }
 
 export default async function handler(req, res) {
-  if (req.method !== "POST")
-    return res.status(405).json({ error: "Method not allowed" });
+  if (req.method !== "POST") return res.status(405).end();
 
   try {
-    const { token, user_name, blood_type, hobbies, birth_time, birthday } =
-      req.body || {};
-    if (!token || !user_name || !birthday)
+    const { token, user_name, blood_type, hobbies, birth_time, birthday } = req.body || {};
+    if (!token || !user_name || !birthday) {
       return res.status(400).json({ error: "缺少必要參數" });
-
-    // 解析 token
-    const [uid, issuedBirthday, issuedAt, ts] = Buffer.from(token, "base64")
-      .toString()
-      .split(":");
-
-    const key = `card:${uid}`;
-    const existing = (await redis.hgetall(key)) || {};
-
-    // ✅ 計算星座與生肖
-    const { lunarDate, zodiac, constellation } = calcZodiac(birthday);
-
-    let first_time = false;
-    let points = Number(existing.points || 0);
-    let ai_summary = existing.ai_summary || "";
-
-    // 🟢 首次開卡（PENDING → ACTIVE）
-    if (!existing.status || existing.status !== "ACTIVE") {
-      first_time = true;
-      points += 20; // 開卡禮
-
-      // ✅ 生成 AI Summary（免費）
-      ai_summary = await generateAISummary({
-        user_name,
-        birthday,
-        constellation,
-        zodiac,
-        blood_type,
-        birth_time,
-      });
     }
 
-    // ✅ 組合卡片資料
+    const [uid, issuedBirthday, issuedAt, ts] = Buffer.from(token, "base64").toString().split(":");
+    const { lunarDate, zodiac, constellation } = calcZodiac(birthday);
+
+    const existing = (await readCard(uid)) || {};
+    let first_time = false;
+    let points = Number(existing.points || 0);
+    if (!existing.status || existing.status !== "ACTIVE") {
+      points += 20;
+      first_time = true;
+    }
+
     const card = {
       ...existing,
       uid,
       status: "ACTIVE",
       user_name,
-      birthday,
-      blood_type,
-      hobbies,
-      birth_time,
+      blood_type: blood_type || existing.blood_type || "",
+      hobbies: hobbies || existing.hobbies || "",
+      birth_time: birth_time || existing.birth_time || "",
+      birthday: String(birthday),
       lunar_birthday: lunarDate,
       zodiac,
       constellation,
-      ai_summary,
       points: points.toString(),
-      opened: existing.opened || "false",
       last_ts: ts || existing.last_ts || "",
       last_seen: safeNowString(),
       updated_at: Date.now().toString(),
     };
 
-    // ✅ 寫回 Redis
     await writeCard(uid, card);
-
     return res.json({ ok: true, first_time, card });
   } catch (err) {
     console.error("activate fatal error:", err);
