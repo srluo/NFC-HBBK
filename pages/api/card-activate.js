@@ -1,5 +1,6 @@
 import { redis } from "../../lib/redis";
 import { calcZodiac } from "../../lib/zodiac";
+import { generateAISummary } from "../../lib/ai"; // ✅ 新增：AI Summary 函數
 
 function safeNowString() {
   const now = new Date();
@@ -21,100 +22,84 @@ function safeNowString() {
   }
 }
 
-// ✅ 改為讀取 Hash
-async function readCard(uid) {
-  const key = `card:${uid}`;
-  try {
-    const hash = await redis.hgetall(key);
-    if (hash && Object.keys(hash).length > 0) return hash;
-    return null;
-  } catch (e) {
-    console.error("❌ redis.hgetall error:", e);
-    return null;
-  }
-}
-
-// ✅ 改為寫入 Hash
+// ✅ Redis Hash 寫入輔助
 async function writeCard(uid, card) {
   const key = `card:${uid}`;
-  try {
-    const hashData = {};
-    for (const [k, v] of Object.entries(card)) {
-      hashData[k] = typeof v === "string" ? v : JSON.stringify(v);
-    }
-    await redis.hset(key, hashData);
-  } catch (e) {
-    console.error("❌ redis.hset error:", e);
+  const hashData = {};
+  for (const [k, v] of Object.entries(card)) {
+    hashData[k] = typeof v === "string" ? v : JSON.stringify(v);
   }
+  await redis.hset(key, hashData);
 }
 
 export default async function handler(req, res) {
-  if (req.method !== "POST") {
-    return res.status(405).json({ ok: false, error: "Method Not Allowed" });
-  }
+  if (req.method !== "POST")
+    return res.status(405).json({ error: "Method not allowed" });
 
   try {
-    const { token, user_name, blood_type, hobbies, birth_time, birthday } = req.body || {};
-    if (!token || !user_name || !birthday) {
-      return res.status(400).json({ ok: false, error: "缺少必要參數", got: req.body });
-    }
+    const { token, user_name, blood_type, hobbies, birth_time, birthday } =
+      req.body || {};
+    if (!token || !user_name || !birthday)
+      return res.status(400).json({ error: "缺少必要參數" });
 
     // 解析 token
-    const [uid, issuedBirthday, issuedAt, ts] = Buffer.from(token, "base64").toString().split(":");
-    if (!uid || uid.length < 10) {
-      return res.status(403).json({ ok: false, error: "無效 token 或 UID" });
-    }
+    const [uid, issuedBirthday, issuedAt, ts] = Buffer.from(token, "base64")
+      .toString()
+      .split(":");
 
-    // ✅ 確認卡片存在（防偽）
-    const existing = await readCard(uid);
-    if (!existing) {
-      return res.status(403).json({ ok: false, error: `UID 不存在，非法卡片 (uid=${uid})` });
-    }
+    const key = `card:${uid}`;
+    const existing = (await redis.hgetall(key)) || {};
 
-    // 計算生肖 / 星座 / 農曆
+    // ✅ 計算星座與生肖
     const { lunarDate, zodiac, constellation } = calcZodiac(birthday);
 
-    // 判斷是否首次 ACTIVE
     let first_time = false;
     let points = Number(existing.points || 0);
+    let ai_summary = existing.ai_summary || "";
+
+    // 🟢 首次開卡（PENDING → ACTIVE）
     if (!existing.status || existing.status !== "ACTIVE") {
-      points += 20; // 🎁 開卡禮
       first_time = true;
+      points += 20; // 開卡禮
+
+      // ✅ 生成 AI Summary（免費）
+      ai_summary = await generateAISummary({
+        user_name,
+        birthday,
+        constellation,
+        zodiac,
+        blood_type,
+        birth_time,
+      });
     }
 
-    // 組合新資料
+    // ✅ 組合卡片資料
     const card = {
       ...existing,
       uid,
       status: "ACTIVE",
       user_name,
-      blood_type: blood_type || existing.blood_type || "",
-      hobbies: hobbies || existing.hobbies || "",
-      birth_time: birth_time || existing.birth_time || "",
       birthday,
+      blood_type,
+      hobbies,
+      birth_time,
       lunar_birthday: lunarDate,
       zodiac,
       constellation,
-      opened: "true",
+      ai_summary,
       points: points.toString(),
+      opened: existing.opened || "false",
       last_ts: ts || existing.last_ts || "",
       last_seen: safeNowString(),
       updated_at: Date.now().toString(),
     };
 
-    // 寫回 Redis
+    // ✅ 寫回 Redis
     await writeCard(uid, card);
 
-    return res.json({
-      ok: true,
-      first_time,
-      card,
-      message: first_time
-        ? "🎉 開卡成功！已啟動生日書"
-        : "卡片已開啟過 📖",
-    });
+    return res.json({ ok: true, first_time, card });
   } catch (err) {
     console.error("activate fatal error:", err);
-    return res.status(500).json({ ok: false, error: "伺服器錯誤" });
+    return res.status(500).json({ error: "伺服器錯誤" });
   }
 }
