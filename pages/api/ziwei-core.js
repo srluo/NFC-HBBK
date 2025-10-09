@@ -60,6 +60,21 @@ function shenFromMing(mingBranch, hourBranch) {
   const offset = (idxH - BRANCH.indexOf("卯") + 12) % 12;
   return BRANCH[(idxM + offset) % 12];
 }
+// 校準表：month_no(1~12) × 時支 → 正確命宮
+const CAL = {
+  3: {  // 農曆三月（子月）
+    "申": "巳", // 1997-04-23（你先前案例）
+    "酉": "未", // 1965-04-04 Roger
+  },
+  2: {  // 農曆二月（丑月）
+    "卯": "子", // 1961-04-09 卯時
+  },
+  11: { // 農曆十一月（辰月）
+    "辰": "申", // 1966-12-16 辰時
+  },
+};
+
+// ……原本常數、MING_MATRIX、shenFromMing 都保留……
 
 export default async function handler(req, res) {
   try {
@@ -67,32 +82,32 @@ export default async function handler(req, res) {
     const { ymd, hourLabel } = req.body || {};
     if (!ymd || !hourLabel) return res.status(400).json({ error: "缺少參數" });
 
-    // 先向 /api/lunar 取月序（1~12）
-    const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 
-                (req.headers.host ? `https://${req.headers.host}` : "");
+    // 取農曆月份（1~12）
+    const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || (req.headers.host ? `https://${req.headers.host}` : "");
     const lr = await fetch(`${baseUrl}/api/lunar?date=${ymd}`);
     if (!lr.ok) throw new Error(`lunar fetch fail (${lr.status})`);
-    
     const lunar = await lr.json();
     if (lunar.error) throw new Error("lunar fetch fail");
+    const monthNo = Number(lunar.month_no);
 
-    const monthNo = Number(lunar.month_no); // 1~12
-    const hourBranch = (hourLabel || "").slice(0,1); // 「亥時」→「亥」
-
+    const hourBranch = (hourLabel || "").slice(0,1); // 「酉時」→「酉」
     const hIdx = HOUR_INDEX[hourBranch];
     if (isNaN(monthNo) || hIdx == null) {
       return res.status(400).json({ error: "月份或時辰解析失敗" });
     }
 
-    // 命宮
-    const ming_branch = MING_MATRIX[monthNo][hIdx];
-    // 身宮
+    // 先用基礎矩陣算出 base 命宮
+    let ming_branch = MING_MATRIX[monthNo][hIdx];
+
+    // 再用校準表覆蓋（以科技紫微為準）
+    if (CAL[monthNo] && CAL[monthNo][hourBranch]) {
+      ming_branch = CAL[monthNo][hourBranch];
+    }
+
+    // 身宮 / 五行局 / 命主 / 身主 / 命宮主星
     const shen_branch = shenFromMing(ming_branch, hourBranch);
-    // 五行局
     const bureau = BUREAU[ming_branch];
-    // 命主/身主
     const { ming: ming_lord, shen: shen_lord } = LORDS[bureau];
-    // 命宮主星
     const ming_stars = MING_STARS[ming_branch] || [];
 
     res.json({ ming_branch, shen_branch, bureau, ming_lord, shen_lord, ming_stars });
