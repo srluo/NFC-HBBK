@@ -68,7 +68,11 @@ export default async function handler(req, res) {
     if (!ymd || !hourLabel) return res.status(400).json({ error: "缺少參數" });
 
     // 先向 /api/lunar 取月序（1~12）
-    const lr = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL || ""}/api/lunar?date=${ymd}`);
+    const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 
+                (req.headers.host ? `https://${req.headers.host}` : "");
+    const lr = await fetch(`${baseUrl}/api/lunar?date=${ymd}`);
+    if (!lr.ok) throw new Error(`lunar fetch fail (${lr.status})`);
+    
     const lunar = await lr.json();
     if (lunar.error) throw new Error("lunar fetch fail");
 
