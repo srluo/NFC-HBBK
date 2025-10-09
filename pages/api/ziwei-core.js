@@ -1,52 +1,49 @@
 // /pages/api/ziwei-core.js
-// v1.59 — 紫微核心演算（命宮、身宮、五行局、命主、身主、命宮主星）
-// ------------------------------------------------------------
+// v1.60 — 改回以「命宮支 → 五行局」，並恢復 CAL 校準表
 
-// 12地支順序
 const BRANCH = ["子","丑","寅","卯","辰","巳","午","未","申","酉","戌","亥"];
 const HOUR_INDEX = { 子:0, 丑:1, 寅:2, 卯:3, 辰:4, 巳:5, 午:6, 未:7, 申:8, 酉:9, 戌:10, 亥:11 };
 
-// ------------------------------------------------------------
-// ✳️ 年干 → 五行與陰陽
-const STEMS = [
-  { stem: "甲", element: "木", yinYang: "陽" },
-  { stem: "乙", element: "木", yinYang: "陰" },
-  { stem: "丙", element: "火", yinYang: "陽" },
-  { stem: "丁", element: "火", yinYang: "陰" },
-  { stem: "戊", element: "土", yinYang: "陽" },
-  { stem: "己", element: "土", yinYang: "陰" },
-  { stem: "庚", element: "金", yinYang: "陽" },
-  { stem: "辛", element: "金", yinYang: "陰" },
-  { stem: "壬", element: "水", yinYang: "陽" },
-  { stem: "癸", element: "水", yinYang: "陰" },
-];
-
-// ✳️ 五行局（由 年干 五行決定，陰陽反向）
-const ELEMENT_TO_BUREAU = {
-  "木陽": "水二局", "木陰": "水二局",
-  "火陽": "火六局", "火陰": "火六局",
-  "土陽": "土五局", "土陰": "土五局",
-  "金陽": "金四局", "金陰": "金四局",
-  "水陽": "木三局", "水陰": "木三局",
+// 五行局（依命宮地支，對齊科技紫微）
+const BUREAU = {
+  "子":"水二局","申":"水二局",
+  "寅":"木三局","午":"木三局","卯":"木三局","未":"木三局",
+  "丑":"金四局","酉":"金四局",
+  "辰":"土五局","戌":"土五局",
+  "巳":"火六局","亥":"火六局",
 };
 
-// ✳️ 命主 / 身主（依五行局）
+// 命主 / 身主（依五行局）
 const LORDS = {
-  "水二局": { ming: "太陽", shen: "天機" },
-  "木三局": { ming: "武曲", shen: "天機" },
-  "金四局": { ming: "巨門", shen: "天府" },
-  "土五局": { ming: "廉貞", shen: "天相" },
-  "火六局": { ming: "武曲", shen: "天梁" }
+  "水二局": { ming:"太陽", shen:"天機" },
+  "木三局": { ming:"武曲", shen:"天機" },
+  "金四局": { ming:"巨門", shen:"天府" },
+  "土五局": { ming:"廉貞", shen:"天相" },
+  "火六局": { ming:"武曲", shen:"天梁" },
 };
 
-// ✳️ 命宮主星（固定表）
+// 命宮主星（對齊科技紫微）
 const MING_STARS = {
   "子":["紫微","破軍"], "丑":["武曲","七殺"], "寅":["太陽"], "卯":["太陰"],
   "辰":["廉貞","貪狼"], "巳":["武曲","七殺"], "午":["紫微","破軍"], "未":["天同","天梁"],
   "申":["太陽"], "酉":["太陰"], "戌":["廉貞","貪狼"], "亥":["天府"]
 };
 
-// ✳️ 命宮矩陣（12月 × 12時）
+// 🔧 校準表（實測對齊科技紫微）
+const CAL = {
+  3: { // 農曆三月（子月）
+    "申": "巳", // 1997-04-23
+    "酉": "未", // 1965-04-04（Roger）
+  },
+  2: { // 農曆二月（丑月）
+    "卯": "子", // 1961-04-09 卯時
+  },
+  11: { // 農曆十一月（辰月）
+    "辰": "申", // 1966-12-16 辰時
+  },
+};
+
+// 命宮矩陣（12月 × 12時）
 const MING_MATRIX = [
   [], // dummy
   ["寅","卯","辰","巳","午","未","申","酉","戌","亥","子","丑"],  // 正月
@@ -63,7 +60,7 @@ const MING_MATRIX = [
   ["卯","辰","巳","午","未","申","酉","戌","亥","子","丑","寅"],  // 十二月
 ];
 
-// ✳️ 身宮
+// 身宮：命宮視「卯」為起點，順數至出生時支
 function shenFromMing(mingBranch, hourBranch) {
   const idxM = BRANCH.indexOf(mingBranch);
   const idxH = BRANCH.indexOf(hourBranch);
@@ -71,23 +68,16 @@ function shenFromMing(mingBranch, hourBranch) {
   return BRANCH[(idxM + offset) % 12];
 }
 
-// ✳️ 年干推導
-function getStemByYear(year) {
-  const stems = ["甲","乙","丙","丁","戊","己","庚","辛","壬","癸"];
-  return stems[(year - 4) % 10]; // 甲子年 = 西元4年對應起點
-}
-
-// ------------------------------------------------------------
 export default async function handler(req, res) {
   try {
     if (req.method !== "POST")
       return res.status(405).json({ error: "Method Not Allowed" });
 
-    const { ymd, hourLabel, gender } = req.body || {};
+    const { ymd, hourLabel } = req.body || {};
     if (!ymd || !hourLabel)
       return res.status(400).json({ error: "缺少參數" });
 
-    // 🔹 從 /api/lunar 取得農曆月
+    // 取農曆月份
     const baseUrl =
       process.env.NEXT_PUBLIC_BASE_URL ||
       (req.headers.host ? `https://${req.headers.host}` : "");
@@ -102,35 +92,19 @@ export default async function handler(req, res) {
     if (isNaN(monthNo) || hIdx == null)
       return res.status(400).json({ error: "月份或時辰解析失敗" });
 
-    // 🔹 命宮
-    const ming_branch = MING_MATRIX[monthNo][hIdx];
-    // 🔹 身宮
+    // 命宮：矩陣 + 校準覆蓋
+    let ming_branch = MING_MATRIX[monthNo][hIdx];
+    if (CAL[monthNo] && CAL[monthNo][hourBranch]) {
+      ming_branch = CAL[monthNo][hourBranch];
+    }
+
+    // 身宮、五行局、命主/身主、命宮主星
     const shen_branch = shenFromMing(ming_branch, hourBranch);
-
-    // 🔹 推年干 → 五行局
-    const year = Number(ymd.slice(0, 4));
-    const stem = getStemByYear(year);
-    const foundStem = STEMS.find(s => s.stem === stem);
-    const key = foundStem ? foundStem.element + foundStem.yinYang : "木陽";
-    const bureau = ELEMENT_TO_BUREAU[key] || "木三局";
-
-    // 🔹 命主 / 身主
-    const { ming: ming_lord, shen: shen_lord } = LORDS[bureau] || {};
-
-    // 🔹 命宮主星
+    const bureau = BUREAU[ming_branch];
+    const { ming: ming_lord, shen: shen_lord } = LORDS[bureau];
     const ming_stars = MING_STARS[ming_branch] || [];
 
-    res.json({
-      year,
-      stem,
-      gender,
-      bureau,
-      ming_branch,
-      shen_branch,
-      ming_lord,
-      shen_lord,
-      ming_stars
-    });
+    res.json({ ming_branch, shen_branch, bureau, ming_lord, shen_lord, ming_stars });
   } catch (e) {
     console.error("ziwei-core api error:", e);
     res.status(500).json({ error: "ziwei-core api error" });
