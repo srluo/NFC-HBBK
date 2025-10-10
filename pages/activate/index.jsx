@@ -1,4 +1,4 @@
-// /pages/activate/index.jsx — v1.7.3B 智慧開卡 + AI 摘要進度提示
+// /pages/activate/index.jsx — v1.7.3C 智慧開卡 + AI 摘要進度提示
 "use client";
 import { useState, useEffect } from "react";
 import styles from "./activate.module.css";
@@ -105,14 +105,6 @@ export default function Activate() {
           <option value="AB">AB 型</option>
         </select>
 
-        <label>興趣嗜好</label>
-        <input
-          name="hobbies"
-          value={form.hobbies}
-          onChange={handleChange}
-          placeholder="例如：NFC, Music"
-        />
-
         <label>出生時辰</label>
         <select
           name="birth_time"
@@ -134,6 +126,14 @@ export default function Activate() {
           <option value="亥">21:00~22:59（亥）</option>
           <option value="晚子">23:00~23:59（晚子）</option>
         </select>
+
+        <label>興趣嗜好</label>
+        <input
+          name="hobbies"
+          value={form.hobbies}
+          onChange={handleChange}
+          placeholder="例如：Music"
+        />
 
         <button type="submit" className={styles.button}>送出開卡 ✨</button>
       </form>
