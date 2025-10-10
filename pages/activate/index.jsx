@@ -89,10 +89,6 @@ export default function Activate() {
           <option value="女">女</option>
         </select>
 
-        <p className={styles.tip}>
-          🔮 若希望產生「紫微命格分析」，請同時填寫性別與出生時辰。
-        </p>
-
         <label>生日</label>
         <input name="birthday" value={form.birthday} readOnly />
 
@@ -105,6 +101,10 @@ export default function Activate() {
           <option value="AB">AB 型</option>
         </select>
 
+        <p className={styles.tip}>
+          🔮 若希望產生「紫微命格分析」，請同時填寫以下 [性別] 與 [出生時辰]:
+        </p>
+        
         <label>出生時辰</label>
         <select
           name="birth_time"
