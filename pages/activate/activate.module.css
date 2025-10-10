@@ -2,7 +2,7 @@
 .page {
   min-height: 100vh;
   background: linear-gradient(135deg, #fffdf5, #fde7c7);
-  padding: 2rem 1rem 4rem; /* 預留底部空間給 footer */
+  padding: 2rem 1rem 4rem;
   font-family: "Microsoft JhengHei", "Noto Sans TC", sans-serif;
   text-align: center;
   display: flex;
@@ -31,8 +31,8 @@
   text-align: left;
 }
 
-/* 標籤與欄位對齊 */
-label {
+/* ✅ 標籤與欄位對齊（全部加上 .card 前綴） */
+.card label {
   display: block;
   font-weight: 600;
   color: #555;
@@ -40,9 +40,8 @@ label {
   margin-bottom: 0.3rem;
 }
 
-/* 輸入與選單欄位 */
-input,
-select {
+.card input,
+.card select {
   width: 100%;
   padding: 0.6rem 0.8rem;
   border: 1px solid #ccc;
@@ -53,8 +52,8 @@ select {
   background: #fffaf6;
 }
 
-input:focus,
-select:focus {
+.card input:focus,
+.card select:focus {
   border-color: #d2691e;
   outline: none;
   box-shadow: 0 0 0 2px rgba(210, 105, 30, 0.15);
@@ -74,10 +73,7 @@ select:focus {
   cursor: pointer;
   transition: background 0.25s;
 }
-
-.button:hover {
-  background: #b75713;
-}
+.button:hover { background: #b75713; }
 
 /* 狀態提示 */
 .statusBox {
@@ -102,37 +98,16 @@ select:focus {
   letter-spacing: 0.5px;
   opacity: 0.8;
 }
-
 .footer a {
   color: #b96a1f;
   text-decoration: none;
   font-weight: bold;
 }
+.footer a:hover { text-decoration: underline; }
 
-.footer a:hover {
-  text-decoration: underline;
-}
-
-/* 響應式微調（手機） */
+/* RWD */
 @media (max-width: 480px) {
-  .card {
-    padding: 1.2rem;
-  }
-
-  .title {
-    font-size: 1.5rem;
-  }
-
-  label {
-    font-size: 0.95rem;
-  }
-
-  input,
-  select {
-    font-size: 0.95rem;
-  }
-
-  .footer {
-    font-size: 0.8rem;
-  }
+  .card { padding: 1.2rem; }
+  .title { font-size: 1.5rem; }
+  .footer { font-size: 0.8rem; }
 }

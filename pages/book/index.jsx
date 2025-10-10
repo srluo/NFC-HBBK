@@ -2,7 +2,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import styles from "./book.module.css";
-import { constellationMap, zodiacMap } from "../../lib/iconMap";
+import { zodiacMap, constellationMap } from "../../lib/iconMap";
 
 export default function Book() {
   const [card, setCard] = useState(null);
@@ -14,7 +14,7 @@ export default function Book() {
     const urlParams = new URLSearchParams(window.location.search);
     const t = urlParams.get("token");
     if (!t) {
-      setStatus("❌ 缺少 token，請重新感應生日卡 📱");
+      setStatus("❌ 缺少 token 參數，請重新感應卡片 📱");
       return;
     }
     setToken(t);
@@ -36,7 +36,7 @@ export default function Book() {
         }
       } catch (err) {
         console.error(err);
-        setStatus("❌ 系統錯誤，請重新感應生日卡 📱");
+        setStatus("❌ 系統錯誤");
       }
     }
 
@@ -82,8 +82,7 @@ export default function Book() {
       </div>
 
       <footer className={styles.footer}>
-        <p>✨ 想擁有屬於自己的 NFC 生日書？<br />
-        前往 <a href="https://nfctogo.com" target="_blank" rel="noreferrer">NFCTOGO.com</a> 了解更多</p>
+        © 2025 <a href="https://nfctogo.com" target="_blank">NFCTOGO</a> · NFC 生日書
       </footer>
     </div>
   );
