@@ -157,3 +157,27 @@
   margin-top: 0;
   text-align: center;
 }
+
+/* AI 個性摘要區 */
+.aiSection {
+  background: #fdfcf7;
+  border-left: 6px solid #d4a15d;
+  box-shadow: 0 3px 10px rgba(0,0,0,0.05);
+}
+
+.aiBox {
+  background: #fffaf2;
+  border-radius: 10px;
+  padding: 1rem 1.2rem;
+  margin-top: 0.6rem;
+  text-align: left;
+  border: 1px solid #f1d3a2;
+}
+
+.aiText {
+  font-size: 1.05rem;
+  line-height: 1.7;
+  color: #444;
+  text-indent: 1.6rem;
+  white-space: pre-wrap;
+}

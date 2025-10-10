@@ -1,3 +1,4 @@
+// /pages/book/first.jsx — v1.7.4 智慧摘要強化版
 "use client";
 import { useEffect, useState } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
@@ -80,27 +81,27 @@ export default function FirstBookPage() {
 
   return (
     <div className={styles.container}>
-    {/* Header */}
-    <header className={styles.header}>
-      <div className={styles.iconBox}>
-        <img
-          src={`/icons/constellation/${constellationMap[card.constellation] || "default"}.png`}
-          alt={card.constellation}
-          className={styles.icon}
-        />
-        <img
-          src={`/icons/zodiac/${zodiacMap[card.zodiac] || "default"}.png`}
-          alt={card.zodiac}
-          className={styles.icon}
-        />
-      </div>
-      <h1 className={styles.title}>{card.user_name}</h1>
-      <p className={styles.subtitle}>
-        {card.birthday} ｜ {card.constellation} · {card.zodiac}
-      </p>
-    </header>
+      {/* 頂部 */}
+      <header className={styles.header}>
+        <div className={styles.iconBox}>
+          <img
+            src={`/icons/constellation/${constellationMap[card.constellation] || "default"}.png`}
+            alt={card.constellation}
+            className={styles.icon}
+          />
+          <img
+            src={`/icons/zodiac/${zodiacMap[card.zodiac] || "default"}.png`}
+            alt={card.zodiac}
+            className={styles.icon}
+          />
+        </div>
+        <h1 className={styles.title}>{card.user_name}</h1>
+        <p className={styles.subtitle}>
+          {card.birthday} ｜ {card.constellation} · {card.zodiac}
+        </p>
+      </header>
 
-      {/* 生日象徵 */}
+      {/* 🌸 生日象徵 */}
       <section className={styles.section}>
         <h3>🌸 生日象徵</h3>
         {symbol ? (
@@ -112,23 +113,30 @@ export default function FirstBookPage() {
         ) : <p>資料載入中...</p>}
       </section>
 
-      {/* AI 摘要 */}
-      <section className={styles.section}>
-        <h3>🤖 AI 個性摘要</h3>
-        <p>{card.ai_summary || "資料載入中..."}</p>
+      {/* 🤖 AI 個性摘要 */}
+      <section className={`${styles.section} ${styles.aiSection}`}>
+        <h3>🧠 個性與人生能量解析</h3>
+        <div className={styles.aiBox}>
+          {card.ai_summary ? (
+            <p className={styles.aiText}>{card.ai_summary}</p>
+          ) : (
+            <p>AI 正在準備您的專屬摘要...</p>
+          )}
+        </div>
       </section>
 
-      {/* 行動建議 */}
+      {/* ☀️ 今日建議 */}
       <section className={styles.section}>
         <h3>☀️ 今日行動建議</h3>
         <p>{quote || "載入中..."}</p>
       </section>
 
-      {/* 點數提示 */}
+      {/* 🎁 點數 */}
       <div className={styles.walletBox}>
         🎉 恭喜獲得 <strong>{card.points}</strong> 點探索點數！
       </div>
 
+      {/* 返回 */}
       <footer className={styles.footer}>
         <button
           className={`${styles.footerBtn} ${styles.backBtn}`}

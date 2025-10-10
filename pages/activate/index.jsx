@@ -1,4 +1,4 @@
-// /pages/activate/index.jsx — v1.7.3 智慧開卡提示版
+// /pages/activate/index.jsx — v1.7.3B 智慧開卡 + AI 摘要進度提示
 "use client";
 import { useState, useEffect } from "react";
 import styles from "./activate.module.css";
@@ -12,14 +12,14 @@ export default function Activate() {
     birthday: "",
     blood_type: "",
     hobbies: "",
-    birth_time: ""
+    birth_time: "",
   });
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const d = params.get("d") || "";
     const token = params.get("token") || "";
-    setForm(prev => ({ ...prev, birthday: d, token }));
+    setForm((prev) => ({ ...prev, birthday: d, token }));
   }, []);
 
   const handleChange = (e) => setForm({ ...form, [e.target.name]: e.target.value });
@@ -27,7 +27,6 @@ export default function Activate() {
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    // ✅ 檢查性別 + 時辰組合邏輯
     const hasGender = !!form.gender;
     const hasTime = !!form.birth_time;
     if ((hasGender && !hasTime) || (!hasGender && hasTime)) {
@@ -48,9 +47,17 @@ export default function Activate() {
       if (!res.ok) {
         setStatus(`❌ 錯誤: ${data.error || "未知錯誤"}`);
       } else {
+        // 🧠 智慧摘要生成階段提示
         if (data.first_time) {
-          setStatus(`🎉 開卡成功！目前點數：${data.card.points}`);
-          setTimeout(() => window.location.href = `/book?token=${form.token}`, 1500);
+          setStatus("🧠 AI 智慧摘要生成中...");
+          setTimeout(() => {
+            setStatus(`🎉 開卡成功！已獲得 20 點開卡禮，目前點數：${data.card.points}`);
+          }, 1200);
+
+          // ✅ 自動跳轉
+          setTimeout(() => {
+            window.location.href = `/book?token=${form.token}`;
+          }, 2500);
         } else {
           setStatus(`✅ 更新成功，目前點數：${data.card.points}`);
         }
@@ -67,7 +74,13 @@ export default function Activate() {
 
       <form className={styles.card} onSubmit={handleSubmit}>
         <label>姓名</label>
-        <input name="user_name" value={form.user_name} onChange={handleChange} required />
+        <input
+          name="user_name"
+          value={form.user_name}
+          onChange={handleChange}
+          placeholder="請輸入姓名"
+          required
+        />
 
         <label>性別</label>
         <select name="gender" value={form.gender} onChange={handleChange}>
@@ -93,10 +106,19 @@ export default function Activate() {
         </select>
 
         <label>興趣嗜好</label>
-        <input name="hobbies" value={form.hobbies} onChange={handleChange} />
+        <input
+          name="hobbies"
+          value={form.hobbies}
+          onChange={handleChange}
+          placeholder="例如：NFC, Music"
+        />
 
         <label>出生時辰</label>
-        <select name="birth_time" value={form.birth_time} onChange={handleChange}>
+        <select
+          name="birth_time"
+          value={form.birth_time}
+          onChange={handleChange}
+        >
           <option value="">請選擇</option>
           <option value="早子">00:00~00:59（早子）</option>
           <option value="丑">01:00~02:59（丑）</option>
