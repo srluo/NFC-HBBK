@@ -1,4 +1,4 @@
-// /pages/api/card-activate.js — v1.9.1（紫微＋AI摘要＋防爆最終穩定版）
+// /pages/api/card-activate.js — v1.9.5（Lucky Number fix + Redis 安全寫入）
 import { redis } from "../../lib/redis";
 import { calcZodiac } from "../../lib/zodiac";
 import { getLuckyNumber } from "../../lib/luckyNumber";
@@ -38,6 +38,7 @@ async function writeCard(uid, data) {
   const key = `card:${uid}`;
   const flat = {};
   for (const [k, v] of Object.entries(data)) {
+    // ✅ 統一轉為字串
     flat[k] = typeof v === "string" ? v : JSON.stringify(v);
   }
   try {
@@ -55,20 +56,44 @@ export default async function handler(req, res) {
     if (!token || !user_name || !birthday)
       return res.status(400).json({ error: "缺少必要參數" });
 
-    // 🧩 解碼 Token 取 UID
+    // 🔐 解析 UID
     const [uid] = Buffer.from(token, "base64").toString().split(":");
     if (!uid) return res.status(400).json({ error: "Token 解析錯誤" });
 
-    // 🎯 基本命理層：生肖 / 星座 / 幸運數字
+    // 🔢 計算生肖、星座
     const { lunarDate, zodiac, constellation } = calcZodiac(birthday);
-    const { number: lucky_number, masterNumber } = getLuckyNumber(birthday);
-
     const existing = (await readCard(uid)) || {};
+
+    // 🎯 是否第一次開卡
     const first_time = !existing.status || existing.status !== "ACTIVE";
     let points = Number(existing.points || 0);
     if (first_time) points += 20;
 
-    // 🪄 組合卡片資料
+    // 🎯 計算幸運數字與描述
+    const { number, masterNumber } = getLuckyNumber(birthday);
+    const lucky_number = masterNumber
+      ? `${masterNumber}（大師數字）`
+      : number?.toString() || "";
+
+    const descMap = {
+      1: "象徵領導與創造，勇於開拓新局。",
+      2: "代表協調與感應，擅長人際互動。",
+      3: "充滿靈感與表達力，帶來歡樂與創意。",
+      4: "實事求是，重視穩定與秩序。",
+      5: "熱愛自由，勇於探索新體驗。",
+      6: "充滿愛心與責任感，重視家庭與人際關係。",
+      7: "思考深入，追求真理與智慧。",
+      8: "擁有強大行動力與影響力。",
+      9: "富有同理與包容，渴望助人與理想。",
+    };
+
+    let lucky_desc = "";
+    if (masterNumber === 11) lucky_desc = "擁有強烈的直覺與靈性洞察力。";
+    else if (masterNumber === 22) lucky_desc = "天生的建構者，能將理想化為現實。";
+    else if (masterNumber === 33) lucky_desc = "具療癒與啟發能量，象徵無私與人道精神。";
+    else lucky_desc = descMap[number] || "具備平衡與創造的特質，能在變化中找到自我節奏。";
+
+    // 🧠 建立卡片資料
     const card = {
       ...existing,
       uid,
@@ -82,53 +107,14 @@ export default async function handler(req, res) {
       lunar_birthday: lunarDate,
       zodiac,
       constellation,
-      lucky_number,
+      lucky_number, // ✅ 改為字串
+      lucky_desc,   // ✅ 也存描述
       points: points.toString(),
       last_seen: safeNowString(),
       updated_at: Date.now().toString(),
     };
 
-    // 🔮 若填寫性別與時辰 → 呼叫紫微命盤核心 API
-    if (gender && birth_time) {
-      try {
-        const ziweiRes = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL}/api/ziwei-core`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            ymd: birthday.replace(/(\d{4})(\d{2})(\d{2})/, "$1-$2-$3"),
-            hourLabel: `${birth_time}時`,
-          }),
-        });
-
-        const ziweiData = await ziweiRes.json();
-        if (ziweiRes.ok && ziweiData.ming_branch) {
-          Object.assign(card, {
-            bureau: ziweiData.bureau,
-            ming_branch: ziweiData.ming_branch,
-            shen_branch: ziweiData.shen_branch,
-            ming_lord: ziweiData.ming_lord,
-            shen_lord: ziweiData.shen_lord,
-            ming_stars: ziweiData.ming_stars || [],
-          });
-
-          // 💾 確保紫微六欄位永久寫入 Redis
-          await redis.hset(`card:${uid}`, {
-            bureau: ziweiData.bureau,
-            ming_branch: ziweiData.ming_branch,
-            shen_branch: ziweiData.shen_branch,
-            ming_lord: ziweiData.ming_lord,
-            shen_lord: ziweiData.shen_lord,
-            ming_stars: JSON.stringify(ziweiData.ming_stars || []),
-          });
-        } else {
-          console.warn("⚠️ 紫微計算失敗:", ziweiData.error);
-        }
-      } catch (e) {
-        console.error("ziwei-core API 錯誤:", e);
-      }
-    }
-
-    // 🤖 AI 智慧摘要（首次開卡或補完性別/時辰後觸發）
+    // 🧩 AI 生成條件
     const needAI =
       first_time ||
       (!existing.gender && gender) ||
@@ -136,25 +122,30 @@ export default async function handler(req, res) {
 
     if (needAI) {
       try {
-        const aiRes = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL}/api/ai`, {
+        const aiRes = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL || ""}/api/ai`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
+            uid,
             name: user_name,
             gender,
             zodiac,
             constellation,
             blood_type,
-            bureau: card.bureau || "",
-            ming_lord: card.ming_lord || "",
-            shen_lord: card.shen_lord || "",
-            ming_stars: card.ming_stars || [],
+            bureau: existing.bureau || "",
+            ming_lord: existing.ming_lord || "",
+            shen_lord: existing.shen_lord || "",
+            ming_stars: existing.ming_stars || [],
+            birthday,
+            birth_time,
           }),
         });
 
         const aiData = await aiRes.json();
         if (aiRes.ok && aiData.summary) {
           card.ai_summary = aiData.summary;
+          if (aiData.paragraphs)
+            card.ai_summary_paragraphs = JSON.stringify(aiData.paragraphs);
         } else {
           console.warn("⚠️ AI 摘要生成失敗:", aiData.error);
         }
@@ -163,9 +154,7 @@ export default async function handler(req, res) {
       }
     }
 
-    // ✅ 寫入最終卡資料
     await writeCard(uid, card);
-
     return res.json({ ok: true, first_time, card });
   } catch (err) {
     console.error("card-activate fatal error:", err);
