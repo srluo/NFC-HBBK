@@ -1,6 +1,7 @@
-// /pages/api/card-activate.js — v1.8.7（首開導向 + 時辰標籤補全 + opened 控制）
+// /pages/api/card-activate.js — v1.8.7R（含幸運數字寫入 Redis）
 import { redis } from "../../lib/redis";
 import { calcZodiac } from "../../lib/zodiac";
+import { getLuckyNumber } from "../../lib/luckyNumber";
 
 function safeNowString() {
   const now = new Date();
@@ -22,25 +23,15 @@ function safeNowString() {
   }
 }
 
-const TIME_LABELS = {
-  子: "00:00~00:59（早子）/23:00~23:59（晚子）",
-  丑: "01:00~02:59（丑）",
-  寅: "03:00~04:59（寅）",
-  卯: "05:00~06:59（卯）",
-  辰: "07:00~08:59（辰）",
-  巳: "09:00~10:59（巳）",
-  午: "11:00~12:59（午）",
-  未: "13:00~14:59（未）",
-  申: "15:00~16:59（申）",
-  酉: "17:00~18:59（酉）",
-  戌: "19:00~20:59（戌）",
-  亥: "21:00~22:59（亥）",
-};
-
 async function readCard(uid) {
   const key = `card:${uid}`;
-  const hash = await redis.hgetall(key);
-  return hash && Object.keys(hash).length ? hash : null;
+  try {
+    const hash = await redis.hgetall(key);
+    if (hash && Object.keys(hash).length > 0) return hash;
+  } catch (e) {
+    console.error("redis.hgetall error:", e);
+  }
+  return null;
 }
 
 async function writeCard(uid, data) {
@@ -49,38 +40,40 @@ async function writeCard(uid, data) {
   for (const [k, v] of Object.entries(data)) {
     flat[k] = typeof v === "string" ? v : JSON.stringify(v);
   }
-  await redis.hset(key, flat);
+  try {
+    await redis.hset(key, flat);
+  } catch (e) {
+    console.error("redis.hset error:", e);
+  }
 }
 
 export default async function handler(req, res) {
   if (req.method !== "POST") return res.status(405).end();
   try {
-    const {
-      token,
-      user_name,
-      gender,
-      blood_type,
-      hobbies,
-      birth_time,
-      birth_time_label,
-      birthday,
-    } = req.body || {};
+    const { token, user_name, gender, blood_type, hobbies, birth_time, birthday } =
+      req.body || {};
     if (!token || !user_name || !birthday)
       return res.status(400).json({ error: "缺少必要參數" });
 
     const [uid] = Buffer.from(token, "base64").toString().split(":");
     if (!uid) return res.status(400).json({ error: "Token 解析錯誤" });
 
+    // 🌙 生肖 & 星座
     const { lunarDate, zodiac, constellation } = calcZodiac(birthday);
     const existing = (await readCard(uid)) || {};
 
-    // 判斷是否首次開卡
-    const wasOpened = existing.opened === "true" || existing.opened === true;
-    const first_time = !wasOpened;
+    // 🧮 計算幸運數字（生命靈數）
+    const { number, masterNumber } = getLuckyNumber(birthday);
+    const lucky_number = masterNumber
+      ? `${masterNumber}（大師數字）`
+      : `${number}`;
 
+    // 檢查是否第一次開卡
+    const first_time = !existing.status || existing.status !== "ACTIVE";
     let points = Number(existing.points || 0);
     if (first_time) points += 20;
 
+    // 🧩 組合卡片資料
     const card = {
       ...existing,
       uid,
@@ -90,52 +83,51 @@ export default async function handler(req, res) {
       blood_type: blood_type || existing.blood_type || "",
       hobbies: hobbies || existing.hobbies || "",
       birth_time: birth_time || existing.birth_time || "",
-      birth_time_label:
-        birth_time_label ||
-        TIME_LABELS[birth_time] ||
-        existing.birth_time_label ||
-        "",
       birthday,
       lunar_birthday: lunarDate,
       zodiac,
       constellation,
-      points: String(points),
+      lucky_number,
+      points: points.toString(),
       last_seen: safeNowString(),
       updated_at: Date.now().toString(),
     };
 
-    if (first_time) {
-      card.opened = "false";
-      card.created_at = Date.now().toString();
-    }
-
-    // ✅ AI 生成流程（保持不變）
+    // ✅ AI 生成條件：首次開卡或新增紫微資料
     const needAI =
       first_time ||
       (!existing.gender && gender) ||
       (!existing.birth_time && birth_time);
+
     if (needAI) {
       try {
-        const aiRes = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL}/api/ai`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            name: user_name,
-            gender,
-            zodiac,
-            constellation,
-            blood_type,
-            bureau: existing.bureau || "",
-            ming_lord: existing.ming_lord || "",
-            shen_lord: existing.shen_lord || "",
-            ming_stars: existing.ming_stars || [],
-          }),
-        });
+        const aiRes = await fetch(
+          `${process.env.NEXT_PUBLIC_BASE_URL || ""}/api/ai`,
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              name: user_name,
+              gender,
+              zodiac,
+              constellation,
+              blood_type,
+              bureau: existing.bureau || "",
+              ming_lord: existing.ming_lord || "",
+              shen_lord: existing.shen_lord || "",
+              ming_stars: existing.ming_stars || [],
+            }),
+          }
+        );
+
         const aiData = await aiRes.json();
-        if (aiRes.ok && aiData.summary) card.ai_summary = aiData.summary;
-        else console.warn("⚠️ AI 摘要生成失敗:", aiData.error);
-      } catch (err) {
-        console.error("AI 生成錯誤:", err);
+        if (aiRes.ok && aiData.summary) {
+          card.ai_summary = aiData.summary;
+        } else {
+          console.warn("⚠️ AI 摘要生成失敗:", aiData.error);
+        }
+      } catch (e) {
+        console.error("AI 生成錯誤:", e);
       }
     }
 
