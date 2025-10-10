@@ -82,13 +82,6 @@ export default function Activate() {
           required
         />
 
-        <label>性別</label>
-        <select name="gender" value={form.gender} onChange={handleChange}>
-          <option value="">請選擇</option>
-          <option value="男">男</option>
-          <option value="女">女</option>
-        </select>
-
         <label>生日</label>
         <input name="birthday" value={form.birthday} readOnly />
 
@@ -104,6 +97,13 @@ export default function Activate() {
         <p className={styles.tip}>
           🔮 若希望產生「紫微命格分析」，請同時填寫以下 [性別] 與 [出生時辰]:
         </p>
+
+        <label>性別</label>
+        <select name="gender" value={form.gender} onChange={handleChange}>
+          <option value="">請選擇</option>
+          <option value="男">男</option>
+          <option value="女">女</option>
+        </select>
         
         <label>出生時辰</label>
         <select
