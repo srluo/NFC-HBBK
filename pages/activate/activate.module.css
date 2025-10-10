@@ -4,7 +4,7 @@
    ✅ Footer 穩定對齊底部
 */
 
-/* ✅ 全頁容器 */
+/* ✅ 整體頁面配置 */
 .page {
   font-family: "Microsoft JhengHei", "Noto Sans TC", sans-serif;
   background: linear-gradient(135deg, #f9f5e7, #fceabb);
@@ -15,84 +15,74 @@
   align-items: center;
 }
 
-/* 標題 */
+/* 標題樣式 */
 .title {
   font-size: 1.8rem;
-  font-weight: bold;
   color: #d2691e;
-  margin-bottom: 1.2rem;
+  margin-bottom: 1.5rem;
 }
 
-/* 卡片容器 */
+/* 卡片區域 */
 .card {
-  background: #ffffff;
+  background: #fff;
+  padding: 1.5rem;
   border-radius: 16px;
-  max-width: 420px;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.15);
   width: 100%;
-  margin: 0 auto;
-  padding: 1.8rem 1.5rem;
-  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.08);
-  text-align: left;
+  max-width: 420px;
 }
 
-/* 標籤與欄位 */
 .card label {
   display: block;
-  font-weight: 600;
-  color: #555;
-  margin-top: 1rem;
-  margin-bottom: 0.3rem;
+  font-weight: bold;
+  margin: 0.5rem 0 0.2rem;
 }
 
 .card input,
 .card select {
   width: 100%;
-  padding: 0.6rem 0.8rem;
-  border: 1px solid #ccc;
+  padding: 0.6rem;
+  margin-bottom: 1rem;
+  border: 1px solid #ddd;
   border-radius: 8px;
   font-size: 1rem;
-  background: #fffaf6;
+  box-sizing: border-box;
   transition: all 0.2s ease;
-  outline: none;
+  background: #fffaf6;
 }
 
 .card input:focus,
 .card select:focus {
   border-color: #d2691e;
+  outline: none;
   box-shadow: 0 0 0 2px rgba(210, 105, 30, 0.15);
 }
 
-/* 按鈕 */
 .button {
-  display: block;
   width: 100%;
-  margin-top: 1.5rem;
   padding: 0.8rem;
-  background: #d2691e;
+  background: #ff8c42;
   color: #fff;
+  font-weight: bold;
   border: none;
   border-radius: 10px;
-  font-size: 1.1rem;
   cursor: pointer;
   transition: background 0.25s;
-  -webkit-tap-highlight-color: transparent;
 }
 
 .button:hover {
-  background: #b75713;
+  background: #e67a33;
 }
 
-/* 狀態提示 */
+/* 狀態框 */
 .statusBox {
-  background: #fff7ec;
-  border: 1px solid #f3d3a3;
-  border-radius: 12px;
-  margin: 1.5rem auto 0;
-  max-width: 420px;
-  padding: 1rem;
-  font-size: 1rem;
-  color: #333;
+  margin-top: 1rem;
+  padding: 0.8rem;
+  background: #fff9f2;
+  border: 1px solid #f0d4b4;
+  border-radius: 8px;
   text-align: center;
+  font-size: 0.9rem;
 }
 
 /* ✅ Footer 固定底部安全版 */
