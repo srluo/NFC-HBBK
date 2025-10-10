@@ -1,9 +1,10 @@
-// /pages/api/ai.js — v1.9.2（AI 摘要輕量優化）
+// /pages/api/ai.js — v1.9.4（含標題＋禁止人名版）
 // ------------------------------------------------------------
 // ✅ 重點更新：
-// 1️⃣ 字數控制：限制 120–150 字。
-// 2️⃣ 禁止重複提及星座／生肖名稱（減少冗語）。
-// 3️⃣ 保留四段結構（整體、優點、注意、鼓勵），但語氣更精簡。
+// 1️⃣ 明確要求三段開頭加標題（性格特質／潛能優點／注意事項與建議）。
+// 2️⃣ 禁止出現人名（如 Roger）與第三人稱。
+// 3️⃣ 使用第二人稱「你」描述。
+// 4️⃣ 字數控制在 130～160 字（不被截斷）。
 // ------------------------------------------------------------
 
 import OpenAI from "openai";
@@ -26,14 +27,12 @@ export default async function handler(req, res) {
       ming_stars,
     } = req.body || {};
 
-    if (!name || !constellation || !zodiac)
+    if (!constellation || !zodiac)
       return res.status(400).json({ error: "缺少必要參數" });
 
-    // 🎯 Prompt（120–150 字內）
     const prompt = `
-你是一位人格心理顧問，根據以下資料撰寫一段約 120–150 字的「個性摘要」：
+你是一位人格心理顧問，根據以下資料撰寫一段約 130～160 字的「個性摘要」：
 ---
-姓名：${name}
 性別：${gender || "未指定"}
 生肖：${zodiac}
 星座：${constellation}
@@ -43,12 +42,17 @@ export default async function handler(req, res) {
 身主星：${shen_lord || "未知"}
 命宮主星群：${Array.isArray(ming_stars) ? ming_stars.join("、") : ming_stars || "無"}
 ---
-要求：
-1️⃣ 不要重複提及星座、生肖名稱。
-2️⃣ 以溫暖、自然、具洞察力的語氣撰寫。
-3️⃣ 分為三段：整體性格、潛能與優點、需注意缺點與鼓勵。
-4️⃣ 每段間請加一個空行（\\n\\n）。
-5️⃣ 字數請控制在 120～150 字內。
+撰寫要求：
+1️⃣ 禁止出現任何人名（如 ${name}）。  
+2️⃣ 禁止使用第三人稱（如「他」「她」），一律用「你」開頭敘述。  
+3️⃣ 不得重複提及星座或生肖名稱。  
+4️⃣ 以溫暖、自然、具洞察力的語氣撰寫。  
+5️⃣ 全文分為三段，每段開頭請加上標題：  
+   - 性格特質：  
+   - 潛能優點：  
+   - 注意事項與建議：  
+6️⃣ 每段之間以兩個換行符號（\\n\\n）分隔。  
+7️⃣ 全文長度控制在 130～160 字之間。
 `;
 
     const completion = await client.chat.completions.create({
@@ -57,16 +61,15 @@ export default async function handler(req, res) {
         {
           role: "system",
           content:
-            "你是一位融合心理學與命理觀察的顧問，擅長用簡潔、誠懇、正面的語氣撰寫個人化摘要。",
+            "你是一位融合心理學與紫微觀察的顧問，擅長以第二人稱撰寫自然、誠懇、結構分明的個性摘要。",
         },
         { role: "user", content: prompt },
       ],
       temperature: 0.8,
-      max_tokens: 220, // 控制生成上限
+      max_tokens: 240,
     });
 
     const summary = completion.choices?.[0]?.message?.content?.trim() || "";
-
     return res.json({ ok: true, summary });
   } catch (e) {
     console.error("ai.js error:", e);
