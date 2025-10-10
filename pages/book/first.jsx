@@ -1,6 +1,6 @@
-// /pages/book/first.jsx — v1.9.2（幸運數字修正＋AI摘要穩定版）
-"use client";
+// /pages/book/first.jsx — v1.9.4（AI 摘要分段排版正式版）
 
+"use client";
 import { useEffect, useState } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import styles from "./book.module.css";
@@ -16,6 +16,7 @@ export default function FirstBookPage() {
   const router = useRouter();
   const token = searchParams.get("token");
 
+  // 🧩 抓取卡片資料
   useEffect(() => {
     if (!token) {
       setStatus("❌ 缺少 token，請重新感應生日卡 📱");
@@ -27,44 +28,12 @@ export default function FirstBookPage() {
         const res = await fetch(`/api/getCard?token=${token}`);
         const data = await res.json();
         if (res.ok && data.card) {
-          // ✴️ lucky number 處理防呆
-          let luckyNum = null;
-          let luckyText = "";
-
+          let lucky = null;
           if (data.card.birthday) {
             const { masterNumber, number } = getLuckyNumber(data.card.birthday);
-            luckyNum = masterNumber ? `${masterNumber}（大師數字）` : number;
-
-            const strT = String(luckyNum || "");
-            if (strT.includes("11")) {
-              luckyText = "擁有強烈直覺與靈性洞察力，象徵創造與覺醒的力量。";
-            } else if (strT.includes("22")) {
-              luckyText = "天生的實踐者與建構者，能將理想化為現實，展現堅毅與智慧。";
-            } else if (strT.includes("33")) {
-              luckyText = "具備療癒與啟發能量，象徵無私與人道精神。";
-            } else {
-              const num = parseInt(strT);
-              luckyText = (
-                {
-                  1: "象徵領導與創造，勇於開拓新局。",
-                  2: "代表協調與感應，擅長人際互動。",
-                  3: "充滿靈感與表達力，帶來歡樂與創意。",
-                  4: "務實穩定，重視秩序與責任。",
-                  5: "熱愛自由，勇於探索新境界。",
-                  6: "充滿愛心與責任感，重視家庭與關係。",
-                  7: "思考深入，追求真理與智慧。",
-                  8: "擁有強大行動力與企圖心。",
-                  9: "富有同理與包容，渴望助人與理想。"
-                }[num] || "具備平衡與創造的特質，能在變化中找到自我節奏。"
-              );
-            }
+            lucky = masterNumber ? `⭐ ${masterNumber}（大師數字）` : number;
           }
-
-          setCard({
-            ...data.card,
-            lucky_number: luckyNum,
-            lucky_desc: luckyText,
-          });
+          setCard({ ...data.card, lucky_number: lucky });
           setStatus("ok");
         } else {
           setStatus(`❌ ${data.error || "讀取失敗"}`);
@@ -74,6 +43,7 @@ export default function FirstBookPage() {
         setStatus("❌ 系統錯誤，請重新感應生日卡 📱");
       }
     }
+
     fetchCard();
   }, [token]);
 
@@ -112,7 +82,7 @@ export default function FirstBookPage() {
 
   return (
     <div className={styles.container}>
-      {/* Header */}
+      {/* 🪶 Header */}
       <header className={styles.header}>
         <div className={styles.iconBox}>
           <img
@@ -140,17 +110,33 @@ export default function FirstBookPage() {
             <p>花：<strong>{symbol.flower}</strong> — {symbol.flower_meaning}</p>
             <p>寶石：<strong>{symbol.stone}</strong> — {symbol.stone_meaning}</p>
             <p>幸運數字：<strong>{card.lucky_number}</strong></p>
-            <p>{card.lucky_desc}</p>
           </>
         ) : (
           <p>資料載入中...</p>
         )}
       </section>
 
-      {/* 🤖 AI 個性摘要 */}
+      {/* 🤖 AI 個性摘要（分段排版） */}
       <section className={styles.section}>
         <h3>🤖 AI 個性摘要</h3>
-        <p>{card.ai_summary || "資料載入中..."}</p>
+        {card.ai_summary ? (
+          card.ai_summary
+            .split(/(?<=。)\s*/g)
+            .map((p, i) => (
+              <p
+                key={i}
+                style={{
+                  marginBottom: "0.7em",
+                  lineHeight: "1.8",
+                  textAlign: "justify",
+                }}
+              >
+                {p.trim()}
+              </p>
+            ))
+        ) : (
+          <p>資料載入中...</p>
+        )}
       </section>
 
       {/* ☀️ 今日行動建議 */}
@@ -159,12 +145,12 @@ export default function FirstBookPage() {
         <p>{quote || "載入中..."}</p>
       </section>
 
-      {/* 🎯 點數提示 */}
+      {/* 💎 點數提示 */}
       <div className={styles.walletBox}>
         🎉 恭喜獲得 <strong>{card.points}</strong> 點探索點數！
       </div>
 
-      {/* Footer */}
+      {/* 📘 Footer */}
       <footer className={styles.footer}>
         <button
           className={`${styles.footerBtn} ${styles.backBtn}`}
