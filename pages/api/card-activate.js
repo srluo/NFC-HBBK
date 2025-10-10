@@ -1,4 +1,4 @@
-// /pages/api/card-activate.js — v1.8.7R（含幸運數字寫入 Redis）
+// /pages/api/card-activate.js — v1.8.8R
 import { redis } from "../../lib/redis";
 import { calcZodiac } from "../../lib/zodiac";
 import { getLuckyNumber } from "../../lib/luckyNumber";
@@ -50,30 +50,34 @@ async function writeCard(uid, data) {
 export default async function handler(req, res) {
   if (req.method !== "POST") return res.status(405).end();
   try {
-    const { token, user_name, gender, blood_type, hobbies, birth_time, birthday } =
-      req.body || {};
+    const {
+      token,
+      user_name,
+      gender,
+      blood_type,
+      hobbies,
+      birth_time,
+      birthday,
+    } = req.body || {};
+
     if (!token || !user_name || !birthday)
       return res.status(400).json({ error: "缺少必要參數" });
 
     const [uid] = Buffer.from(token, "base64").toString().split(":");
     if (!uid) return res.status(400).json({ error: "Token 解析錯誤" });
 
-    // 🌙 生肖 & 星座
     const { lunarDate, zodiac, constellation } = calcZodiac(birthday);
     const existing = (await readCard(uid)) || {};
 
-    // 🧮 計算幸運數字（生命靈數）
     const { number, masterNumber } = getLuckyNumber(birthday);
     const lucky_number = masterNumber
       ? `${masterNumber}（大師數字）`
       : `${number}`;
 
-    // 檢查是否第一次開卡
     const first_time = !existing.status || existing.status !== "ACTIVE";
     let points = Number(existing.points || 0);
     if (first_time) points += 20;
 
-    // 🧩 組合卡片資料
     const card = {
       ...existing,
       uid,
@@ -93,7 +97,8 @@ export default async function handler(req, res) {
       updated_at: Date.now().toString(),
     };
 
-    // ✅ AI 生成條件：首次開卡或新增紫微資料
+    await writeCard(uid, card);
+
     const needAI =
       first_time ||
       (!existing.gender && gender) ||
@@ -123,6 +128,7 @@ export default async function handler(req, res) {
         const aiData = await aiRes.json();
         if (aiRes.ok && aiData.summary) {
           card.ai_summary = aiData.summary;
+          await redis.hset(`card:${uid}`, "ai_summary", aiData.summary);
         } else {
           console.warn("⚠️ AI 摘要生成失敗:", aiData.error);
         }
@@ -131,7 +137,6 @@ export default async function handler(req, res) {
       }
     }
 
-    await writeCard(uid, card);
     return res.json({ ok: true, first_time, card });
   } catch (err) {
     console.error("card-activate fatal error:", err);
