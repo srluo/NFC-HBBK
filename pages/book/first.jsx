@@ -1,4 +1,4 @@
-// /pages/book/first.jsx — v1.9.8（字串防呆修正版）
+// /pages/book/first.jsx — v2.0.0（穩定正式版・幸運數＋段落優化）
 
 "use client";
 import { useEffect, useState } from "react";
@@ -16,6 +16,7 @@ export default function FirstBookPage() {
   const router = useRouter();
   const token = searchParams.get("token");
 
+  // 🚀 抓取卡片資料
   useEffect(() => {
     if (!token) {
       setStatus("❌ 缺少 token，請重新感應生日卡 📱");
@@ -26,21 +27,23 @@ export default function FirstBookPage() {
       try {
         const res = await fetch(`/api/getCard?token=${token}`);
         const data = await res.json();
+
         if (res.ok && data.card) {
           const hasRedisLucky = !!data.card.lucky_number;
           let lucky_number = "";
           let lucky_desc = "";
 
+          // 🎯 幸運數字（若無Redis值則重算）
           if (hasRedisLucky) {
             lucky_number = data.card.lucky_number;
           } else {
-            const { number, masterNumber } = getLuckyNumber(data.card.birthday);
+            const { number, masterNumber } = getLuckyNumber(String(data.card.birthday));
             lucky_number = masterNumber
               ? `${masterNumber}（大師數字）`
               : number;
           }
 
-          // 🎯 描述對照表
+          // 🎯 幸運數字描述對照
           const descMap = {
             1: "象徵領導與創造，勇於開拓新局。",
             2: "代表協調與感應，擅長人際互動。",
@@ -54,19 +57,14 @@ export default function FirstBookPage() {
           };
 
           if (lucky_number.includes("11")) {
-            lucky_desc =
-              "擁有強烈的直覺與靈性洞察力，能在變化中保持清晰與洞見。";
+            lucky_desc = "擁有強烈的直覺與靈性洞察力，能在變化中保持清晰與洞見。";
           } else if (lucky_number.includes("22")) {
-            lucky_desc =
-              "天生的實踐者與建構者，能將理想化為現實，展現堅毅與智慧。";
+            lucky_desc = "天生的實踐者與建構者，能將理想化為現實，展現堅毅與智慧。";
           } else if (lucky_number.includes("33")) {
-            lucky_desc =
-              "具備療癒與啟發能量，象徵無私與人道精神。";
+            lucky_desc = "具備療癒與啟發能量，象徵無私與人道精神。";
           } else {
             const num = parseInt(lucky_number);
-            lucky_desc =
-              descMap[num] ||
-              "具備平衡與創造的特質，能在變化中找到自我節奏。";
+            lucky_desc = descMap[num] || "具備平衡與創造的特質，能在變化中找到自我節奏。";
           }
 
           setCard({
@@ -87,6 +85,7 @@ export default function FirstBookPage() {
     fetchCard();
   }, [token]);
 
+  // 🌸 抓取生日象徵（花／石）
   useEffect(() => {
     if (!card?.birthday) return;
     const month = parseInt(String(card.birthday).slice(4, 6), 10);
@@ -102,6 +101,7 @@ export default function FirstBookPage() {
     fetchSymbol();
   }, [card]);
 
+  // ☀️ 抓取每日建議
   useEffect(() => {
     async function fetchQuote() {
       try {
@@ -120,6 +120,7 @@ export default function FirstBookPage() {
 
   return (
     <div className={styles.container}>
+      {/* 🪪 Header */}
       <header className={styles.header}>
         <div className={styles.iconBox}>
           <img
@@ -139,6 +140,7 @@ export default function FirstBookPage() {
         </p>
       </header>
 
+      {/* 🌸 生日象徵 */}
       <section className={styles.section}>
         <h3>🌸 生日象徵</h3>
         {symbol ? (
@@ -152,6 +154,7 @@ export default function FirstBookPage() {
         )}
       </section>
 
+      {/* 🤖 AI 摘要 */}
       <section className={styles.section}>
         <h3>🤖 AI 個性摘要</h3>
         {card.ai_summary ? (
@@ -171,15 +174,18 @@ export default function FirstBookPage() {
         )}
       </section>
 
+      {/* ☀️ 今日建議 */}
       <section className={styles.section}>
         <h3>☀️ 今日行動建議</h3>
         <p>{quote || "載入中..."}</p>
       </section>
 
+      {/* 🎁 點數提示 */}
       <div className={styles.walletBox}>
         🎉 恭喜獲得 <strong>{card.points}</strong> 點探索點數！
       </div>
 
+      {/* 🔙 Footer */}
       <footer className={styles.footer}>
         <button
           className={`${styles.footerBtn} ${styles.backBtn}`}
