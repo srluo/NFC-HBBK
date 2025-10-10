@@ -1,4 +1,6 @@
-/* /pages/activate/activate.module.css — v1.61 flex-safe footer 版 */
+/* /pages/activate/activate.module.css — v1.62-Stable
+   ✅ 修正：Footer 不跑版，Safari/iPhone 安全
+*/
 
 /* ✅ 整體頁面配置 */
 .page {
@@ -9,7 +11,7 @@
   text-align: center;
   display: flex;
   flex-direction: column;
-  justify-content: space-between; /* 確保 footer 穩定在底部 */
+  justify-content: flex-start;
   align-items: center;
 }
 
@@ -33,7 +35,7 @@
   text-align: left;
 }
 
-/* ✅ 標籤與欄位對齊（全部加上 .card 前綴以避免 CSS Modules build 錯誤） */
+/* 標籤與欄位 */
 .card label {
   display: block;
   font-weight: 600;
@@ -61,7 +63,7 @@
   box-shadow: 0 0 0 2px rgba(210, 105, 30, 0.15);
 }
 
-/* 送出按鈕 */
+/* 按鈕 */
 .button {
   display: block;
   width: 100%;
@@ -79,7 +81,7 @@
   background: #b75713;
 }
 
-/* 狀態提示 */
+/* 狀態框 */
 .statusBox {
   background: #fff7ec;
   border: 1px solid #f3d3a3;
@@ -92,15 +94,17 @@
   text-align: center;
 }
 
-/* ✅ Footer 區域 */
+/* ✅ Footer 穩定版 */
 .footer {
-  margin-top: 2rem;
+  margin-top: auto;
   padding: 1rem 0;
   text-align: center;
   color: #a17b4a;
   font-size: 0.9rem;
   letter-spacing: 0.5px;
-  opacity: 0.85;
+  opacity: 0.8;
+  width: 100%;
+  background: transparent;
 }
 
 .footer a {
@@ -108,12 +112,11 @@
   text-decoration: none;
   font-weight: bold;
 }
-
 .footer a:hover {
   text-decoration: underline;
 }
 
-/* ✅ RWD 手機優化 */
+/* RWD */
 @media (max-width: 480px) {
   .card {
     padding: 1.2rem;
@@ -123,6 +126,5 @@
   }
   .footer {
     font-size: 0.8rem;
-    padding-bottom: 2rem;
   }
 }
