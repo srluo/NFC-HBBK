@@ -1,3 +1,5 @@
+// /pages/activate/index.jsx — v1.61 footer 版
+
 "use client";
 import { useState, useEffect } from "react";
 import styles from "./activate.module.css";
@@ -39,7 +41,6 @@ export default function Activate() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(form),
       });
-
       const data = await res.json();
       if (!res.ok) {
         setStatus(`❌ 錯誤: ${data.error || "未知錯誤"}`);
@@ -61,7 +62,7 @@ export default function Activate() {
       <h2 className={styles.title}>✨ 開啟我的生日書</h2>
 
       <form className={styles.card} onSubmit={handleSubmit}>
-        <label>姓名/暱稱</label>
+        <label>姓名 / 暱稱</label>
         <input
           name="user_name"
           value={form.user_name}
@@ -70,14 +71,23 @@ export default function Activate() {
         />
 
         <label>性別</label>
-        <select name="gender" value={form.gender} onChange={handleChange}>
+        <select
+          name="gender"
+          value={form.gender}
+          onChange={handleChange}
+          required
+        >
           <option value="">-- 請選擇 --</option>
           <option value="男">男</option>
           <option value="女">女</option>
         </select>
 
         <label>生日</label>
-        <input name="birthday" value={form.birthday} readOnly />
+        <input
+          name="birthday"
+          value={form.birthday}
+          readOnly
+        />
 
         <label>血型</label>
         <select
@@ -130,8 +140,9 @@ export default function Activate() {
         </div>
       )}
 
+      {/* ✅ 新增 Footer */}
       <footer className={styles.footer}>
-        © 2025 <a href="https://nfctogo.com" target="_blank">NFCTOGO</a> · NFC 生日書
+        © 2025 NFC Birthday Book ｜ 由 <a href="https://nfctogo.com" target="_blank">NFCTOGO</a> 技術支援
       </footer>
     </div>
   );
