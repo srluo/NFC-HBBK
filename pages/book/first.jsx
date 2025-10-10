@@ -145,7 +145,7 @@ export default function FirstBookPage() {
           <>
             <p>誕生花：<strong>{symbol.flower}</strong> — {symbol.flower_meaning}</p>
             <p>誕生石：<strong>{symbol.stone}</strong> — {symbol.stone_meaning}</p>
-            <p>幸運數字：<strong>{card.lucky_number}</strong></p>
+            <p>幸運數字：<strong>{card.lucky_number}</strong> — {card.lucky_desc}</p>
           </>
         ) : (
           <p>資料載入中...</p>
