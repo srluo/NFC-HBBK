@@ -1,4 +1,4 @@
-// /pages/api/card-activate.js — v1.7.6A 智慧開卡＋AI摘要生成（含fallback保底）
+// /pages/api/card-activate.js — v1.7.7 Final（AI摘要＋狀態欄位＋超時保底）
 import { redis } from "../../lib/redis";
 import { calcZodiac } from "../../lib/zodiac";
 
@@ -90,6 +90,7 @@ export default async function handler(req, res) {
       (!existing.gender && gender) ||
       (!existing.birth_time && birth_time);
 
+    // 🔮 AI摘要生成（含超時fallback）
     if (needAI) {
       const aiUrl = `${process.env.NEXT_PUBLIC_BASE_URL || ""}/api/ai`;
       const payload = {
@@ -104,8 +105,10 @@ export default async function handler(req, res) {
         ming_stars: existing.ming_stars || [],
       };
 
+      card.ai_status = "pending"; // 預設「生成中」
+      await writeCard(uid, card); // 即時更新狀態以防中斷
+
       try {
-        // 🕐 25秒超時保底
         const aiPromise = fetch(aiUrl, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -116,8 +119,9 @@ export default async function handler(req, res) {
           setTimeout(
             () =>
               resolve({
-                ok: true,
+                ok: false,
                 summary: "AI 系統暫時繁忙，稍後可重新生成個性摘要。",
+                timeout: true,
               }),
             25000
           )
@@ -127,12 +131,18 @@ export default async function handler(req, res) {
 
         if (aiData.ok && aiData.summary) {
           card.ai_summary = aiData.summary;
+          card.ai_status = "ok";
+        } else if (aiData.timeout) {
+          card.ai_summary = aiData.summary;
+          card.ai_status = "timeout";
         } else {
           card.ai_summary = "AI 生成失敗，請稍後再試。";
+          card.ai_status = "error";
         }
       } catch (e) {
         console.error("AI 生成錯誤:", e);
         card.ai_summary = "AI 系統暫時無法生成摘要。";
+        card.ai_status = "error";
       }
     }
 
