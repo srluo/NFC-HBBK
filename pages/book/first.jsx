@@ -160,7 +160,9 @@ export default function FirstBookPage() {
       {/* 🤖 AI 摘要 */}
       <section className={styles.section}>
         <h3>🤖 AI 個性摘要</h3>
-        <p>{card.ai_summary || "資料載入中..."}</p>
+        <p>{card.ai_summary
+                .split(/\n{2,}|(?<=。)\s*/g)
+                .map(...) || "資料載入中..."}</p>
       </section>
 
       {/* ☀️ 今日建議 */}
