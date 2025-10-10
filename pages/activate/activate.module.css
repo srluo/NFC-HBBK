@@ -1,21 +1,24 @@
-/* /pages/activate/activate.module.css — v1.62-Stable
-   ✅ 修正：Footer 不跑版，Safari/iPhone 安全
+/* /pages/activate/activate.module.css — v1.62b
+   ✅ 修正 .page flex 崩壞
+   ✅ 移除 iOS phantom focus 圓點
+   ✅ Footer 穩定對齊底部
 */
 
-/* ✅ 整體頁面配置 */
+/* ✅ 全頁容器 */
 .page {
   min-height: 100vh;
-  background: linear-gradient(135deg, #fffdf5, #fde7c7);
-  padding: 2rem 1rem 4rem;
-  font-family: "Microsoft JhengHei", "Noto Sans TC", sans-serif;
-  text-align: center;
   display: flex;
   flex-direction: column;
-  justify-content: flex-start;
   align-items: center;
+  justify-content: flex-start;
+  padding: 2rem 1rem 5rem;
+  background: linear-gradient(135deg, #fffdf5, #fde7c7);
+  font-family: "Microsoft JhengHei", "Noto Sans TC", sans-serif;
+  text-align: center;
+  -webkit-tap-highlight-color: transparent; /* 防止 iOS 點擊圓圈 */
 }
 
-/* 標題樣式 */
+/* 標題 */
 .title {
   font-size: 1.8rem;
   font-weight: bold;
@@ -23,7 +26,7 @@
   margin-bottom: 1.2rem;
 }
 
-/* 卡片區域 */
+/* 卡片容器 */
 .card {
   background: #ffffff;
   border-radius: 16px;
@@ -51,15 +54,14 @@
   border: 1px solid #ccc;
   border-radius: 8px;
   font-size: 1rem;
-  box-sizing: border-box;
-  transition: all 0.2s ease;
   background: #fffaf6;
+  transition: all 0.2s ease;
+  outline: none;
 }
 
 .card input:focus,
 .card select:focus {
   border-color: #d2691e;
-  outline: none;
   box-shadow: 0 0 0 2px rgba(210, 105, 30, 0.15);
 }
 
@@ -76,12 +78,14 @@
   font-size: 1.1rem;
   cursor: pointer;
   transition: background 0.25s;
+  -webkit-tap-highlight-color: transparent;
 }
+
 .button:hover {
   background: #b75713;
 }
 
-/* 狀態框 */
+/* 狀態提示 */
 .statusBox {
   background: #fff7ec;
   border: 1px solid #f3d3a3;
@@ -94,16 +98,16 @@
   text-align: center;
 }
 
-/* ✅ Footer 穩定版 */
+/* ✅ Footer 固定底部安全版 */
 .footer {
   margin-top: auto;
+  width: 100%;
   padding: 1rem 0;
   text-align: center;
   color: #a17b4a;
   font-size: 0.9rem;
   letter-spacing: 0.5px;
   opacity: 0.8;
-  width: 100%;
   background: transparent;
 }
 
@@ -117,7 +121,7 @@
 }
 
 /* RWD */
-@media (max-width: 430px) {
+@media (max-width: 480px) {
   .card {
     padding: 1.2rem;
   }
