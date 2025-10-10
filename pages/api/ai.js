@@ -1,9 +1,6 @@
-// /pages/api/ai.js — v1.8.0 封存強化版
+// /pages/api/ai.js — v1.8.5 balance-persona
 import OpenAI from "openai";
-
-const client = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
-});
+const client = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
 export default async function handler(req, res) {
   try {
@@ -15,76 +12,60 @@ export default async function handler(req, res) {
       gender,
       zodiac,
       constellation,
-      blood_type,
       bureau,
       ming_lord,
       shen_lord,
       ming_stars,
+      blood_type,
     } = req.body || {};
 
-    if (!name || !constellation || !zodiac)
+    if (!constellation || !zodiac || !ming_lord)
       return res
         .status(400)
-        .json({ error: "缺少必要參數 (name, constellation, zodiac)" });
+        .json({ error: "缺少必要參數 (constellation, zodiac, ming_lord)" });
 
-    // 🧩 組合個性分析模組（動態提示）
-    let modules = [`星座：${constellation}`, `生肖：${zodiac}`];
-    if (blood_type) modules.push(`血型：${blood_type}`);
-    if (bureau) modules.push(`五行局：${bureau}`);
-    if (ming_lord) modules.push(`命主星：${ming_lord}`);
-    if (shen_lord) modules.push(`身主星：${shen_lord}`);
-    if (Array.isArray(ming_stars) && ming_stars.length > 0)
-      modules.push(`命宮主星：${ming_stars.join("、")}`);
-    const infoBlock = modules.join(" / ");
-
-    // 🎯 Prompt 模板：結合人格心理與命理結構
+    // 🌗 三段式 + 陰陽人格 + 中性描述
     const prompt = `
-你是一位結合心理學與紫微斗數的個性顧問，請根據以下個人資料生成一段自然、溫暖且具有洞察力的「生日書摘要」：
----
-姓名：${name}
+請以心理學與紫微斗數結合的角度，撰寫一段完整且平衡的個性摘要，分為三段：
+1️⃣ 第一段：描述此生命格的整體氣質與核心特質（正面能量）。
+2️⃣ 第二段：指出此人格在情緒、人際、或決策上可能的盲點或課題（陰面特質）。
+3️⃣ 第三段：給予具體可行的建議與成長方向。
+
+⚠️ 注意事項：
+- 不可使用「你」「他」「她」等稱呼，改用中性描述（如「此生命格」「這份氣質」）。
+- 不要直接提及生肖、星座、血型名稱。
+- 語氣自然溫和、有啟發性，字數約 150～200 字。
+- 以自然分段呈現（保留換行符號 \\n\\n）。
+
+以下是資料：
 性別：${gender || "未指定"}
-${infoBlock}
----
+星座：${constellation}
+生肖：${zodiac}
+血型：${blood_type || "未填"}
+五行局：${bureau || "未知"}
+命主星：${ming_lord}
+身主星：${shen_lord}
+命宮主星：${Array.isArray(ming_stars) ? ming_stars.join("、") : ming_stars}
+`;
 
-請以繁體中文撰寫，約 120～160 字，語氣要柔和、鼓舞人心，重點放在人格特質與行動建議的融合，
-不要使用「像⋯⋯的動物」或「你是一個⋯⋯的人」等直接比喻，
-而是以理解與引導的語氣，說明這樣的人的能量特質與潛在方向。
-請用兩段落：
-第一段：描述核心特質與個性氛圍；
-第二段：給出一段正向、生活化的鼓勵或行動建議。`;
-
-    // 🚀 呼叫 OpenAI
     const completion = await client.chat.completions.create({
       model: "gpt-4o-mini",
       messages: [
         {
           role: "system",
           content:
-            "你是一位人格心理顧問，擅長融合星座、血型與紫微命盤的心理分析，用溫暖語氣撰寫個人化摘要。",
+            "你是一位融合紫微斗數與心理分析的性格顧問，擅長以平衡、具療癒力的語氣撰寫個性剖析。",
         },
         { role: "user", content: prompt },
       ],
       temperature: 0.85,
-      max_tokens: 220,
+      max_tokens: 260,
     });
 
-    const summary = completion.choices?.[0]?.message?.content?.trim();
-
-    // ⏳ fallback（AI 無回應或逾時）
-    const fallback =
-      "這樣的你，兼具感性與理性，懂得在變化中保持平衡。你的內在蘊藏著穩定的力量，能以柔和的方式影響他人，讓周圍的世界更加和諧。";
-
-    res.json({
-      ok: true,
-      summary: summary || fallback,
-    });
+    const summary = completion.choices?.[0]?.message?.content?.trim() || "";
+    return res.json({ ok: true, summary });
   } catch (e) {
-    console.error("❌ ai.js error:", e);
-    res.status(500).json({
-      ok: false,
-      error: "AI 生成失敗",
-      summary:
-        "這樣的你，擁有細膩的感受力與穩定的意志，即使面對挑戰，也能以溫柔而堅定的方式前進。這份能量是你最珍貴的力量。",
-    });
+    console.error("ai.js error:", e);
+    return res.status(500).json({ error: "AI 生成失敗" });
   }
 }
