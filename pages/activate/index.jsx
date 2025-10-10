@@ -1,4 +1,4 @@
-// /pages/activate/index.jsx — v1.7.3C 智慧開卡 + AI 摘要進度提示
+// /pages/activate/index.jsx — v1.8.6（時辰 value=地支）
 "use client";
 import { useState, useEffect } from "react";
 import styles from "./activate.module.css";
@@ -112,7 +112,7 @@ export default function Activate() {
           onChange={handleChange}
         >
           <option value="">請選擇</option>
-          <option value="早子">00:00~00:59（早子）</option>
+          <option value="子">00:00~00:59（早子）</option>
           <option value="丑">01:00~02:59（丑）</option>
           <option value="寅">03:00~04:59（寅）</option>
           <option value="卯">05:00~06:59（卯）</option>
@@ -124,7 +124,7 @@ export default function Activate() {
           <option value="酉">17:00~18:59（酉）</option>
           <option value="戌">19:00~20:59（戌）</option>
           <option value="亥">21:00~22:59（亥）</option>
-          <option value="晚子">23:00~23:59（晚子）</option>
+          <option value="子">23:00~23:59（晚子）</option>
         </select>
 
         <label>興趣嗜好</label>
