@@ -126,7 +126,11 @@ export default function ActivatePage() {
         </button>
       </div>
 
-      <div className={styles.statusBox}>{status}</div>
+      {status !== "idle" && (
+        <div className={styles.statusBox}>
+          <strong>狀態：</strong> {status}
+        </div>
+      )}
 
     </div>
   );
