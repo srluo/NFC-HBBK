@@ -160,21 +160,7 @@ export default function FirstBookPage() {
       {/* 🤖 AI 摘要 */}
       <section className={styles.section}>
         <h3>🤖 AI 個性摘要</h3>
-        {card.ai_summary ? (
-          card.ai_summary
-            .split(/(?<=。)\s*/g)
-            .map((p, i) => (
-              <p
-                key={i}
-                className={styles.fadeInParagraph}
-                style={{ animationDelay: `${i * 0.3}s` }}
-              >
-                {p.trim()}
-              </p>
-            ))
-        ) : (
-          <p>資料載入中...</p>
-        )}
+        <p>{card.ai_summary || "資料載入中..."}</p>
       </section>
 
       {/* ☀️ 今日建議 */}
