@@ -1,4 +1,4 @@
-// /pages/book/first.jsx — v1.9.8-safeRetry（AI 延遲重試＋LuckyNumber安全轉字串）
+// /pages/book/first.jsx — v2.0.0-clean（無動畫穩定版）
 "use client";
 import { useEffect, useState } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
@@ -15,36 +15,24 @@ export default function FirstBookPage() {
   const router = useRouter();
   const token = searchParams.get("token");
 
-  // 🔁 載入卡片資料（最多重試 3 次）
   useEffect(() => {
     if (!token) {
       setStatus("❌ 缺少 token，請重新感應生日卡 📱");
       return;
     }
 
-    let retryCount = 0;
-    async function fetchCardWithRetry() {
+    async function fetchCard() {
       try {
         const res = await fetch(`/api/getCard?token=${token}`);
         const data = await res.json();
 
         if (res.ok && data.card) {
-          const cardData = data.card;
-          const hasRedisLucky = !!cardData.lucky_number;
-          let lucky_number = "";
-          let lucky_desc = "";
+          const c = data.card;
+          const { number, masterNumber } = getLuckyNumber(c.birthday);
+          const lucky_number = masterNumber
+            ? `${masterNumber}（大師數字）`
+            : String(number);
 
-          // ✅ 幸運數字安全型別處理
-          if (hasRedisLucky) {
-            lucky_number = String(cardData.lucky_number);
-          } else {
-            const { number, masterNumber } = getLuckyNumber(cardData.birthday);
-            lucky_number = masterNumber
-              ? `${masterNumber}（大師數字）`
-              : String(number);
-          }
-
-          // 🎯 Lucky 描述表
           const descMap = {
             "1": "象徵領導與創造，勇於開拓新局。",
             "2": "代表協調與感應，擅長人際互動。",
@@ -57,43 +45,29 @@ export default function FirstBookPage() {
             "9": "富有同理與包容，渴望助人與理想。",
           };
 
+          let lucky_desc = descMap[lucky_number] || "";
           if (lucky_number.includes("11")) {
-            lucky_desc = "擁有強烈的直覺與靈性洞察力。";
+            lucky_desc = "擁有強烈直覺與靈性洞察力。";
           } else if (lucky_number.includes("22")) {
             lucky_desc = "天生的實踐者，能將理想化為現實。";
           } else if (lucky_number.includes("33")) {
             lucky_desc = "具備療癒與啟發能量，象徵無私與人道精神。";
-          } else {
-            lucky_desc =
-              descMap[lucky_number] || "具備平衡與創造的特質。";
           }
 
-          setCard({
-            ...cardData,
-            lucky_number,
-            lucky_desc,
-          });
+          setCard({ ...c, lucky_number, lucky_desc });
           setStatus("ok");
         } else {
-          // 若 AI 還沒生成，重試 3 次
-          if (retryCount < 3) {
-            retryCount++;
-            console.warn(`AI 尚未生成，重試第 ${retryCount} 次...`);
-            setTimeout(fetchCardWithRetry, 2000);
-          } else {
-            setStatus(`❌ ${data.error || "AI 摘要尚未完成，請稍後重感應"}`);
-          }
+          setStatus(`❌ ${data.error || "讀取失敗"}`);
         }
       } catch (err) {
-        console.error("fetchCard error:", err);
+        console.error(err);
         setStatus("❌ 系統錯誤，請重新感應生日卡 📱");
       }
     }
 
-    fetchCardWithRetry();
+    fetchCard();
   }, [token]);
 
-  // 🌸 生日象徵
   useEffect(() => {
     if (!card?.birthday) return;
     const month = parseInt(String(card.birthday).slice(4, 6), 10);
@@ -109,7 +83,6 @@ export default function FirstBookPage() {
     fetchSymbol();
   }, [card]);
 
-  // ☀️ 每日建議
   useEffect(() => {
     async function fetchQuote() {
       try {
@@ -126,7 +99,6 @@ export default function FirstBookPage() {
   if (status === "loading") return <p className={styles.loading}>⏳ 載入中...</p>;
   if (status !== "ok") return <p className={styles.error}>{status}</p>;
 
-  // ✅ Render
   return (
     <div className={styles.container}>
       <header className={styles.header}>
@@ -148,7 +120,6 @@ export default function FirstBookPage() {
         </p>
       </header>
 
-      {/* 🌸 生日象徵 */}
       <section className={styles.section}>
         <h3>🌸 生日象徵</h3>
         {symbol ? (
@@ -162,30 +133,23 @@ export default function FirstBookPage() {
         )}
       </section>
 
-      {/* 🤖 AI 個性摘要 */}
       <section className={styles.section}>
         <h3>🤖 AI 個性摘要</h3>
         {card.ai_summary ? (
           card.ai_summary
             .split(/(?<=。)\s*|\n+/g)
             .filter(Boolean)
-            .map((p, i) => (
-              <p key={i} className={styles.fadeInParagraph}>
-                {p.trim()}
-              </p>
-            ))
+            .map((p, i) => <p key={i}>{p.trim()}</p>)
         ) : (
           <p>AI 智慧摘要生成中...</p>
         )}
       </section>
 
-      {/* ☀️ 今日行動建議 */}
       <section className={styles.section}>
         <h3>☀️ 今日行動建議</h3>
         <p>{quote || "載入中..."}</p>
       </section>
 
-      {/* 🎁 點數顯示 */}
       <div className={styles.walletBox}>
         🎉 恭喜獲得 <strong>{card.points}</strong> 點探索點數！
       </div>
