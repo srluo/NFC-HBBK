@@ -1,32 +1,29 @@
-// /pages/api/lunar.js
-import * as solarlunar from "solarlunar";
+// /pages/api/lunar.js — v1.2 修正版（可正確回傳月數與干支）
+import solarlunar from "solarlunar";
 
-export default async function handler(req, res) {
+export default function handler(req, res) {
   try {
-    const { date } = req.query;
-    if (!date) {
-      return res.status(400).json({ error: "缺少 date 參數" });
+    const date = req.query.date;
+    if (!date || date.length !== 8) {
+      return res.status(400).json({ error: "日期格式錯誤，需 YYYYMMDD" });
     }
 
-    const [y, m, d] = date.split("-").map(Number);
-    const lunar = solarlunar.solar2lunar(y, m, d);
+    const year = parseInt(date.slice(0, 4), 10);
+    const month = parseInt(date.slice(4, 6), 10);
+    const day = parseInt(date.slice(6, 8), 10);
 
-    // 🧭 統一格式，確保屬性存在
-    const animal = lunar.Animal || lunar.animal || "";
-    const term = lunar.Term || lunar.term || "";
-    const gzYear = lunar.gzYear || lunar.gz_year || "";
-    const month_no = lunar.lMonth || lunar.lunarMonth || 0;
+    const lunar = solarlunar.solar2lunar(year, month, day);
 
-    return res.json({
+    res.json({
       lunar: `${lunar.lYear}年${lunar.lMonth}月${lunar.lDay}`,
-      ganzhi: gzYear,
-      animal,
-      term,
+      month_no: lunar.lMonth,
+      ganzhi: lunar.gzYear,
+      animal: lunar.Animal,
       is_leap: lunar.isLeap,
-      month_no,
+      term: lunar.term || "",
     });
-  } catch (err) {
-    console.error("❌ lunar api error:", err);
-    return res.status(500).json({ error: "lunar api error" });
+  } catch (e) {
+    console.error("lunar api error:", e);
+    res.status(500).json({ error: "lunar api error" });
   }
 }
