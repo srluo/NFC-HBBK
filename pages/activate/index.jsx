@@ -1,4 +1,4 @@
-// /pages/activate/index.jsx — v1.8.8R 無 Footer 穩定版
+// /pages/activate/index.jsx — v1.9.8-safe（AI 背景生成＋延遲跳轉版）
 "use client";
 import { useState, useEffect } from "react";
 import styles from "./activate.module.css";
@@ -15,6 +15,7 @@ export default function Activate() {
     birth_time: "",
   });
 
+  // ✅ 初始化 URL 參數（d=生日, token=卡片Token）
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const d = params.get("d") || "";
@@ -22,11 +23,14 @@ export default function Activate() {
     setForm((prev) => ({ ...prev, birthday: d, token }));
   }, []);
 
+  // ✅ 處理輸入變更
   const handleChange = (e) => setForm({ ...form, [e.target.name]: e.target.value });
 
+  // ✅ 表單送出
   const handleSubmit = async (e) => {
     e.preventDefault();
 
+    // 🔮 紫微條件驗證
     const hasGender = !!form.gender;
     const hasTime = !!form.birth_time;
     if ((hasGender && !hasTime) || (!hasGender && hasTime)) {
@@ -46,18 +50,24 @@ export default function Activate() {
 
       if (!res.ok) {
         setStatus(`❌ 錯誤: ${data.error || "未知錯誤"}`);
+        return;
+      }
+
+      if (data.first_time) {
+        // 🧠 背景 AI 生成提示
+        setStatus("🧠 AI 智慧摘要生成中（約需 3～5 秒）...");
+
+        // 🎉 開卡提示
+        setTimeout(() => {
+          setStatus(`🎉 開卡成功！已獲得 20 點開卡禮，目前點數：${data.card.points}`);
+        }, 2000);
+
+        // ⏱ 安全延遲跳轉（確保 Redis 寫入完成）
+        setTimeout(() => {
+          window.location.href = `/book/first?token=${form.token}`;
+        }, 4000);
       } else {
-        if (data.first_time) {
-          setStatus("🧠 AI 智慧摘要生成中...");
-          setTimeout(() => {
-            setStatus(`🎉 開卡成功！已獲得 20 點開卡禮，目前點數：${data.card.points}`);
-          }, 1200);
-          setTimeout(() => {
-            window.location.href = `/book/first?token=${form.token}`;
-          }, 2500);
-        } else {
-          setStatus(`✅ 更新成功，目前點數：${data.card.points}`);
-        }
+        setStatus(`✅ 更新成功，目前點數：${data.card.points}`);
       }
     } catch (err) {
       console.error(err);
@@ -65,13 +75,20 @@ export default function Activate() {
     }
   };
 
+  // ✅ Render UI
   return (
     <div className={styles.page}>
       <h2 className={styles.title}>✨ NFC 靈動生日書開卡 ✨</h2>
 
       <form className={styles.card} onSubmit={handleSubmit}>
         <label>姓名</label>
-        <input name="user_name" value={form.user_name} onChange={handleChange} required />
+        <input
+          name="user_name"
+          value={form.user_name}
+          onChange={handleChange}
+          placeholder="請輸入姓名"
+          required
+        />
 
         <label>生日</label>
         <input name="birthday" value={form.birthday} readOnly />
@@ -85,7 +102,9 @@ export default function Activate() {
           <option value="AB">AB 型</option>
         </select>
 
-        <p className={styles.tip}>🔮 若要產生「紫微命格分析」，請同時填寫以下：</p>
+        <p className={styles.tip}>
+          🔮 若希望產生「紫微命格分析」，請同時填寫以下 [性別] 與 [出生時辰]:
+        </p>
 
         <label>性別</label>
         <select name="gender" value={form.gender} onChange={handleChange}>
@@ -117,7 +136,7 @@ export default function Activate() {
           name="hobbies"
           value={form.hobbies}
           onChange={handleChange}
-          placeholder="例如：Music"
+          placeholder="例如：Music / Art / Travel"
         />
 
         <button type="submit" className={styles.button}>送出開卡 ✨</button>
