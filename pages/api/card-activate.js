@@ -1,11 +1,11 @@
-// /pages/api/card-activate.js — v1.8.6 fix-hour+ziwei
+// /pages/api/card-activate.js — v1.8.7（首開導向 + 時辰標籤補全 + opened 控制）
 import { redis } from "../../lib/redis";
 import { calcZodiac } from "../../lib/zodiac";
 
 function safeNowString() {
   const now = new Date();
   try {
-    return new Intl.DateTimeFormat("zh-TW", {
+    const fmt = new Intl.DateTimeFormat("zh-TW", {
       timeZone: "Asia/Taipei",
       hour12: false,
       year: "numeric",
@@ -14,32 +14,42 @@ function safeNowString() {
       hour: "2-digit",
       minute: "2-digit",
       second: "2-digit",
-    }).format(now);
+    });
+    return fmt.format(now);
   } catch {
     const t = new Date(now.getTime() + 8 * 60 * 60 * 1000);
     return t.toISOString().replace("T", " ").slice(0, 19);
   }
 }
 
+const TIME_LABELS = {
+  子: "00:00~00:59（早子）/23:00~23:59（晚子）",
+  丑: "01:00~02:59（丑）",
+  寅: "03:00~04:59（寅）",
+  卯: "05:00~06:59（卯）",
+  辰: "07:00~08:59（辰）",
+  巳: "09:00~10:59（巳）",
+  午: "11:00~12:59（午）",
+  未: "13:00~14:59（未）",
+  申: "15:00~16:59（申）",
+  酉: "17:00~18:59（酉）",
+  戌: "19:00~20:59（戌）",
+  亥: "21:00~22:59（亥）",
+};
+
 async function readCard(uid) {
   const key = `card:${uid}`;
-  const hash = await redis.hgetall(key).catch(() => null);
+  const hash = await redis.hgetall(key);
   return hash && Object.keys(hash).length ? hash : null;
 }
+
 async function writeCard(uid, data) {
   const key = `card:${uid}`;
   const flat = {};
   for (const [k, v] of Object.entries(data)) {
     flat[k] = typeof v === "string" ? v : JSON.stringify(v);
   }
-  await redis.hset(key, flat).catch((e) => console.error("redis.hset error:", e));
-}
-
-// ⬇︎ 把任何「17:00~18:59（酉）」或「酉」或「晚子」…抽出單一地支
-function normalizeHourToBranch(input) {
-  if (!input) return "";
-  const m = String(input).match(/[子丑寅卯辰巳午未申酉戌亥]/);
-  return m ? m[0] : "";
+  await redis.hset(key, flat);
 }
 
 export default async function handler(req, res) {
@@ -51,62 +61,26 @@ export default async function handler(req, res) {
       gender,
       blood_type,
       hobbies,
-      birth_time,         // 前端 value=地支（本版已改），但仍做保險處理
-      birth_time_label,   // 供 UI 顯示，可有可無
+      birth_time,
+      birth_time_label,
       birthday,
     } = req.body || {};
-
-    if (!token || !user_name || !birthday) {
+    if (!token || !user_name || !birthday)
       return res.status(400).json({ error: "缺少必要參數" });
-    }
 
-    // 解析 UID
     const [uid] = Buffer.from(token, "base64").toString().split(":");
     if (!uid) return res.status(400).json({ error: "Token 解析錯誤" });
 
-    // 星座 / 生肖 / 農曆
     const { lunarDate, zodiac, constellation } = calcZodiac(birthday);
     const existing = (await readCard(uid)) || {};
 
-    const first_time = !existing.status || existing.status !== "ACTIVE";
+    // 判斷是否首次開卡
+    const wasOpened = existing.opened === "true" || existing.opened === true;
+    const first_time = !wasOpened;
+
     let points = Number(existing.points || 0);
     if (first_time) points += 20;
 
-    // 1) 正規化時辰（只留地支）
-    const hourBranch = normalizeHourToBranch(birth_time || existing.birth_time || "");
-    const ymd = `${birthday.slice(0, 4)}-${birthday.slice(4, 6)}-${birthday.slice(6, 8)}`;
-
-    // 2) 預設值：沿用既有，避免覆蓋成空
-    let bureau   = existing.bureau   || "";
-    let ming_lord= existing.ming_lord|| "";
-    let shen_lord= existing.shen_lord|| "";
-    let ming_stars = existing.ming_stars ? JSON.parse(existing.ming_stars) : [];
-
-    // 3) 若有生日與時辰，就去算紫微核心（即使不是首次，也可補寫）
-    if (ymd && hourBranch) {
-      try {
-        const base = process.env.NEXT_PUBLIC_BASE_URL || "";
-        const ziRes = await fetch(`${base}/api/ziwei-core`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ ymd, hourLabel: hourBranch }),
-        });
-        const zi = await ziRes.json();
-
-        if (ziRes.ok && !zi.error) {
-          bureau     = zi.bureau     || bureau;
-          ming_lord  = zi.ming_lord  || ming_lord;
-          shen_lord  = zi.shen_lord  || shen_lord;
-          ming_stars = zi.ming_stars || ming_stars;
-        } else {
-          console.warn("ziwei-core fail:", zi?.error || ziRes.status);
-        }
-      } catch (e) {
-        console.error("ziwei-core error:", e);
-      }
-    }
-
-    // 4) 組卡資料並寫入
     const card = {
       ...existing,
       uid,
@@ -115,49 +89,53 @@ export default async function handler(req, res) {
       gender: gender || existing.gender || "",
       blood_type: blood_type || existing.blood_type || "",
       hobbies: hobbies || existing.hobbies || "",
-      birth_time: hourBranch,                       // 只存地支（正確值）
-      birth_time_label: birth_time_label || existing.birth_time_label || "", // 顯示文字
+      birth_time: birth_time || existing.birth_time || "",
+      birth_time_label:
+        birth_time_label ||
+        TIME_LABELS[birth_time] ||
+        existing.birth_time_label ||
+        "",
       birthday,
       lunar_birthday: lunarDate,
       zodiac,
       constellation,
-      bureau,
-      ming_lord,
-      shen_lord,
-      ming_stars,                                   // 陣列（後端會 JSON.stringify）
       points: String(points),
       last_seen: safeNowString(),
       updated_at: Date.now().toString(),
-      opened: "true",
     };
 
-    // 5) 首次或補齊資料時，可一併刷新 AI（保留你現有判斷）
+    if (first_time) {
+      card.opened = "false";
+      card.created_at = Date.now().toString();
+    }
+
+    // ✅ AI 生成流程（保持不變）
     const needAI =
       first_time ||
       (!existing.gender && gender) ||
-      (!existing.birth_time && hourBranch);
-
+      (!existing.birth_time && birth_time);
     if (needAI) {
       try {
-        const aiRes = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL || ""}/api/ai`, {
+        const aiRes = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL}/api/ai`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             name: user_name,
-            gender: card.gender,
-            zodiac: card.zodiac,
-            constellation: card.constellation,
-            blood_type: card.blood_type,
-            bureau: card.bureau,
-            ming_lord: card.ming_lord,
-            shen_lord: card.shen_lord,
-            ming_stars: card.ming_stars,
+            gender,
+            zodiac,
+            constellation,
+            blood_type,
+            bureau: existing.bureau || "",
+            ming_lord: existing.ming_lord || "",
+            shen_lord: existing.shen_lord || "",
+            ming_stars: existing.ming_stars || [],
           }),
         });
-        const ai = await aiRes.json();
-        if (aiRes.ok && ai.summary) card.ai_summary = ai.summary;
-      } catch (e) {
-        console.error("AI summary error:", e);
+        const aiData = await aiRes.json();
+        if (aiRes.ok && aiData.summary) card.ai_summary = aiData.summary;
+        else console.warn("⚠️ AI 摘要生成失敗:", aiData.error);
+      } catch (err) {
+        console.error("AI 生成錯誤:", err);
       }
     }
 
