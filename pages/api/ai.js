@@ -29,7 +29,7 @@ export default async function handler(req, res) {
 
     // 🧩 AI Prompt 結構化模板
     const prompt = `
-你是一位結合紫微斗數與心理學的「人格顧問」，請根據以下個人資料，撰寫一段約 120～160 字的「個性總結」：
+你是一位結合紫微斗數與心理學的「人格顧問」，請根據以下個人資料，撰寫一段約 180 - 200 字的「個性總結」：
 ---
 姓名：${name}
 性別：${gender || "未指定"}
@@ -61,7 +61,7 @@ export default async function handler(req, res) {
         { role: "user", content: prompt },
       ],
       temperature: 0.85,
-      max_tokens: 250,
+      max_tokens: 300,
     });
 
     const summary = completion.choices?.[0]?.message?.content?.trim() || "";
