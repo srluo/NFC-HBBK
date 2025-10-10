@@ -27,20 +27,59 @@ export default function FirstBookPage() {
         const res = await fetch(`/api/getCard?token=${token}`);
         const data = await res.json();
         if (res.ok && data.card) {
-          let lucky = null;
-          if (data.card.birthday) {
-            // ✅ 保險防呆：強制轉字串確保長度8
-            const bday = String(data.card.birthday).padStart(8, "0");
-            const { masterNumber, number } = getLuckyNumber(bday);
-            lucky = masterNumber ? `⭐ ${masterNumber}（大師數字）` : number;
+          const hasRedisLucky = !!data.card.lucky_number;
+          let lucky_number = "";
+          let lucky_desc = "";
+
+          if (hasRedisLucky) {
+            lucky_number = data.card.lucky_number;
+          } else {
+            const { number, masterNumber } = getLuckyNumber(data.card.birthday);
+            lucky_number = masterNumber
+              ? `${masterNumber}（大師數字）`
+              : number;
           }
-          setCard({ ...data.card, lucky_number: lucky });
+
+          // 🎯 描述對照表
+          const descMap = {
+            1: "象徵領導與創造，勇於開拓新局。",
+            2: "代表協調與感應，擅長人際互動。",
+            3: "充滿靈感與表達力，帶來歡樂與創意。",
+            4: "實事求是，重視穩定與秩序。",
+            5: "熱愛自由，勇於探索新體驗。",
+            6: "充滿愛心與責任感，重視家庭與人際關係。",
+            7: "思考深入，追求真理與智慧。",
+            8: "擁有強大行動力與影響力。",
+            9: "富有同理與包容，渴望助人與理想。",
+          };
+
+          if (lucky_number.includes("11")) {
+            lucky_desc =
+              "擁有強烈的直覺與靈性洞察力，能在變化中保持清晰與洞見。";
+          } else if (lucky_number.includes("22")) {
+            lucky_desc =
+              "天生的實踐者與建構者，能將理想化為現實，展現堅毅與智慧。";
+          } else if (lucky_number.includes("33")) {
+            lucky_desc =
+              "具備療癒與啟發能量，象徵無私與人道精神。";
+          } else {
+            const num = parseInt(lucky_number);
+            lucky_desc =
+              descMap[num] ||
+              "具備平衡與創造的特質，能在變化中找到自我節奏。";
+          }
+
+          setCard({
+            ...data.card,
+            lucky_number,
+            lucky_desc,
+          });
           setStatus("ok");
         } else {
           setStatus(`❌ ${data.error || "讀取失敗"}`);
         }
       } catch (err) {
-        console.error("fetchCard error:", err);
+        console.error(err);
         setStatus("❌ 系統錯誤，請重新感應生日卡 📱");
       }
     }
