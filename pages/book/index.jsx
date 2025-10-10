@@ -2,7 +2,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import styles from "./book.module.css";
-import { zodiacMap, constellationMap } from "../../lib/iconMap";
+import { constellationMap, zodiacMap } from "../../lib/iconMap";
 
 export default function Book() {
   const [card, setCard] = useState(null);
@@ -23,6 +23,7 @@ export default function Book() {
       try {
         const res = await fetch(`/api/getCard?token=${t}`);
         const data = await res.json();
+
         if (res.ok && !data.error) {
           if (data.is_first_open) {
             router.replace(`/book/first?token=${t}`);
@@ -38,6 +39,7 @@ export default function Book() {
         setStatus("❌ 系統錯誤，請重新感應生日卡 📱");
       }
     }
+
     fetchCard();
   }, [router]);
 
@@ -45,8 +47,7 @@ export default function Book() {
   if (status !== "ok") return <p className={styles.error}>{status}</p>;
 
   return (
-    <div className={styles.container}>
-      {/* 卡片封面 */}
+    <div className={styles.pageContainer}>
       <div className={styles.cardHeader}>
         <div className={styles.iconBox}>
           <img
@@ -60,10 +61,8 @@ export default function Book() {
             className={styles.icon}
           />
         </div>
-
-        <h2>{card.user_name || "未命名"}</h2>
+        <h2 className={styles.userName}>{card.user_name || "未命名"}</h2>
         <p>{card.birthday}</p>
-
         <button
           className={styles.expandBtn}
           onClick={() => router.push(`/book/first?token=${token}`)}
@@ -72,33 +71,19 @@ export default function Book() {
         </button>
       </div>
 
-      {/* 錢包區 */}
       <div className={styles.walletBox}>
         <p>目前點數：<strong>{card.points}</strong></p>
       </div>
 
-      {/* 功能選單 */}
       <div className={styles.menuBox}>
         <button>🔮 占卜</button>
         <button>🌠 紫微流年</button>
         <button>🧠 MBTI 測驗</button>
       </div>
 
-      {/* Footer */}
       <footer className={styles.footer}>
-        <button
-          className={`${styles.footerBtn} ${styles.buyBtn}`}
-          onClick={() => window.open("https://nfctogo.com/birthdaycard", "_blank")}
-        >
-          🎁 購買生日卡
-        </button>
-        <button
-          className={`${styles.footerBtn} ${styles.siteBtn}`}
-          onClick={() => window.open("https://nfctogo.com", "_blank")}
-        >
-          🌐 前往 NFCTOGO 官網
-        </button>
-        <p className={styles.copy}>©2025 NFC靈動生日書 · Powered by NFCTOGO</p>
+        <p>✨ 想擁有屬於自己的 NFC 生日書？<br />
+        前往 <a href="https://nfctogo.com" target="_blank" rel="noreferrer">NFCTOGO.com</a> 了解更多</p>
       </footer>
     </div>
   );

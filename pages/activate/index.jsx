@@ -1,18 +1,17 @@
 "use client";
 import { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
 import styles from "./activate.module.css";
 
 export default function Activate() {
-  const router = useRouter();
   const [status, setStatus] = useState("idle");
   const [form, setForm] = useState({
     token: "",
     user_name: "",
     birthday: "",
     blood_type: "",
+    gender: "",         // ✅ 新增性別欄位
     hobbies: "",
-    birth_time: ""
+    birth_time: "",
   });
 
   useEffect(() => {
@@ -22,7 +21,7 @@ export default function Activate() {
     setForm((prev) => ({
       ...prev,
       birthday: d,
-      token
+      token,
     }));
   }, []);
 
@@ -42,22 +41,15 @@ export default function Activate() {
       });
 
       const data = await res.json();
-      if (!res.ok || !data.ok) {
-        setStatus(`❌ 錯誤: ${data.error || "未知錯誤"}`);
-        return;
-      }
 
-      // 🎯 新增：自動導向 /book
-      if (data.first_time) {
-        setStatus(`🎉 開卡成功！已獲得 20 點開卡禮，目前點數：${data.card.points}`);
-        setTimeout(() => {
-          router.push(`/book/first?token=${form.token}`);
-        }, 1000);
+      if (!res.ok) {
+        setStatus(`❌ 錯誤: ${data.error || "未知錯誤"}`);
       } else {
-        setStatus(`✅ 資料更新成功，目前點數：${data.card.points}`);
-        setTimeout(() => {
-            router.push(`/book/first?token=${form.token}`);
-        }, 1500);
+        if (data.first_time) {
+          setStatus(`🎉 開卡成功！已獲得 20 點開卡禮，目前點數：${data.card.points}`);
+        } else {
+          setStatus(`✅ 資料更新成功，目前點數：${data.card.points}`);
+        }
       }
     } catch (err) {
       console.error(err);
@@ -68,7 +60,9 @@ export default function Activate() {
   return (
     <div className={styles.page}>
       <h2 className={styles.title}>✨ 開啟我的生日書</h2>
+
       <form className={styles.card} onSubmit={handleSubmit}>
+        {/* 姓名 */}
         <label>姓名 / 暱稱</label>
         <input
           name="user_name"
@@ -77,13 +71,11 @@ export default function Activate() {
           required
         />
 
+        {/* 生日（唯讀） */}
         <label>生日</label>
-        <input
-          name="birthday"
-          value={form.birthday}
-          readOnly
-        />
+        <input name="birthday" value={form.birthday} readOnly />
 
+        {/* 血型 */}
         <label>血型</label>
         <select
           name="blood_type"
@@ -97,6 +89,20 @@ export default function Activate() {
           <option value="AB">AB 型</option>
         </select>
 
+        {/* ✅ 性別 */}
+        <label>性別</label>
+        <select
+          name="gender"
+          value={form.gender}
+          onChange={handleChange}
+          required
+        >
+          <option value="">-- 請選擇 --</option>
+          <option value="男">男</option>
+          <option value="女">女</option>
+        </select>
+
+        {/* 興趣 */}
         <label>興趣嗜好</label>
         <input
           name="hobbies"
@@ -104,11 +110,13 @@ export default function Activate() {
           onChange={handleChange}
         />
 
+        {/* 出生時辰 */}
         <label>出生時辰</label>
         <select
           name="birth_time"
           value={form.birth_time}
           onChange={handleChange}
+          required
         >
           <option value="">-- 請選擇 --</option>
           <option value="子時">子時 (23:00-01:00)</option>
@@ -126,7 +134,10 @@ export default function Activate() {
         </select>
 
         <input type="hidden" name="token" value={form.token} />
-        <button type="submit" className={styles.button}>送出開卡 ✨</button>
+
+        <button type="submit" className={styles.button}>
+          送出開卡 ✨
+        </button>
       </form>
 
       {status !== "idle" && (
