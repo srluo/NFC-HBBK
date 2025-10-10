@@ -1,135 +1,159 @@
-/* /pages/book/book.module.css — v1.7-clean（無動畫穩定版） */
+/* /pages/book/book.module.css */
 
 .container {
-  max-width: 600px;
-  margin: 0 auto;
-  padding: 2rem 1.5rem;
-  font-family: "Noto Sans TC", "Microsoft JhengHei", sans-serif;
-  color: #333;
-  background-color: #fffdf9;
+  min-height: 100vh;
+  background: linear-gradient(135deg, #fff9e6, #fceabb);
+  padding: 1.5rem;
+  font-family: "Microsoft JhengHei", "Noto Sans TC", sans-serif;
+  font-size: 1rem;
 }
 
-/* Header */
-.header {
+/* 狀態文字 */
+.loading, .error {
   text-align: center;
-  margin-bottom: 1.5rem;
+  margin-top: 2rem;
+  color: #333;
+}
+
+/* 卡片封面 */
+.cardHeader {
+  background: #fff;
+  border-radius: 20px;
+  padding: 1.5rem;
+  max-width: 420px;
+  margin: 1.5rem auto;
+  text-align: center;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.1);
 }
 
 .iconBox {
   display: flex;
   justify-content: center;
-  gap: 1.2rem;
-  margin-bottom: 0.8rem;
+  gap: 1rem;
+  margin-bottom: 1rem;
 }
 
 .icon {
-  width: 56px;
-  height: 56px;
-  object-fit: contain;
+  width: 96px;
+  height: 96px;
 }
 
-.title {
-  font-size: 1.6rem;
-  font-weight: 700;
-  color: #222;
-  margin: 0.5rem 0 0.2rem;
-}
-
-.subtitle {
+.expandBtn {
+  margin-top: 0.5rem;
+  padding: 0.6rem 1.2rem;
+  border: none;
+  background: #d2691e;
+  color: #fff;
+  border-radius: 8px;
+  cursor: pointer;
   font-size: 1rem;
-  color: #777;
+}
+
+/* 錢包 */
+.walletBox {
+  background: #fff;
+  padding: 1rem;
+  border-radius: 16px;
+  max-width: 420px;
+  margin: 1rem auto;
+  text-align: center;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+}
+
+/* 菜單 */
+.menuBox {
+  background: #fff;
+  padding: 1rem;
+  border-radius: 16px;
+  max-width: 420px;
+  margin: 1rem auto;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+  text-align: center;
+}
+
+.menuBox button {
+  display: block;
+  width: 100%;
+  margin: 0.4rem 0;
+  padding: 0.6rem;
+  border: none;
+  background: #f0f0f0;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 1rem;
 }
 
 /* Section */
 .section {
   background: #fff;
-  border-radius: 14px;
-  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.06);
-  padding: 1.2rem 1.5rem;
-  margin: 1.5rem 0;
+  border-radius: 16px;
+  padding: 1rem;
+  margin: 1rem auto;
+  max-width: 420px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
 }
 
 .section h3 {
-  color: #d27700;
-  font-size: 1.15rem;
-  margin-bottom: 0.6rem;
-}
-
-.section p {
-  line-height: 1.7;
-  font-size: 1rem;
-  color: #333;
-  margin: 0.4rem 0;
-}
-
-/* Wallet box */
-.walletBox {
-  text-align: center;
-  background: #fff1cc;
-  border: 1px solid #f1d17f;
-  border-radius: 10px;
-  padding: 1rem;
-  font-size: 1.1rem;
-  font-weight: 600;
-  margin-top: 2rem;
-  color: #704c00;
+  font-size: 1.3rem;
+  margin-bottom: 0.3rem;
+  color: #d2691e;
 }
 
 /* Footer */
 .footer {
-  display: flex;
-  justify-content: center;
-  gap: 1rem;
-  margin-top: 2rem;
-  flex-wrap: wrap;
+  text-align: center;
+  margin-top: 1.5rem;
+  padding-bottom: 1rem;
 }
 
 .footerBtn {
+  display: block;
+  width: 100%;
+  max-width: 420px;
+  margin: 0.5rem auto;
+  padding: 0.7rem;
+  font-size: 1rem;
   border: none;
-  border-radius: 8px;
-  padding: 0.7rem 1.2rem;
-  font-size: 0.95rem;
-  font-weight: 600;
+  border-radius: 10px;
+  color: #fff;
   cursor: pointer;
-  transition: background 0.2s;
+}
+
+.buyBtn {
+  background: linear-gradient(90deg, #ff7f50, #ff6347);
+}
+
+.siteBtn {
+  background: linear-gradient(90deg, #40c0ff, #0099cc);
 }
 
 .backBtn {
-  background-color: #f7b84b;
-  color: white;
+  background: #d2691e;
 }
 
-.backBtn:hover {
-  background-color: #e49a21;
+.copy {
+  font-size: 0.85rem;
+  color: #777;
+  margin-top: 0.6rem;
 }
 
-/* Loading & Error */
-.loading, .error {
+/* Header 區塊微調 */
+.header {
   text-align: center;
-  font-size: 1.1rem;
-  margin-top: 4rem;
+  margin-bottom: 1.2rem;
 }
 
-.error {
-  color: #c0392b;
+.title {
+  font-size: 1.8rem;
+  font-weight: bold;
+  color: #333;
+  text-align: center;
+  margin: 0.5rem 0 0.3rem 0;
 }
 
-/* Responsive */
-@media (max-width: 480px) {
-  .container {
-    padding: 1.5rem 1rem;
-  }
-
-  .icon {
-    width: 48px;
-    height: 48px;
-  }
-
-  .title {
-    font-size: 1.4rem;
-  }
-
-  .section {
-    padding: 1rem 1.2rem;
-  }
+.subtitle {
+  font-size: 1rem;
+  color: #555;
+  margin-top: 0;
+  text-align: center;
 }
