@@ -128,9 +128,6 @@ export default function ActivatePage() {
 
       <div className={styles.statusBox}>{status}</div>
 
-      <footer className={styles.footer}>
-        © 2025 NFC Birthday Book ｜ 由 <a href="https://nfctogo.com">NFCTOGO</a> 技術支援
-      </footer>
     </div>
   );
 }

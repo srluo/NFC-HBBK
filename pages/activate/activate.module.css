@@ -1,10 +1,3 @@
-/* /pages/activate/activate.module.css — v1.62b
-   ✅ 修正 .page flex 崩壞
-   ✅ 移除 iOS phantom focus 圓點
-   ✅ Footer 穩定對齊底部
-*/
-
-/* ✅ 整體頁面配置 */
 .page {
   font-family: "Microsoft JhengHei", "Noto Sans TC", sans-serif;
   background: linear-gradient(135deg, #f9f5e7, #fceabb);
@@ -15,14 +8,12 @@
   align-items: center;
 }
 
-/* 標題樣式 */
 .title {
   font-size: 1.8rem;
   color: #d2691e;
   margin-bottom: 1.5rem;
 }
 
-/* 卡片區域 */
 .card {
   background: #fff;
   padding: 1.5rem;
@@ -46,16 +37,6 @@
   border: 1px solid #ddd;
   border-radius: 8px;
   font-size: 1rem;
-  box-sizing: border-box;
-  transition: all 0.2s ease;
-  background: #fffaf6;
-}
-
-.card input:focus,
-.card select:focus {
-  border-color: #d2691e;
-  outline: none;
-  box-shadow: 0 0 0 2px rgba(210, 105, 30, 0.15);
 }
 
 .button {
@@ -67,14 +48,13 @@
   border: none;
   border-radius: 10px;
   cursor: pointer;
-  transition: background 0.25s;
+  transition: background 0.2s;
 }
 
 .button:hover {
   background: #e67a33;
 }
 
-/* 狀態框 */
 .statusBox {
   margin-top: 1rem;
   padding: 0.8rem;
@@ -83,39 +63,4 @@
   border-radius: 8px;
   text-align: center;
   font-size: 0.9rem;
-}
-
-/* ✅ Footer 固定底部安全版 */
-.footer {
-  margin-top: auto;
-  width: 100%;
-  padding: 1rem 0;
-  text-align: center;
-  color: #a17b4a;
-  font-size: 0.9rem;
-  letter-spacing: 0.5px;
-  opacity: 0.8;
-  background: transparent;
-}
-
-.footer a {
-  color: #b96a1f;
-  text-decoration: none;
-  font-weight: bold;
-}
-.footer a:hover {
-  text-decoration: underline;
-}
-
-/* RWD */
-@media (max-width: 480px) {
-  .card {
-    padding: 1.2rem;
-  }
-  .title {
-    font-size: 1.5rem;
-  }
-  .footer {
-    font-size: 0.8rem;
-  }
 }
