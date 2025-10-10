@@ -1,6 +1,5 @@
-// /pages/book/first.jsx — v1.7.7 對應版（支援 ai_status + pre-line）
+// /pages/book/first.jsx — v1.8.0 智慧開卡封存 + AI fallback 版
 "use client";
-
 import { useEffect, useState } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import styles from "./book.module.css";
@@ -12,11 +11,14 @@ export default function FirstBookPage() {
   const [symbol, setSymbol] = useState(null);
   const [quote, setQuote] = useState("");
   const [status, setStatus] = useState("loading");
+  const [aiText, setAiText] = useState("");
+  const [aiLoading, setAiLoading] = useState(false);
+
   const searchParams = useSearchParams();
   const router = useRouter();
   const token = searchParams.get("token");
 
-  // 📦 取得卡片資料
+  // 讀取卡片資料
   useEffect(() => {
     if (!token) {
       setStatus("❌ 缺少 token，請重新感應生日卡 📱");
@@ -30,10 +32,15 @@ export default function FirstBookPage() {
         if (res.ok && data.card) {
           let lucky = null;
           if (data.card.birthday) {
-            const { masterNumber, number } = getLuckyNumber(data.card.birthday);
-            lucky = masterNumber ? `⭐ ${masterNumber}（大師數字）` : number;
+            const { masterNumber, number } = getLuckyNumber(
+              data.card.birthday.replace(/-/g, "")
+            );
+            lucky = masterNumber
+              ? `⭐ ${masterNumber}（大師數字）`
+              : number || "";
           }
           setCard({ ...data.card, lucky_number: lucky });
+          setAiText(data.card.ai_summary || "");
           setStatus("ok");
         } else {
           setStatus(`❌ ${data.error || "讀取失敗"}`);
@@ -47,7 +54,22 @@ export default function FirstBookPage() {
     fetchCard();
   }, [token]);
 
-  // 🌸 生日象徵
+  // 顯示 AI loading 狀態 + fallback 保底
+  useEffect(() => {
+    if (status !== "ok") return;
+    if (!aiText) {
+      setAiLoading(true);
+      const timer = setTimeout(() => {
+        setAiText(
+          "這樣的你，兼具感性與理性，懂得在變化中保持平衡。你的內在蘊藏著穩定的力量，能以柔和的方式影響他人，讓世界更和諧。"
+        );
+        setAiLoading(false);
+      }, 8000);
+      return () => clearTimeout(timer);
+    }
+  }, [aiText, status]);
+
+  // 生日象徵
   useEffect(() => {
     if (!card?.birthday) return;
     const month = parseInt(card.birthday.toString().slice(4, 6), 10);
@@ -63,7 +85,7 @@ export default function FirstBookPage() {
     fetchSymbol();
   }, [card]);
 
-  // ☀️ 每日建議
+  // 每日建議
   useEffect(() => {
     async function fetchQuote() {
       try {
@@ -77,7 +99,8 @@ export default function FirstBookPage() {
     fetchQuote();
   }, []);
 
-  if (status === "loading") return <p className={styles.loading}>⏳ 載入中...</p>;
+  if (status === "loading")
+    return <p className={styles.loading}>⏳ 載入中...</p>;
   if (status !== "ok") return <p className={styles.error}>{status}</p>;
 
   return (
@@ -86,7 +109,9 @@ export default function FirstBookPage() {
       <header className={styles.header}>
         <div className={styles.iconBox}>
           <img
-            src={`/icons/constellation/${constellationMap[card.constellation] || "default"}.png`}
+            src={`/icons/constellation/${
+              constellationMap[card.constellation] || "default"
+            }.png`}
             alt={card.constellation}
             className={styles.icon}
           />
@@ -102,42 +127,47 @@ export default function FirstBookPage() {
         </p>
       </header>
 
-      {/* 🌸 生日象徵 */}
+      {/* 生日象徵 */}
       <section className={styles.section}>
         <h3>🌸 生日象徵</h3>
         {symbol ? (
           <>
-            <p>花：<strong>{symbol.flower}</strong> — {symbol.flower_meaning}</p>
-            <p>寶石：<strong>{symbol.stone}</strong> — {symbol.stone_meaning}</p>
-            <p>幸運數字：<strong>{card.lucky_number}</strong></p>
+            <p>
+              花：<strong>{symbol.flower}</strong> — {symbol.flower_meaning}
+            </p>
+            <p>
+              寶石：<strong>{symbol.stone}</strong> — {symbol.stone_meaning}
+            </p>
+            <p>
+              幸運數字：<strong>{card.lucky_number}</strong>
+            </p>
           </>
         ) : (
           <p>資料載入中...</p>
         )}
       </section>
 
-      {/* 🤖 AI 個性摘要 */}
+      {/* AI 個性摘要 */}
       <section className={styles.section}>
         <h3>🤖 AI 個性摘要</h3>
-        <p style={{ whiteSpace: "pre-line" }}>
-          {card.ai_status === "pending"
-            ? "AI 正在準備您的專屬摘要..."
-            : card.ai_summary || "資料載入中..."}
-        </p>
+        {aiLoading ? (
+          <p>✨ AI 正在準備您的專屬摘要，請稍候...</p>
+        ) : (
+          <p>{aiText}</p>
+        )}
       </section>
 
-      {/* ☀️ 行動建議 */}
+      {/* 行動建議 */}
       <section className={styles.section}>
         <h3>☀️ 今日行動建議</h3>
         <p>{quote || "載入中..."}</p>
       </section>
 
-      {/* 💎 點數提示 */}
+      {/* 點數提示 */}
       <div className={styles.walletBox}>
         🎉 恭喜獲得 <strong>{card.points}</strong> 點探索點數！
       </div>
 
-      {/* Footer */}
       <footer className={styles.footer}>
         <button
           className={`${styles.footerBtn} ${styles.backBtn}`}
