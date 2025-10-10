@@ -1,4 +1,4 @@
-// /pages/api/card-activate.js — v1.7.1 首次開卡完整版生成版
+// /pages/api/card-activate.js — v1.7.3A 智慧開卡＋AI摘要生成版
 import { redis } from "../../lib/redis";
 import { calcZodiac } from "../../lib/zodiac";
 
@@ -24,65 +24,48 @@ function safeNowString() {
 
 async function readCard(uid) {
   const key = `card:${uid}`;
-  const hash = await redis.hgetall(key);
-  return Object.keys(hash).length > 0 ? hash : null;
+  try {
+    const hash = await redis.hgetall(key);
+    if (hash && Object.keys(hash).length > 0) return hash;
+  } catch (e) {
+    console.error("redis.hgetall error:", e);
+  }
+  return null;
 }
 
-async function writeCard(uid, card) {
+async function writeCard(uid, data) {
   const key = `card:${uid}`;
   const flat = {};
-  for (const [k, v] of Object.entries(card)) {
+  for (const [k, v] of Object.entries(data)) {
     flat[k] = typeof v === "string" ? v : JSON.stringify(v);
   }
-  await redis.hset(key, flat);
+  try {
+    await redis.hset(key, flat);
+  } catch (e) {
+    console.error("redis.hset error:", e);
+  }
 }
 
 export default async function handler(req, res) {
   if (req.method !== "POST") return res.status(405).end();
-
   try {
     const { token, user_name, gender, blood_type, hobbies, birth_time, birthday } = req.body || {};
     if (!token || !user_name || !birthday)
-      return res.status(400).json({ error: "缺少必要參數", got: req.body });
+      return res.status(400).json({ error: "缺少必要參數" });
 
-    const [uid, issuedBirthday, issuedAt, ts] = Buffer.from(token, "base64").toString().split(":");
+    // 解碼 Token 取 UID
+    const [uid] = Buffer.from(token, "base64").toString().split(":");
+    if (!uid) return res.status(400).json({ error: "Token 解析錯誤" });
+
     const { lunarDate, zodiac, constellation } = calcZodiac(birthday);
-
     const existing = (await readCard(uid)) || {};
-    let first_time = false;
+
+    // 檢查是否第一次開卡
+    const first_time = !existing.status || existing.status !== "ACTIVE";
     let points = Number(existing.points || 0);
-    if (!existing.status || existing.status !== "ACTIVE") {
-      points += 20;
-      first_time = true;
-    }
+    if (first_time) points += 20;
 
-    // 🧠 若首次開卡 → 生成完整版 AI 摘要
-    let ai_summary = existing.ai_summary || "";
-    if (first_time) {
-      try {
-        const aiRes = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL || ""}/api/ai`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            name: user_name,
-            gender,
-            zodiac,
-            constellation,
-            bureau: existing.bureau || "",
-            ming_lord: existing.ming_lord || "",
-            shen_lord: existing.shen_lord || "",
-            ming_stars: existing.ming_stars || [],
-            blood_type,
-          }),
-        });
-        const aiData = await aiRes.json();
-        if (aiData.ok && aiData.summary) ai_summary = aiData.summary;
-      } catch (err) {
-        console.error("AI Summary 生成失敗:", err);
-      }
-    }
-
-    // 🪄 組合資料
+    // 建立卡片資料
     const card = {
       ...existing,
       uid,
@@ -96,18 +79,50 @@ export default async function handler(req, res) {
       lunar_birthday: lunarDate,
       zodiac,
       constellation,
-      ai_summary, // ✅ 寫入完整版 AI 摘要
       points: points.toString(),
-      last_ts: ts || existing.last_ts || "",
       last_seen: safeNowString(),
       updated_at: Date.now().toString(),
     };
 
-    await writeCard(uid, card);
+    // ✅ AI 生成條件
+    const needAI =
+      first_time ||
+      (!existing.gender && gender) ||
+      (!existing.birth_time && birth_time);
 
+    if (needAI) {
+      try {
+        const aiRes = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL || ""}/api/ai`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            name: user_name,
+            gender,
+            zodiac,
+            constellation,
+            blood_type,
+            bureau: existing.bureau || "",
+            ming_lord: existing.ming_lord || "",
+            shen_lord: existing.shen_lord || "",
+            ming_stars: existing.ming_stars || [],
+          }),
+        });
+
+        const aiData = await aiRes.json();
+        if (aiRes.ok && aiData.summary) {
+          card.ai_summary = aiData.summary;
+        } else {
+          console.warn("⚠️ AI 摘要生成失敗:", aiData.error);
+        }
+      } catch (e) {
+        console.error("AI 生成錯誤:", e);
+      }
+    }
+
+    await writeCard(uid, card);
     return res.json({ ok: true, first_time, card });
   } catch (err) {
-    console.error("activate fatal error:", err);
+    console.error("card-activate fatal error:", err);
     return res.status(500).json({ error: "伺服器錯誤" });
   }
 }

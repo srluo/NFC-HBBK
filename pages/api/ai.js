@@ -1,4 +1,4 @@
-// /pages/api/ai.js — v1.7.1 智能層級摘要版
+// /pages/api/ai.js — v1.7.3 智慧開卡（心理導向＋紫微層級）
 import OpenAI from "openai";
 
 const client = new OpenAI({
@@ -22,58 +22,61 @@ export default async function handler(req, res) {
       blood_type,
     } = req.body || {};
 
-    if (!name || !constellation)
-      return res.status(400).json({ error: "缺少必要參數 (name, constellation)" });
+    // ✅ 檢查必要參數
+    if (!name || !constellation || !zodiac)
+      return res.status(400).json({ error: "缺少必要參數 (name, constellation, zodiac)" });
 
-    // 🧩 自動偵測資料完整層級
-    let level = "basic";
-    if (ming_lord && shen_lord && bureau) level = "ziwei";
-    else if (zodiac && gender) level = "personality";
+    // 🧠 模式分級邏輯
+    let mode = "basic";
+    if (gender && zodiac && constellation) mode = "personality";
+    if (bureau && ming_lord && shen_lord) mode = "ziwei";
 
-    // 🧭 各層級對應語氣與提示
-    let focus = "";
-    switch (level) {
-      case "basic":
-        focus = `請根據星座與血型，描繪此人的基本性格與待人態度，文字約120字左右。`;
-        break;
-      case "personality":
-        focus = `結合生肖、星座、血型與性別，展現其內在特質與人際風格，約130字左右。`;
-        break;
-      case "ziwei":
-        focus = `結合紫微命理（命主星、身主星、五行局、命宮主星）與心理特質，撰寫一段約150字的完整人生氣質摘要。`;
-        break;
-    }
-
+    // 🪶 動態生成 Prompt
     const prompt = `
-你是一位結合心理學與紫微斗數的生命分析師，請以溫暖、自然、正面的語氣撰寫個人化摘要。
+你是一位結合心理學與紫微斗數的個性顧問，請根據以下資料撰寫一段個人化「生日書開卡摘要」：
 ---
 姓名：${name}
 性別：${gender || "未指定"}
-生肖：${zodiac || "未知"}
+生肖：${zodiac}
 星座：${constellation}
 血型：${blood_type || "未填"}
-五行局：${bureau || "未填"}
-命主星：${ming_lord || "未填"}
-身主星：${shen_lord || "未填"}
-命宮主星：${Array.isArray(ming_stars) ? ming_stars.join("、") : ming_stars || "未填"}
+五行局：${bureau || "未知"}
+命主星：${ming_lord || "無"}
+身主星：${shen_lord || "無"}
+命宮主星：${Array.isArray(ming_stars) ? ming_stars.join("、") : ming_stars}
 ---
-${focus}
-請使用繁體中文，語氣柔和、有同理心，避免使用命理術語，以「這樣的你…」開頭。
+
+請以繁體中文撰寫，字數約 120～160 字。
+語氣要溫暖、自然、有洞察力，不要用生硬的比喻（例如「像一條蛇」）。
+請整合這些資訊，描述此人的思維模式、人際特質與生命能量。
+最後用一句「總結句」收尾，展現他的核心天賦或生命方向。
 `;
 
+    // 🌟 模型設定
     const completion = await client.chat.completions.create({
       model: "gpt-4o-mini",
-      messages: [
-        { role: "system", content: "你是一位結合紫微斗數與心理學的生命顧問。" },
-        { role: "user", content: prompt },
-      ],
       temperature: 0.85,
-      max_tokens: 300,
+      max_tokens: 220,
+      messages: [
+        {
+          role: "system",
+          content:
+            "你是一位結合心理學與紫微斗數的顧問，擅長用溫暖、具深度與啟發性的語氣撰寫人生洞察摘要。",
+        },
+        {
+          role: "user",
+          content: prompt,
+        },
+      ],
     });
 
     const summary = completion.choices?.[0]?.message?.content?.trim() || "";
 
-    return res.json({ ok: true, level, summary });
+    return res.json({
+      ok: true,
+      mode,
+      summary,
+    });
   } catch (e) {
     console.error("ai.js error:", e);
     return res.status(500).json({ error: "AI 生成失敗" });
