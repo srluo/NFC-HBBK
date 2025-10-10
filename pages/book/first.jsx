@@ -1,4 +1,4 @@
-// /pages/book/first.jsx — v2.0.0（穩定正式版・幸運數＋段落優化）
+// /pages/book/first.jsx — v2.0.1（幸運數字安全型態修正版・正式穩定）
 
 "use client";
 import { useEffect, useState } from "react";
@@ -33,17 +33,17 @@ export default function FirstBookPage() {
           let lucky_number = "";
           let lucky_desc = "";
 
-          // 🎯 幸運數字（若無Redis值則重算）
+          // 🎯 確保 lucky_number 為字串
           if (hasRedisLucky) {
-            lucky_number = data.card.lucky_number;
+            lucky_number = String(data.card.lucky_number);
           } else {
             const { number, masterNumber } = getLuckyNumber(String(data.card.birthday));
             lucky_number = masterNumber
-              ? `${masterNumber}（大師數字）`
-              : number;
+              ? String(masterNumber) + "（大師數字）"
+              : String(number);
           }
 
-          // 🎯 幸運數字描述對照
+          // 🎯 幸運數字描述對照表
           const descMap = {
             1: "象徵領導與創造，勇於開拓新局。",
             2: "代表協調與感應，擅長人際互動。",
@@ -56,6 +56,7 @@ export default function FirstBookPage() {
             9: "富有同理與包容，渴望助人與理想。",
           };
 
+          // ✅ 一律以字串比對，避免 type error
           if (lucky_number.includes("11")) {
             lucky_desc = "擁有強烈的直覺與靈性洞察力，能在變化中保持清晰與洞見。";
           } else if (lucky_number.includes("22")) {
@@ -64,7 +65,9 @@ export default function FirstBookPage() {
             lucky_desc = "具備療癒與啟發能量，象徵無私與人道精神。";
           } else {
             const num = parseInt(lucky_number);
-            lucky_desc = descMap[num] || "具備平衡與創造的特質，能在變化中找到自我節奏。";
+            lucky_desc =
+              descMap[num] ||
+              "具備平衡與創造的特質，能在變化中找到自我節奏。";
           }
 
           setCard({
@@ -77,7 +80,7 @@ export default function FirstBookPage() {
           setStatus(`❌ ${data.error || "讀取失敗"}`);
         }
       } catch (err) {
-        console.error(err);
+        console.error("fetchCard error:", err);
         setStatus("❌ 系統錯誤，請重新感應生日卡 📱");
       }
     }
@@ -85,7 +88,7 @@ export default function FirstBookPage() {
     fetchCard();
   }, [token]);
 
-  // 🌸 抓取生日象徵（花／石）
+  // 🌸 抓取生日象徵
   useEffect(() => {
     if (!card?.birthday) return;
     const month = parseInt(String(card.birthday).slice(4, 6), 10);
