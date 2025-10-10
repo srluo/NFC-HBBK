@@ -117,7 +117,7 @@
 }
 
 /* RWD */
-@media (max-width: 480px) {
+@media (max-width: 465px) {
   .card {
     padding: 1.2rem;
   }
