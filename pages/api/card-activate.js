@@ -1,11 +1,5 @@
-// /pages/api/card-activate.js — v2.0.1-final（紫微參數修正版）
+// /pages/api/card-activate.js — v2.1.0（整合 v1.63 紫微命盤 + AI 同步寫入）
 // ------------------------------------------------------------
-// ✅ 改進重點：
-// 1️⃣ 修正紫微查詢參數名稱 (ymd, hourLabel)
-// 2️⃣ 開卡後同步等待 AI 摘要完成再回傳
-// 3️⃣ Redis 寫入一次完成：包含幸運數字＋紫微命格＋AI 摘要
-// ------------------------------------------------------------
-
 import { redis } from "../../lib/redis";
 import { calcZodiac } from "../../lib/zodiac";
 import { getLuckyNumber } from "../../lib/luckyNumber";
@@ -27,7 +21,7 @@ export default async function handler(req, res) {
     if (!token || !user_name || !birthday)
       return res.status(400).json({ error: "缺少必要參數" });
 
-    // 🧩 解析 Token 取 UID
+    // 🧩 Token 解析出 UID
     const [uid] = Buffer.from(token, "base64").toString().split(":");
     if (!uid) return res.status(400).json({ error: "Token 解析錯誤" });
 
@@ -39,7 +33,7 @@ export default async function handler(req, res) {
     let points = Number(existing.points || 0);
     if (first_time) points += 20;
 
-    // 🎯 幸運數字計算
+    // 🎯 幸運數字
     const { number, masterNumber } = getLuckyNumber(birthday);
     const lucky_number = masterNumber
       ? `${masterNumber}（大師數字）`
@@ -63,7 +57,7 @@ export default async function handler(req, res) {
             9: "富有同理與包容，渴望助人與理想。",
           }[number] || "";
 
-    // ✅ 基礎卡資料
+    // ✅ 基礎卡片資料
     const card = {
       uid,
       status: "ACTIVE",
@@ -83,28 +77,35 @@ export default async function handler(req, res) {
       updated_at: Date.now().toString(),
     };
 
-    // ✅ 紫微分析（性別＋時辰皆填才啟用）
+    // ------------------------------------------------------------
+    // 🧭 紫微命盤（v1.63 完整演算法）
+    // ------------------------------------------------------------
     let ziweiData = {};
     if (gender && birth_time) {
       try {
         const ziweiRes = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL}/api/ziwei-core`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          // ⚠️ 改為正確的欄位名稱
-          body: JSON.stringify({ ymd: birthday, gender, hourLabel: birth_time }),
+          body: JSON.stringify({
+            ymd: birthday,
+            hourLabel: `${birth_time}時`,
+            gender,
+          }),
         });
         const ziweiJson = await ziweiRes.json();
         if (ziweiRes.ok && !ziweiJson.error) {
           ziweiData = ziweiJson;
         } else {
-          console.warn("⚠️ 紫微分析回傳錯誤:", ziweiJson.error);
+          console.warn("⚠️ 紫微命盤生成失敗:", ziweiJson.error);
         }
       } catch (err) {
-        console.warn("⚠️ 紫微分析失敗:", err);
+        console.warn("⚠️ 紫微分析錯誤:", err);
       }
     }
 
-    // ✅ AI 摘要生成（等待完成再回傳）
+    // ------------------------------------------------------------
+    // 🧠 AI Summary 生成（同步等待）
+    // ------------------------------------------------------------
     let ai_summary = "";
     try {
       const aiRes = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL}/api/ai`, {
@@ -122,7 +123,6 @@ export default async function handler(req, res) {
           ming_stars: ziweiData.ming_stars || [],
         }),
       });
-
       const aiData = await aiRes.json();
       if (aiRes.ok && aiData.summary) {
         ai_summary = aiData.summary;
@@ -133,7 +133,9 @@ export default async function handler(req, res) {
       console.error("AI 生成錯誤:", err);
     }
 
+    // ------------------------------------------------------------
     // ✅ 寫入 Redis
+    // ------------------------------------------------------------
     const finalCard = { ...card, ...ziweiData, ai_summary };
     await redis.hset(key, finalCard);
 
