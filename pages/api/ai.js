@@ -1,32 +1,19 @@
-// /pages/api/ai.js — v1.9.4（紫微融合 + 自動分段入庫）
+// /pages/api/ai.js — v2.1.1-structured-clean
+// ✅ 四段式自然分段版（不使用「一、二、三」編號）
+// ✅ 每段加上自然標題（性格特質／潛能優點／注意事項／鼓勵語）
+// ✅ 避免命理語氣，強調心理洞察與生活建議
 import OpenAI from "openai";
-import { redis } from "../../lib/redis";
 
 const client = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
 });
 
-async function fetchZiweiData(birthday, hourLabel) {
-  try {
-    const res = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL}/api/ziwei-core`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ ymd: birthday, hourLabel }),
-    });
-    if (!res.ok) return {};
-    return await res.json();
-  } catch (err) {
-    console.error("fetchZiweiData error:", err);
-    return {};
-  }
-}
-
 export default async function handler(req, res) {
   try {
-    if (req.method !== "POST") return res.status(405).json({ error: "Method Not Allowed" });
+    if (req.method !== "POST")
+      return res.status(405).json({ error: "Method Not Allowed" });
 
     const {
-      uid,
       name,
       gender,
       zodiac,
@@ -36,50 +23,46 @@ export default async function handler(req, res) {
       ming_lord,
       shen_lord,
       ming_stars,
-      birthday,
-      birth_time,
     } = req.body || {};
 
     if (!name || !constellation || !zodiac)
-      return res.status(400).json({ error: "缺少必要參數 (name, constellation, zodiac)" });
+      return res.status(400).json({
+        error: "缺少必要參數 (name, constellation, zodiac)",
+      });
 
-    // 若缺紫微資料則補查
-    let ziwei = {};
-    if ((!bureau || !ming_lord) && birth_time) {
-      ziwei = await fetchZiweiData(birthday, birth_time + "時");
-    }
-
-    const bureauFinal = bureau || ziwei.bureau || "未知";
-    const mingLordFinal = ming_lord || ziwei.ming_lord || "未知";
-    const shenLordFinal = shen_lord || ziwei.shen_lord || "未知";
-    const mingStarsFinal =
-      Array.isArray(ming_stars) && ming_stars.length > 0
-        ? ming_stars
-        : ziwei.ming_stars || [];
-
-    // 🧩 Prompt 模板
+    // ✨ 四段式摘要結構（不含編號）
     const prompt = `
-你是一位結合紫微斗數與心理學的「人格顧問」。
-請根據以下資料撰寫一段約 200～250 字的「完整個性總結」。
-請務必輸出四個段落，每段之間請插入一個空行（\\n\\n）。
-不要在文字中直接出現星座或生肖名稱，可內化其象徵特質。
+你是一位融合紫微斗數與心理學的顧問。請根據以下個人資料，生成一份約 180～220 字的「AI 個性摘要」。
+全文分為四段，請以自然的段落標題呈現（不要數字或條列符號），並以繁體中文書寫。
+語氣溫暖、誠懇、具洞察力，像在給出真誠的建議。避免命理口吻與直接提及星座或生肖。
+
+段落結構如下：
 ---
+性格特質：
+（描述整體性格能量與人際特質）
+
+潛能與優點：
+（指出可發揮的長處與天賦）
+
+需要注意的地方：
+（說明可能的性格盲點、挑戰或誤區）
+
+鼓勵與建議：
+（給出一段真誠、溫柔的勉勵語）
+---
+
+個人資料：
 姓名：${name}
 性別：${gender || "未指定"}
-生肖：${zodiac}
 星座：${constellation}
+生肖：${zodiac}
 血型：${blood_type || "未填"}
-五行局：${bureauFinal}
-命主星：${mingLordFinal}
-身主星：${shenLordFinal}
-命宮主星群：${Array.isArray(mingStarsFinal) ? mingStarsFinal.join("、") : mingStarsFinal || "無"}
----
-結構要求：
-① 整體性格與能量傾向  
-② 可發揮的潛能與優點  
-③ 應注意的性格盲點與挑戰  
-④ 以一句鼓勵語收尾  
-請用繁體中文，語氣自然、誠懇且具洞察力，採第二人稱「你」敘述。
+五行局：${bureau || "未知"}
+命主星：${ming_lord || "未知"}
+身主星：${shen_lord || "未知"}
+命宮主星群：${Array.isArray(ming_stars) ? ming_stars.join("、") : ming_stars || "無"}
+
+請生成一份自然分段的文字，每段之間留一行空白。
 `;
 
     const completion = await client.chat.completions.create({
@@ -88,29 +71,17 @@ export default async function handler(req, res) {
         {
           role: "system",
           content:
-            "你是一位融合紫微斗數與人格心理學的顧問，擅長以溫暖、真誠、具洞察力的語氣撰寫個人化分析摘要。",
+            "你是一位融合紫微斗數與心理學的個性分析師，擅長以溫暖、人性化的語氣撰寫分析摘要。",
         },
         { role: "user", content: prompt },
       ],
       temperature: 0.85,
-      max_tokens: 512,
+      max_tokens: 350,
     });
 
-    const fullText = completion.choices?.[0]?.message?.content?.trim() || "";
+    const summary = completion.choices?.[0]?.message?.content?.trim() || "";
 
-    // ✨ 自動分段
-    const paragraphs = fullText.split(/\n{2,}|(?<=。)\s*/g).map((t) => t.trim()).filter(Boolean);
-
-    // 🧠 若提供了 UID，直接寫入 Redis
-    if (uid) {
-      const key = `card:${uid}`;
-      await redis.hset(key, {
-        ai_summary: fullText,
-        ai_summary_paragraphs: JSON.stringify(paragraphs),
-      });
-    }
-
-    return res.json({ ok: true, summary: fullText, paragraphs });
+    return res.json({ ok: true, summary });
   } catch (e) {
     console.error("ai.js error:", e);
     return res.status(500).json({ error: "AI 生成失敗" });
