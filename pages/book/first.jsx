@@ -1,10 +1,9 @@
-// /pages/book/first.jsx — v2.0.1-final-deploy
+// /pages/book/first.jsx — v2.1.2 structured AI summary 版
 // ------------------------------------------------------
-// ✅ 穩定無動畫版本，對應乾淨版 book.module.css
-// ✅ Lucky Number 優先讀取 Redis → 無值再用 getLuckyNumber() 重算
-// ✅ Lucky Description 自動補上預設描述
-// ✅ 相容舊卡資料（即使 Redis 尚未寫入完整欄位）
-// ✅ 改為相對路徑 import，確保 Vercel 部署不報錯
+// ✅ 對應 v2.1.1-structured-clean AI.js
+// ✅ 自動辨識「性格特質／潛能與優點／需要注意的地方／鼓勵與建議」四段
+// ✅ 每段自動加粗標題、分行顯示
+// ✅ 無動畫、相對路徑安全可部署版
 // ------------------------------------------------------
 
 "use client";
@@ -23,7 +22,6 @@ export default function FirstBookPage() {
   const router = useRouter();
   const token = searchParams.get("token");
 
-  // 🔹 讀取卡片資料
   useEffect(() => {
     if (!token) {
       setStatus("❌ 缺少 token，請重新感應生日卡 📱");
@@ -47,7 +45,7 @@ export default function FirstBookPage() {
               : String(number);
           }
 
-          // Lucky Number 說明（預設）
+          // Lucky Number 說明
           if (!lucky_desc && lucky_number) {
             const descMap = {
               "1": "象徵領導與創造，勇於開拓新局。",
@@ -89,7 +87,6 @@ export default function FirstBookPage() {
     fetchCard();
   }, [token]);
 
-  // 🔹 讀生日象徵
   useEffect(() => {
     if (!card?.birthday) return;
     const month = parseInt(String(card.birthday).slice(4, 6), 10);
@@ -105,7 +102,6 @@ export default function FirstBookPage() {
     fetchSymbol();
   }, [card]);
 
-  // 🔹 每日建議
   useEffect(() => {
     async function fetchQuote() {
       try {
@@ -122,9 +118,40 @@ export default function FirstBookPage() {
   if (status === "loading") return <p className={styles.loading}>⏳ 載入中...</p>;
   if (status !== "ok") return <p className={styles.error}>{status}</p>;
 
+  // ✨ 分段轉換器：處理四段標題格式
+  const renderAISummary = (text) => {
+    if (!text) return <p>AI 智慧摘要生成中...</p>;
+
+    const sections = text
+      .split(/\n{2,}/)
+      .map((block) => block.trim())
+      .filter(Boolean);
+
+    return sections.map((section, i) => {
+      const [title, ...content] = section.split(/[:：]/);
+      const hasTitle =
+        ["性格特質", "潛能與優點", "需要注意的地方", "鼓勵與建議"].some((kw) =>
+          title.includes(kw)
+        );
+
+      return (
+        <div key={i} style={{ marginBottom: "0.8rem" }}>
+          {hasTitle ? (
+            <>
+              <strong>{title}：</strong>
+              <p>{content.join("：")}</p>
+            </>
+          ) : (
+            <p>{section}</p>
+          )}
+        </div>
+      );
+    });
+  };
+
   return (
     <div className={styles.container}>
-      {/* 頭部 */}
+      {/* Header */}
       <header className={styles.header}>
         <div className={styles.iconBox}>
           <img
@@ -163,28 +190,19 @@ export default function FirstBookPage() {
       {/* AI 個性摘要 */}
       <section className={styles.section}>
         <h3>🤖 AI 個性摘要</h3>
-        {card.ai_summary ? (
-          card.ai_summary
-            .split(/(?<=。)\s*|\n+/g)
-            .filter(Boolean)
-            .map((p, i) => <p key={i}>{p.trim()}</p>)
-        ) : (
-          <p>AI 智慧摘要生成中...</p>
-        )}
+        {renderAISummary(card.ai_summary)}
       </section>
 
-      {/* 每日建議 */}
+      {/* 行動建議 */}
       <section className={styles.section}>
         <h3>☀️ 今日行動建議</h3>
         <p>{quote || "載入中..."}</p>
       </section>
 
-      {/* 點數提示 */}
       <div className={styles.walletBox}>
         🎉 恭喜獲得 <strong>{card.points}</strong> 點探索點數！
       </div>
 
-      {/* 返回主頁 */}
       <footer className={styles.footer}>
         <button
           className={`${styles.footerBtn} ${styles.backBtn}`}
