@@ -69,7 +69,7 @@ export default function Activate() {
         // ✅ 生成完畢 → 自動跳轉
         setTimeout(() => {
           window.location.href = `/book/first?token=${form.token}`;
-        }, 3000);
+        }, 5000);
       } else {
         setStatus(`✅ 更新成功，目前點數：${data.card.points}`);
         setTimeout(() => {
