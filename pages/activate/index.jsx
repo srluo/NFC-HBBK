@@ -1,5 +1,6 @@
-// /pages/activate/index.jsx — v1.9.8-safe（AI 背景生成＋延遲跳轉版）
+// /pages/activate/index.jsx — v2.0.0（AI 等待同步 + 正確跳轉 + 使用者體驗優化版）
 "use client";
+
 import { useState, useEffect } from "react";
 import styles from "./activate.module.css";
 
@@ -15,7 +16,7 @@ export default function Activate() {
     birth_time: "",
   });
 
-  // ✅ 初始化 URL 參數（d=生日, token=卡片Token）
+  // 取得 URL 參數
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const d = params.get("d") || "";
@@ -23,16 +24,18 @@ export default function Activate() {
     setForm((prev) => ({ ...prev, birthday: d, token }));
   }, []);
 
-  // ✅ 處理輸入變更
-  const handleChange = (e) => setForm({ ...form, [e.target.name]: e.target.value });
+  // 欄位改動
+  const handleChange = (e) =>
+    setForm({ ...form, [e.target.name]: e.target.value });
 
-  // ✅ 表單送出
+  // 開卡提交
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    // 🔮 紫微條件驗證
     const hasGender = !!form.gender;
     const hasTime = !!form.birth_time;
+
+    // 🔮 若只填一項，提醒使用者
     if ((hasGender && !hasTime) || (!hasGender && hasTime)) {
       alert("若要開啟紫微層級分析，請同時填寫性別與出生時辰。");
       return;
@@ -46,28 +49,32 @@ export default function Activate() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(form),
       });
-      const data = await res.json();
 
+      const data = await res.json();
       if (!res.ok) {
         setStatus(`❌ 錯誤: ${data.error || "未知錯誤"}`);
         return;
       }
 
+      // 🧠 AI 生成提示（v2.0.0 版會等待完成）
       if (data.first_time) {
-        // 🧠 背景 AI 生成提示
-        setStatus("🧠 AI 智慧摘要生成中（約需 3～5 秒）...");
+        setStatus("🧠 AI 智慧摘要生成中...（約 5 秒）");
 
-        // 🎉 開卡提示
         setTimeout(() => {
-          setStatus(`🎉 開卡成功！已獲得 20 點開卡禮，目前點數：${data.card.points}`);
-        }, 2000);
+          setStatus(
+            `🎉 開卡成功！已獲得 20 點開卡禮，目前點數：${data.card.points}`
+          );
+        }, 1200);
 
-        // ⏱ 安全延遲跳轉（確保 Redis 寫入完成）
+        // ✅ 生成完畢 → 自動跳轉
         setTimeout(() => {
           window.location.href = `/book/first?token=${form.token}`;
-        }, 4000);
+        }, 3000);
       } else {
         setStatus(`✅ 更新成功，目前點數：${data.card.points}`);
+        setTimeout(() => {
+          window.location.href = `/book/first?token=${form.token}`;
+        }, 2000);
       }
     } catch (err) {
       console.error(err);
@@ -75,12 +82,12 @@ export default function Activate() {
     }
   };
 
-  // ✅ Render UI
   return (
     <div className={styles.page}>
       <h2 className={styles.title}>✨ NFC 靈動生日書開卡 ✨</h2>
 
       <form className={styles.card} onSubmit={handleSubmit}>
+        {/* 姓名 */}
         <label>姓名</label>
         <input
           name="user_name"
@@ -90,11 +97,17 @@ export default function Activate() {
           required
         />
 
+        {/* 生日 */}
         <label>生日</label>
         <input name="birthday" value={form.birthday} readOnly />
 
+        {/* 血型 */}
         <label>血型</label>
-        <select name="blood_type" value={form.blood_type} onChange={handleChange}>
+        <select
+          name="blood_type"
+          value={form.blood_type}
+          onChange={handleChange}
+        >
           <option value="">請選擇</option>
           <option value="A">A 型</option>
           <option value="B">B 型</option>
@@ -102,10 +115,12 @@ export default function Activate() {
           <option value="AB">AB 型</option>
         </select>
 
+        {/* 紫微提示 */}
         <p className={styles.tip}>
-          🔮 若希望產生「紫微命格分析」，請同時填寫以下 [性別] 與 [出生時辰]:
+          🔮 若希望產生「紫微命格分析」，請同時填寫以下 [性別] 與 [出生時辰]：
         </p>
 
+        {/* 性別 */}
         <label>性別</label>
         <select name="gender" value={form.gender} onChange={handleChange}>
           <option value="">請選擇</option>
@@ -113,8 +128,13 @@ export default function Activate() {
           <option value="女">女</option>
         </select>
 
+        {/* 出生時辰 */}
         <label>出生時辰</label>
-        <select name="birth_time" value={form.birth_time} onChange={handleChange}>
+        <select
+          name="birth_time"
+          value={form.birth_time}
+          onChange={handleChange}
+        >
           <option value="">請選擇</option>
           <option value="子">00:00~00:59（早子）</option>
           <option value="丑">01:00~02:59（丑）</option>
@@ -131,17 +151,21 @@ export default function Activate() {
           <option value="子">23:00~23:59（晚子）</option>
         </select>
 
+        {/* 興趣嗜好 */}
         <label>興趣嗜好</label>
         <input
           name="hobbies"
           value={form.hobbies}
           onChange={handleChange}
-          placeholder="例如：Music / Art / Travel"
+          placeholder="例如：Music / Travel"
         />
 
-        <button type="submit" className={styles.button}>送出開卡 ✨</button>
+        <button type="submit" className={styles.button}>
+          送出開卡 ✨
+        </button>
       </form>
 
+      {/* 狀態區塊 */}
       {status !== "idle" && (
         <div className={styles.statusBox}>
           <strong>狀態：</strong> {status}
