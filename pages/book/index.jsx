@@ -1,4 +1,6 @@
+// /pages/book/index.jsx — v1.7.7 對應版（含 AI 狀態提示）
 "use client";
+
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import styles from "./book.module.css";
@@ -63,6 +65,19 @@ export default function Book() {
 
         <h2>{card.user_name || "未命名"}</h2>
         <p>{card.birthday}</p>
+
+        {/* AI 狀態提示 */}
+        {card.ai_status && (
+          <p style={{ fontSize: "0.95rem", color: "#555", marginTop: "0.3rem" }}>
+            {card.ai_status === "ok"
+              ? "🤖 已生成專屬 AI 摘要"
+              : card.ai_status === "pending"
+              ? "⏳ AI 正在準備您的個性摘要..."
+              : card.ai_status === "timeout"
+              ? "⚠️ AI 系統稍慢，建議稍後再查看摘要"
+              : "⚠️ AI 摘要生成失敗，您可稍後重新開啟"}
+          </p>
+        )}
 
         <button
           className={styles.expandBtn}
