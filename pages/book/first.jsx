@@ -1,155 +1,192 @@
-// /pages/api/card-activate.js — v1.8.8R
-// ✅ 穩定版：確保 AI 摘要與幸運數字都會寫入 Redis
-import { redis } from "../../lib/redis";
-import { calcZodiac } from "../../lib/zodiac";
-import { getLuckyNumber } from "../../lib/luckyNumber";
+// /pages/book/first.jsx — v1.8.7-fix（修正 number 未定義 + Redis fallback）
+"use client";
+import { useEffect, useState } from "react";
+import { useSearchParams, useRouter } from "next/navigation";
+import styles from "./book.module.css";
+import { zodiacMap, constellationMap } from "../../lib/iconMap";
+import { getLuckyNumber } from "@/lib/luckyNumber";
 
-function safeNowString() {
-  const now = new Date();
-  try {
-    const fmt = new Intl.DateTimeFormat("zh-TW", {
-      timeZone: "Asia/Taipei",
-      hour12: false,
-      year: "numeric",
-      month: "2-digit",
-      day: "2-digit",
-      hour: "2-digit",
-      minute: "2-digit",
-      second: "2-digit",
-    });
-    return fmt.format(now);
-  } catch {
-    const t = new Date(now.getTime() + 8 * 60 * 60 * 1000);
-    return t.toISOString().replace("T", " ").slice(0, 19);
-  }
-}
+export default function FirstBookPage() {
+  const [card, setCard] = useState(null);
+  const [symbol, setSymbol] = useState(null);
+  const [quote, setQuote] = useState("");
+  const [status, setStatus] = useState("loading");
+  const searchParams = useSearchParams();
+  const router = useRouter();
+  const token = searchParams.get("token");
 
-async function readCard(uid) {
-  const key = `card:${uid}`;
-  try {
-    const hash = await redis.hgetall(key);
-    if (hash && Object.keys(hash).length > 0) return hash;
-  } catch (e) {
-    console.error("redis.hgetall error:", e);
-  }
-  return null;
-}
+  useEffect(() => {
+    if (!token) {
+      setStatus("❌ 缺少 token，請重新感應生日卡 📱");
+      return;
+    }
 
-async function writeCard(uid, data) {
-  const key = `card:${uid}`;
-  const flat = {};
-  for (const [k, v] of Object.entries(data)) {
-    flat[k] = typeof v === "string" ? v : JSON.stringify(v);
-  }
-  try {
-    await redis.hset(key, flat);
-  } catch (e) {
-    console.error("redis.hset error:", e);
-  }
-}
-
-export default async function handler(req, res) {
-  if (req.method !== "POST") return res.status(405).end();
-  try {
-    const {
-      token,
-      user_name,
-      gender,
-      blood_type,
-      hobbies,
-      birth_time,
-      birthday,
-    } = req.body || {};
-
-    if (!token || !user_name || !birthday)
-      return res.status(400).json({ error: "缺少必要參數" });
-
-    const [uid] = Buffer.from(token, "base64").toString().split(":");
-    if (!uid) return res.status(400).json({ error: "Token 解析錯誤" });
-
-    // 🧮 計算生肖與星座
-    const { lunarDate, zodiac, constellation } = calcZodiac(birthday);
-    const existing = (await readCard(uid)) || {};
-
-    // 🎯 計算幸運數字（生命靈數）
-    const { number, masterNumber } = getLuckyNumber(birthday);
-    const lucky_number = masterNumber
-      ? `${masterNumber}（大師數字）`
-      : `${number}`;
-
-    // 🔰 判斷是否首次開卡
-    const first_time = !existing.status || existing.status !== "ACTIVE";
-    let points = Number(existing.points || 0);
-    if (first_time) points += 20;
-
-    // 🧩 組成卡片資料
-    const card = {
-      ...existing,
-      uid,
-      status: "ACTIVE",
-      user_name,
-      gender: gender || existing.gender || "",
-      blood_type: blood_type || existing.blood_type || "",
-      hobbies: hobbies || existing.hobbies || "",
-      birth_time: birth_time || existing.birth_time || "",
-      birthday,
-      lunar_birthday: lunarDate,
-      zodiac,
-      constellation,
-      lucky_number,
-      points: points.toString(),
-      last_seen: safeNowString(),
-      updated_at: Date.now().toString(),
-    };
-
-    // ✅ 先寫入基本卡片資料
-    await writeCard(uid, card);
-
-    // ⚙️ 判斷是否需生成 AI 摘要
-    const needAI =
-      first_time ||
-      (!existing.gender && gender) ||
-      (!existing.birth_time && birth_time);
-
-    if (needAI) {
+    async function fetchCard() {
       try {
-        const aiRes = await fetch(
-          `${process.env.NEXT_PUBLIC_BASE_URL || ""}/api/ai`,
-          {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              name: user_name,
-              gender,
-              zodiac,
-              constellation,
-              blood_type,
-              bureau: existing.bureau || "",
-              ming_lord: existing.ming_lord || "",
-              shen_lord: existing.shen_lord || "",
-              ming_stars: existing.ming_stars || [],
-            }),
+        const res = await fetch(`/api/getCard?token=${token}`);
+        const data = await res.json();
+        if (res.ok && data.card) {
+          const hasRedisLucky = !!data.card.lucky_number;
+          let lucky_number = "";
+          let lucky_desc = "";
+
+          if (hasRedisLucky) {
+            lucky_number = data.card.lucky_number;
+          } else {
+            const { number, masterNumber } = getLuckyNumber(data.card.birthday);
+            lucky_number = masterNumber
+              ? `${masterNumber}（大師數字）`
+              : number;
           }
-        );
 
-        const aiData = await aiRes.json();
-        if (aiRes.ok && aiData.summary) {
-          card.ai_summary = aiData.summary;
+          // 🎯 描述對照表
+          const descMap = {
+            1: "象徵領導與創造，勇於開拓新局。",
+            2: "代表協調與感應，擅長人際互動。",
+            3: "充滿靈感與表達力，帶來歡樂與創意。",
+            4: "實事求是，重視穩定與秩序。",
+            5: "熱愛自由，勇於探索新體驗。",
+            6: "充滿愛心與責任感，重視家庭與人際關係。",
+            7: "思考深入，追求真理與智慧。",
+            8: "擁有強大行動力與影響力。",
+            9: "富有同理與包容，渴望助人與理想。",
+          };
 
-          // ✅ 二次寫入補上 AI 結果
-          await redis.hset(`card:${uid}`, "ai_summary", aiData.summary);
+          if (lucky_number.includes("11")) {
+            lucky_desc =
+              "擁有強烈的直覺與靈性洞察力，能在變化中保持清晰與洞見。";
+          } else if (lucky_number.includes("22")) {
+            lucky_desc =
+              "天生的實踐者與建構者，能將理想化為現實，展現堅毅與智慧。";
+          } else if (lucky_number.includes("33")) {
+            lucky_desc =
+              "具備療癒與啟發能量，象徵無私與人道精神。";
+          } else {
+            const num = parseInt(lucky_number);
+            lucky_desc =
+              descMap[num] ||
+              "具備平衡與創造的特質，能在變化中找到自我節奏。";
+          }
+
+          setCard({
+            ...data.card,
+            lucky_number,
+            lucky_desc,
+          });
+          setStatus("ok");
         } else {
-          console.warn("⚠️ AI 摘要生成失敗:", aiData.error);
+          setStatus(`❌ ${data.error || "讀取失敗"}`);
         }
-      } catch (e) {
-        console.error("AI 生成錯誤:", e);
+      } catch (err) {
+        console.error(err);
+        setStatus("❌ 系統錯誤，請重新感應生日卡 📱");
       }
     }
 
-    // 🎯 回傳完整資料給前端
-    return res.json({ ok: true, first_time, card });
-  } catch (err) {
-    console.error("card-activate fatal error:", err);
-    return res.status(500).json({ error: "伺服器錯誤" });
-  }
+    fetchCard();
+  }, [token]);
+
+  // 🌸 生日象徵
+  useEffect(() => {
+    if (!card?.birthday) return;
+    const month = parseInt(card.birthday.toString().slice(4, 6), 10);
+    async function fetchSymbol() {
+      try {
+        const res = await fetch(`/api/symbols?month=${month}`);
+        const data = await res.json();
+        if (res.ok) setSymbol(data);
+      } catch (err) {
+        console.error("fetch symbols error:", err);
+      }
+    }
+    fetchSymbol();
+  }, [card]);
+
+  // 🌞 每日建議
+  useEffect(() => {
+    async function fetchQuote() {
+      try {
+        const res = await fetch("/api/dailyQuote");
+        const data = await res.json();
+        if (res.ok) setQuote(data.quote);
+      } catch (err) {
+        console.error("fetch dailyQuote error:", err);
+      }
+    }
+    fetchQuote();
+  }, []);
+
+  if (status === "loading")
+    return <p className={styles.loading}>⏳ 載入中...</p>;
+  if (status !== "ok") return <p className={styles.error}>{status}</p>;
+
+  return (
+    <div className={styles.container}>
+      <header className={styles.header}>
+        <div className={styles.iconBox}>
+          <img
+            src={`/icons/constellation/${
+              constellationMap[card.constellation] || "default"
+            }.png`}
+            alt={card.constellation}
+            className={styles.icon}
+          />
+          <img
+            src={`/icons/zodiac/${
+              zodiacMap[card.zodiac] || "default"
+            }.png`}
+            alt={card.zodiac}
+            className={styles.icon}
+          />
+        </div>
+        <h1 className={styles.title}>{card.user_name}</h1>
+        <p className={styles.subtitle}>
+          {card.birthday} ｜ {card.constellation} · {card.zodiac}
+        </p>
+      </header>
+
+      <section className={styles.section}>
+        <h3>🌸 生日象徵</h3>
+        {symbol ? (
+          <>
+            <p>
+              花：<strong>{symbol.flower}</strong> — {symbol.flower_meaning}
+            </p>
+            <p>
+              寶石：<strong>{symbol.stone}</strong> — {symbol.stone_meaning}
+            </p>
+            <p>
+              幸運數字：
+              <strong>{card.lucky_number}</strong> — {card.lucky_desc}
+            </p>
+          </>
+        ) : (
+          <p>資料載入中...</p>
+        )}
+      </section>
+
+      <section className={styles.section}>
+        <h3>🤖 AI 個性摘要</h3>
+        <p>{card.ai_summary || "資料載入中..."}</p>
+      </section>
+
+      <section className={styles.section}>
+        <h3>☀️ 今日行動建議</h3>
+        <p>{quote || "載入中..."}</p>
+      </section>
+
+      <div className={styles.walletBox}>
+        🎉 恭喜獲得 <strong>{card.points}</strong> 點探索點數！
+      </div>
+
+      <footer className={styles.footer}>
+        <button
+          className={`${styles.footerBtn} ${styles.backBtn}`}
+          onClick={() => router.push(`/book?token=${token}`)}
+        >
+          返回生日卡主頁
+        </button>
+      </footer>
+    </div>
+  );
 }
