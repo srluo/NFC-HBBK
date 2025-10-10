@@ -1,6 +1,9 @@
-// /pages/api/ai.js — v1.8.5 balance-persona
+// /pages/api/ai.js — v1.9.1B（紫微融合 + 全人格摘要）
 import OpenAI from "openai";
-const client = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+
+const client = new OpenAI({
+  apiKey: process.env.OPENAI_API_KEY,
+});
 
 export default async function handler(req, res) {
   try {
@@ -12,40 +15,39 @@ export default async function handler(req, res) {
       gender,
       zodiac,
       constellation,
+      blood_type,
       bureau,
       ming_lord,
       shen_lord,
       ming_stars,
-      blood_type,
     } = req.body || {};
 
-    if (!constellation || !zodiac || !ming_lord)
-      return res
-        .status(400)
-        .json({ error: "缺少必要參數 (constellation, zodiac, ming_lord)" });
+    if (!name || !constellation || !zodiac)
+      return res.status(400).json({
+        error: "缺少必要參數 (name, constellation, zodiac)",
+      });
 
-    // 🌗 三段式 + 陰陽人格 + 中性描述
+    // 🧩 AI Prompt 結構化模板
     const prompt = `
-請以心理學與紫微斗數結合的角度，撰寫一段完整且平衡的個性摘要，分為三段：
-1️⃣ 第一段：描述此生命格的整體氣質與核心特質（正面能量）。
-2️⃣ 第二段：指出此人格在情緒、人際、或決策上可能的盲點或課題（陰面特質）。
-3️⃣ 第三段：給予具體可行的建議與成長方向。
-
-⚠️ 注意事項：
-- 不可使用「你」「他」「她」等稱呼，改用中性描述（如「此生命格」「這份氣質」）。
-- 不要直接提及生肖、星座、血型名稱。
-- 語氣自然溫和、有啟發性，字數約 150～200 字。
-- 以自然分段呈現（保留換行符號 \\n\\n）。
-
-以下是資料：
+你是一位結合紫微斗數與心理學的「人格顧問」，請根據以下個人資料，撰寫一段約 120～160 字的「個性總結」：
+---
+姓名：${name}
 性別：${gender || "未指定"}
-星座：${constellation}
 生肖：${zodiac}
+星座：${constellation}
 血型：${blood_type || "未填"}
 五行局：${bureau || "未知"}
-命主星：${ming_lord}
-身主星：${shen_lord}
-命宮主星：${Array.isArray(ming_stars) ? ming_stars.join("、") : ming_stars}
+命主星：${ming_lord || "未知"}
+身主星：${shen_lord || "未知"}
+命宮主星群：${Array.isArray(ming_stars) ? ming_stars.join("、") : ming_stars || "無"}
+---
+請以「溫暖、自然、富洞察力」的口吻撰寫，避免命理口氣（不要說“你是某某命格”、“像某某生肖”）。  
+文中需：
+1️⃣ 描述此人的整體性格與能量傾向。  
+2️⃣ 指出可發揮的潛能或優點。  
+3️⃣ 提出應注意的性格盲點或挑戰。  
+4️⃣ 結尾以一句鼓勵語作收。  
+請用繁體中文撰寫，避免使用代名詞「他／她」，直接以第二人稱「你」敘述。
 `;
 
     const completion = await client.chat.completions.create({
@@ -54,15 +56,16 @@ export default async function handler(req, res) {
         {
           role: "system",
           content:
-            "你是一位融合紫微斗數與心理分析的性格顧問，擅長以平衡、具療癒力的語氣撰寫個性剖析。",
+            "你是一位融合紫微斗數與人格心理學的顧問，擅長用溫暖、正面且誠實的語氣撰寫個人化分析摘要。",
         },
         { role: "user", content: prompt },
       ],
       temperature: 0.85,
-      max_tokens: 260,
+      max_tokens: 250,
     });
 
     const summary = completion.choices?.[0]?.message?.content?.trim() || "";
+
     return res.json({ ok: true, summary });
   } catch (e) {
     console.error("ai.js error:", e);
