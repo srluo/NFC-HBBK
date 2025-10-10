@@ -1,4 +1,4 @@
-// /pages/activate/index.jsx — v1.8.6（時辰 value=地支）
+// /pages/activate/index.jsx — v1.8.7（自動帶出 birth_time_label + 首開導向 first）
 "use client";
 import { useState, useEffect } from "react";
 import styles from "./activate.module.css";
@@ -13,6 +13,7 @@ export default function Activate() {
     blood_type: "",
     hobbies: "",
     birth_time: "",
+    birth_time_label: "",
   });
 
   useEffect(() => {
@@ -22,13 +23,13 @@ export default function Activate() {
     setForm((prev) => ({ ...prev, birthday: d, token }));
   }, []);
 
-  const handleChange = (e) => setForm({ ...form, [e.target.name]: e.target.value });
-
   const handleSubmit = async (e) => {
     e.preventDefault();
+    const { gender, birth_time } = form;
 
-    const hasGender = !!form.gender;
-    const hasTime = !!form.birth_time;
+    // 若性別與時辰不成對，提示
+    const hasGender = !!gender;
+    const hasTime = !!birth_time;
     if ((hasGender && !hasTime) || (!hasGender && hasTime)) {
       alert("若要開啟紫微層級分析，請同時填寫性別與出生時辰。");
       return;
@@ -46,21 +47,20 @@ export default function Activate() {
 
       if (!res.ok) {
         setStatus(`❌ 錯誤: ${data.error || "未知錯誤"}`);
-      } else {
-        // 🧠 智慧摘要生成階段提示
-        if (data.first_time) {
-          setStatus("🧠 AI 智慧摘要生成中...");
-          setTimeout(() => {
-            setStatus(`🎉 開卡成功！已獲得 20 點開卡禮，目前點數：${data.card.points}`);
-          }, 1200);
+        return;
+      }
 
-          // ✅ 自動跳轉
-          setTimeout(() => {
-            window.location.href = `/book?token=${form.token}`;
-          }, 2500);
-        } else {
-          setStatus(`✅ 更新成功，目前點數：${data.card.points}`);
-        }
+      if (data.first_time) {
+        setStatus("🧠 AI 智慧摘要生成中...");
+        setTimeout(() => {
+          setStatus(`🎉 開卡成功！已獲得 20 點開卡禮，目前點數：${data.card.points}`);
+        }, 1200);
+        // ✅ 開卡完成 → 直接導向 first
+        setTimeout(() => {
+          window.location.href = `/book/first?token=${form.token}`;
+        }, 2500);
+      } else {
+        setStatus(`✅ 更新成功，目前點數：${data.card.points}`);
       }
     } catch (err) {
       console.error(err);
@@ -77,7 +77,7 @@ export default function Activate() {
         <input
           name="user_name"
           value={form.user_name}
-          onChange={handleChange}
+          onChange={(e) => setForm({ ...form, user_name: e.target.value })}
           placeholder="請輸入姓名"
           required
         />
@@ -86,7 +86,11 @@ export default function Activate() {
         <input name="birthday" value={form.birthday} readOnly />
 
         <label>血型</label>
-        <select name="blood_type" value={form.blood_type} onChange={handleChange}>
+        <select
+          name="blood_type"
+          value={form.blood_type}
+          onChange={(e) => setForm({ ...form, blood_type: e.target.value })}
+        >
           <option value="">請選擇</option>
           <option value="A">A 型</option>
           <option value="B">B 型</option>
@@ -99,17 +103,27 @@ export default function Activate() {
         </p>
 
         <label>性別</label>
-        <select name="gender" value={form.gender} onChange={handleChange}>
+        <select
+          name="gender"
+          value={form.gender}
+          onChange={(e) => setForm({ ...form, gender: e.target.value })}
+        >
           <option value="">請選擇</option>
           <option value="男">男</option>
           <option value="女">女</option>
         </select>
-        
+
         <label>出生時辰</label>
         <select
           name="birth_time"
           value={form.birth_time}
-          onChange={handleChange}
+          onChange={(e) =>
+            setForm({
+              ...form,
+              birth_time: e.target.value,
+              birth_time_label: e.target.selectedOptions[0]?.text || "",
+            })
+          }
         >
           <option value="">請選擇</option>
           <option value="子">00:00~00:59（早子）</option>
@@ -131,7 +145,7 @@ export default function Activate() {
         <input
           name="hobbies"
           value={form.hobbies}
-          onChange={handleChange}
+          onChange={(e) => setForm({ ...form, hobbies: e.target.value })}
           placeholder="例如：Music"
         />
 
