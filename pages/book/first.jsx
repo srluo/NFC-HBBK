@@ -1,4 +1,4 @@
-// /pages/book/first.jsx — v1.9.4（AI 摘要分段排版正式版）
+// /pages/book/first.jsx — v1.9.8（字串防呆修正版）
 
 "use client";
 import { useEffect, useState } from "react";
@@ -16,7 +16,6 @@ export default function FirstBookPage() {
   const router = useRouter();
   const token = searchParams.get("token");
 
-  // 🧩 抓取卡片資料
   useEffect(() => {
     if (!token) {
       setStatus("❌ 缺少 token，請重新感應生日卡 📱");
@@ -30,7 +29,9 @@ export default function FirstBookPage() {
         if (res.ok && data.card) {
           let lucky = null;
           if (data.card.birthday) {
-            const { masterNumber, number } = getLuckyNumber(data.card.birthday);
+            // ✅ 保險防呆：強制轉字串確保長度8
+            const bday = String(data.card.birthday).padStart(8, "0");
+            const { masterNumber, number } = getLuckyNumber(bday);
             lucky = masterNumber ? `⭐ ${masterNumber}（大師數字）` : number;
           }
           setCard({ ...data.card, lucky_number: lucky });
@@ -39,7 +40,7 @@ export default function FirstBookPage() {
           setStatus(`❌ ${data.error || "讀取失敗"}`);
         }
       } catch (err) {
-        console.error(err);
+        console.error("fetchCard error:", err);
         setStatus("❌ 系統錯誤，請重新感應生日卡 📱");
       }
     }
@@ -47,10 +48,9 @@ export default function FirstBookPage() {
     fetchCard();
   }, [token]);
 
-  // 🌸 生日象徵
   useEffect(() => {
     if (!card?.birthday) return;
-    const month = parseInt(card.birthday.toString().slice(4, 6), 10);
+    const month = parseInt(String(card.birthday).slice(4, 6), 10);
     async function fetchSymbol() {
       try {
         const res = await fetch(`/api/symbols?month=${month}`);
@@ -63,7 +63,6 @@ export default function FirstBookPage() {
     fetchSymbol();
   }, [card]);
 
-  // ☀️ 每日建議
   useEffect(() => {
     async function fetchQuote() {
       try {
@@ -82,7 +81,6 @@ export default function FirstBookPage() {
 
   return (
     <div className={styles.container}>
-      {/* 🪶 Header */}
       <header className={styles.header}>
         <div className={styles.iconBox}>
           <img
@@ -102,13 +100,12 @@ export default function FirstBookPage() {
         </p>
       </header>
 
-      {/* 🌸 生日象徵 */}
       <section className={styles.section}>
         <h3>🌸 生日象徵</h3>
         {symbol ? (
           <>
-            <p>花：<strong>{symbol.flower}</strong> — {symbol.flower_meaning}</p>
-            <p>寶石：<strong>{symbol.stone}</strong> — {symbol.stone_meaning}</p>
+            <p>誕生花：<strong>{symbol.flower}</strong> — {symbol.flower_meaning}</p>
+            <p>誕生石：<strong>{symbol.stone}</strong> — {symbol.stone_meaning}</p>
             <p>幸運數字：<strong>{card.lucky_number}</strong></p>
           </>
         ) : (
@@ -116,7 +113,6 @@ export default function FirstBookPage() {
         )}
       </section>
 
-      {/* 🤖 AI 個性摘要（分段排版） */}
       <section className={styles.section}>
         <h3>🤖 AI 個性摘要</h3>
         {card.ai_summary ? (
@@ -125,11 +121,8 @@ export default function FirstBookPage() {
             .map((p, i) => (
               <p
                 key={i}
-                style={{
-                  marginBottom: "0.7em",
-                  lineHeight: "1.8",
-                  textAlign: "justify",
-                }}
+                className={styles.fadeInParagraph}
+                style={{ animationDelay: `${i * 0.3}s` }}
               >
                 {p.trim()}
               </p>
@@ -139,18 +132,15 @@ export default function FirstBookPage() {
         )}
       </section>
 
-      {/* ☀️ 今日行動建議 */}
       <section className={styles.section}>
         <h3>☀️ 今日行動建議</h3>
         <p>{quote || "載入中..."}</p>
       </section>
 
-      {/* 💎 點數提示 */}
       <div className={styles.walletBox}>
         🎉 恭喜獲得 <strong>{card.points}</strong> 點探索點數！
       </div>
 
-      {/* 📘 Footer */}
       <footer className={styles.footer}>
         <button
           className={`${styles.footerBtn} ${styles.backBtn}`}
