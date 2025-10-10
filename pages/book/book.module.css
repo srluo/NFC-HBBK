@@ -1,143 +1,135 @@
-/* /pages/book/book.module.css — v2.0.1（AI 摘要 + 幸運數字 專用） */
+/* /pages/book/book.module.css — v1.7-clean（無動畫穩定版） */
 
 .container {
-  max-width: 800px;
+  max-width: 600px;
   margin: 0 auto;
-  padding: 2rem 1.5rem 6rem;
-  font-family: "Microsoft JhengHei", "Noto Sans TC", sans-serif;
-  color: #222;
-  background-color: #fffefb;
-  line-height: 1.8;
+  padding: 2rem 1.5rem;
+  font-family: "Noto Sans TC", "Microsoft JhengHei", sans-serif;
+  color: #333;
+  background-color: #fffdf9;
 }
 
+/* Header */
 .header {
   text-align: center;
-  margin-bottom: 2rem;
+  margin-bottom: 1.5rem;
 }
 
 .iconBox {
   display: flex;
   justify-content: center;
-  gap: 1rem;
-  margin-bottom: 1rem;
+  gap: 1.2rem;
+  margin-bottom: 0.8rem;
 }
 
 .icon {
-  width: 60px;
-  height: 60px;
+  width: 56px;
+  height: 56px;
   object-fit: contain;
 }
 
 .title {
-  font-size: 1.8rem;
+  font-size: 1.6rem;
   font-weight: 700;
-  margin: 0.3rem 0;
+  color: #222;
+  margin: 0.5rem 0 0.2rem;
 }
 
 .subtitle {
-  color: #666;
-  font-size: 0.95rem;
+  font-size: 1rem;
+  color: #777;
 }
 
+/* Section */
 .section {
-  background: #fffdf8;
-  border: 1px solid #f2e7c6;
-  border-radius: 10px;
-  padding: 1.2rem 1.4rem;
-  margin-bottom: 1.6rem;
-  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.03);
-  animation: fadeIn 0.6s ease-in-out;
+  background: #fff;
+  border-radius: 14px;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.06);
+  padding: 1.2rem 1.5rem;
+  margin: 1.5rem 0;
 }
 
 .section h3 {
-  color: #c46b00;
-  font-size: 1.1rem;
-  margin-bottom: 0.5rem;
+  color: #d27700;
+  font-size: 1.15rem;
+  margin-bottom: 0.6rem;
 }
 
 .section p {
-  margin: 0.4rem 0;
-  text-align: justify;
-}
-
-/* 🎨 AI 摘要段落漸入動畫 */
-.fadeInParagraph {
-  opacity: 0;
-  transform: translateY(8px);
-  animation: fadeInUp 0.6s ease forwards;
-}
-
-@keyframes fadeInUp {
-  from {
-    opacity: 0;
-    transform: translateY(8px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-/* ⏳ 載入中與錯誤樣式 */
-.loading,
-.error {
-  text-align: center;
-  color: #777;
+  line-height: 1.7;
   font-size: 1rem;
-  margin-top: 3rem;
+  color: #333;
+  margin: 0.4rem 0;
 }
 
-/* 🪙 點數提示框 */
+/* Wallet box */
 .walletBox {
-  background: linear-gradient(90deg, #fff6d8, #ffe9b3);
-  border: 1px solid #f5d174;
+  text-align: center;
+  background: #fff1cc;
+  border: 1px solid #f1d17f;
   border-radius: 10px;
   padding: 1rem;
-  text-align: center;
+  font-size: 1.1rem;
   font-weight: 600;
   margin-top: 2rem;
-  color: #744f00;
+  color: #704c00;
 }
 
-/* 🔘 底部按鈕 */
+/* Footer */
 .footer {
-  text-align: center;
-  position: fixed;
-  bottom: 0;
-  left: 0;
-  width: 100%;
-  background: #fffaf0;
-  border-top: 1px solid #e0cfa6;
-  padding: 0.8rem 0;
+  display: flex;
+  justify-content: center;
+  gap: 1rem;
+  margin-top: 2rem;
+  flex-wrap: wrap;
 }
 
 .footerBtn {
-  background: #ffcc66;
-  color: #333;
-  font-weight: 700;
   border: none;
   border-radius: 8px;
-  padding: 0.6rem 1.4rem;
+  padding: 0.7rem 1.2rem;
+  font-size: 0.95rem;
+  font-weight: 600;
   cursor: pointer;
-  transition: background 0.3s ease;
-}
-
-.footerBtn:hover {
-  background: #ffb940;
+  transition: background 0.2s;
 }
 
 .backBtn {
-  background: #ffe29a;
+  background-color: #f7b84b;
+  color: white;
 }
 
-/* 💫 全頁淡入 */
-@keyframes fadeIn {
-  from {
-    opacity: 0;
-    transform: translateY(5px);
+.backBtn:hover {
+  background-color: #e49a21;
+}
+
+/* Loading & Error */
+.loading, .error {
+  text-align: center;
+  font-size: 1.1rem;
+  margin-top: 4rem;
+}
+
+.error {
+  color: #c0392b;
+}
+
+/* Responsive */
+@media (max-width: 480px) {
+  .container {
+    padding: 1.5rem 1rem;
   }
-  to {
-    opacity: 1;
-    transform: translateY(0);
+
+  .icon {
+    width: 48px;
+    height: 48px;
+  }
+
+  .title {
+    font-size: 1.4rem;
+  }
+
+  .section {
+    padding: 1rem 1.2rem;
   }
 }
