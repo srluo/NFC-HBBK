@@ -1,4 +1,4 @@
-// /pages/api/ai.js — v2.0.1（第二人稱優化 + 自然分段版）
+// /pages/api/ai.js — v2.0.2（禁止 Markdown + 自然分段版）
 import OpenAI from "openai";
 const client = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
@@ -24,9 +24,9 @@ export default async function handler(req, res) {
         .status(400)
         .json({ error: "缺少必要參數 (name, constellation, zodiac)" });
 
-    // 🧩 AI Prompt 模板（v2.0.1）
+    // 🧩 AI Prompt 模板 — 禁止 Markdown 輸出
     const prompt = `
-你是一位融合紫微斗數與心理學的人格顧問，請根據以下資料撰寫一段約 180～200 字的個性分析：
+你是一位融合紫微斗數與心理學的「人格顧問」，請根據以下資料撰寫一段約 180～200 字的「個性分析摘要」：
 ---
 姓名：${name}
 性別：${gender || "未指定"}
@@ -40,17 +40,17 @@ export default async function handler(req, res) {
 ---
 撰寫規則：
 1️⃣ 全文請使用「你」作為稱呼，不要使用「他／她」或重複姓名。
-2️⃣ 避免直白提及星座或生肖名稱（例如不要說「你是牡羊座」）。
-3️⃣ 以溫暖、正面、誠實的語氣撰寫，不誇張、不命理化。
-4️⃣ 分為四個段落，並加入小標題：
-   - 性格特質：
-   - 潛能與優點：
-   - 需要注意的地方：
-   - 鼓勵與建議：
-5️⃣ 每段中間請插入一個空行（\\n\\n）。
----
-
-請以繁體中文完成。`;
+2️⃣ 不要使用 Markdown 標記符號（例如 #、###、*、-、\\n\\n），請輸出乾淨的自然文字。
+3️⃣ 避免直白提及星座或生肖名稱。
+4️⃣ 以溫暖、真誠、具洞察力的語氣撰寫。
+5️⃣ 分為四個自然段，並用中文標題開頭：
+　性格特質：
+　潛能與優點：
+　需要注意的地方：
+　鼓勵與建議：
+6️⃣ 每段之間保留一個自然換行即可（不要插入 \\n 或符號）。
+7️⃣ 用繁體中文輸出。
+`;
 
     const completion = await client.chat.completions.create({
       model: "gpt-4o-mini",
@@ -60,7 +60,7 @@ export default async function handler(req, res) {
         {
           role: "system",
           content:
-            "你是一位融合紫微斗數與人格心理學的顧問，擅長以溫暖、真誠、富洞察力的語氣撰寫分析報告。",
+            "你是一位融合紫微斗數與心理學的顧問，擅長以溫暖、真誠、富洞察力的語氣撰寫個性分析摘要。",
         },
         { role: "user", content: prompt },
       ],
