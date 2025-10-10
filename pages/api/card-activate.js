@@ -1,9 +1,9 @@
-// /pages/api/card-activate.js — v2.0.0（同步等待 AI + Redis 寫入完成版）
+// /pages/api/card-activate.js — v2.0.1-final（紫微參數修正版）
 // ------------------------------------------------------------
-// ✅ 特點：
-// 1️⃣ AI 生成後才回傳成功，避免 first.jsx reload 多次。
-// 2️⃣ 幸運數字、紫微命格一併寫入。
-// 3️⃣ 確保 Redis 資料完整（ai_summary 一次到位）。
+// ✅ 改進重點：
+// 1️⃣ 修正紫微查詢參數名稱 (ymd, hourLabel)
+// 2️⃣ 開卡後同步等待 AI 摘要完成再回傳
+// 3️⃣ Redis 寫入一次完成：包含幸運數字＋紫微命格＋AI 摘要
 // ------------------------------------------------------------
 
 import { redis } from "../../lib/redis";
@@ -83,25 +83,28 @@ export default async function handler(req, res) {
       updated_at: Date.now().toString(),
     };
 
-    // ✅ 紫微分析：性別 + 出生時辰都有填才查
+    // ✅ 紫微分析（性別＋時辰皆填才啟用）
     let ziweiData = {};
     if (gender && birth_time) {
       try {
         const ziweiRes = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL}/api/ziwei-core`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ birthday, gender, birth_time }),
+          // ⚠️ 改為正確的欄位名稱
+          body: JSON.stringify({ ymd: birthday, gender, hourLabel: birth_time }),
         });
         const ziweiJson = await ziweiRes.json();
         if (ziweiRes.ok && !ziweiJson.error) {
           ziweiData = ziweiJson;
+        } else {
+          console.warn("⚠️ 紫微分析回傳錯誤:", ziweiJson.error);
         }
       } catch (err) {
         console.warn("⚠️ 紫微分析失敗:", err);
       }
     }
 
-    // ✅ 生成 AI 摘要（等待完成再回傳）
+    // ✅ AI 摘要生成（等待完成再回傳）
     let ai_summary = "";
     try {
       const aiRes = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL}/api/ai`, {
