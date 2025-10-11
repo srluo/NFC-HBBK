@@ -1,5 +1,5 @@
-import { solarToLunar } from "../../../lib/lunarConverter.js";
-import { getZiweiCore } from "../../../lib/ziweiCore_v2.js";
+import { solarToLunar } from "../../lib/lunarConverter.js";
+import { getZiweiCore } from "../../lib/ziweiCore_v2.js";
 export default async function handler(req, res) {
   const { birthcode } = req.method === "POST" ? req.body : req.query;
   const m = birthcode.match(/^(\d{4})(\d{2})(\d{2})-(\d{2})(\d{2})-([FM])$/);
