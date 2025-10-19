@@ -157,3 +157,28 @@
   margin-top: 0;
   text-align: center;
 }
+
+.exploreButton {
+  background: #f5f7ff;
+  border: 1px solid #b7c3ff;
+  border-radius: 10px;
+  padding: 0.8rem 1rem;
+  text-align: left;
+  cursor: pointer;
+  font-size: 0.95rem;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+  transition: all 0.2s ease-in-out;
+  color: #222;
+}
+
+.exploreButton:hover {
+  background: #dde3ff;
+}
+
+.exploreButton:active {
+  background: #ccd6ff;
+}
+
+.exploreButton span {
+  color: #555;
+}
