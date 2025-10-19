@@ -1,10 +1,11 @@
-// /pages/activate/index.jsx — v2.1.1（等待 AI 完成再跳轉）
+// /pages/activate/index.jsx — v2.2.1-stable（補填完成自動回書本）
 "use client";
 import { useState, useEffect } from "react";
 import styles from "./activate.module.css";
 
 export default function Activate() {
   const [status, setStatus] = useState("idle");
+  const [isUpdate, setIsUpdate] = useState(false);
   const [form, setForm] = useState({
     token: "",
     user_name: "",
@@ -15,33 +16,67 @@ export default function Activate() {
     birth_time: "",
   });
 
+  // ------------------------------------------------------------
+  // 🧭 初始化：讀取 URL 參數
+  // ------------------------------------------------------------
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const d = params.get("d") || "";
     const token = params.get("token") || "";
+    const mode = params.get("mode") || "";
+    setIsUpdate(mode === "update");
     setForm((prev) => ({ ...prev, birthday: d, token }));
+
+    // 若為補填模式，自動載入舊資料
+    if (mode === "update" && token) {
+      fetch(`/api/getCard?token=${token}`)
+        .then((res) => res.json())
+        .then((data) => {
+          if (data.ok && data.card) {
+            const c = data.card;
+            setForm({
+              token,
+              user_name: c.user_name || "",
+              gender: c.gender || "",
+              birthday: c.birthday || d,
+              blood_type: c.blood_type || "",
+              hobbies: c.hobbies || "",
+              birth_time: c.birth_time || "",
+            });
+          }
+        })
+        .catch((err) => console.error("讀取舊卡資料錯誤:", err));
+    }
   }, []);
 
+  // ------------------------------------------------------------
+  // ✏️ 表單輸入
+  // ------------------------------------------------------------
   const handleChange = (e) =>
     setForm({ ...form, [e.target.name]: e.target.value });
 
+  // ------------------------------------------------------------
+  // 🚀 送出開卡／補填
+  // ------------------------------------------------------------
   const handleSubmit = async (e) => {
     e.preventDefault();
-    const hasGender = !!form.gender;
-    const hasTime = !!form.birth_time;
 
+    const hasGender = !!form.gender && form.gender.trim() !== "";
+    const hasTime = !!form.birth_time && form.birth_time.trim() !== "";
+
+    // ⚠️ 檢查性別與時辰必須同時存在或同時留空
     if ((hasGender && !hasTime) || (!hasGender && hasTime)) {
-      alert("若要開啟紫微層級分析，請同時填寫性別與出生時辰。");
+      alert("性別與出生時辰必須同時填寫或同時留空。");
       return;
     }
 
-    setStatus("⏳ 開卡中，AI 正在生成個性摘要...");
+    setStatus(isUpdate ? "⏳ 更新中..." : "⏳ 開卡中...");
 
     try {
       const res = await fetch("/api/card-activate", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(form),
+        body: JSON.stringify({ ...form, mode: isUpdate ? "update" : "" }),
       });
 
       const data = await res.json();
@@ -52,25 +87,34 @@ export default function Activate() {
       }
 
       if (data.ok && data.card) {
-        const pts = data.card.points || "0";
-        setStatus(`🎉 開卡完成！目前點數：${pts}，準備跳轉...`);
+        if (isUpdate) {
+          setStatus("✅ 補填完成，已贈送 20 點！正在返回生日書...");
+        } else {
+          setStatus("🎉 開卡成功！即將進入生日書...");
+        }
 
-        // ✅ 等 1.2 秒再跳轉，確保 Redis 完整寫入
+        // ✅ 延遲 1.5 秒，確保 Redis 寫入完成
         setTimeout(() => {
-          window.location.href = `/book/first?token=${form.token}`;
-        }, 1200);
+          window.location.href = `/book?token=${form.token}`;
+        }, 1500);
       } else {
-        setStatus("⚠️ 開卡完成，但未收到卡資料，請重新整理。");
+        setStatus("⚠️ 未收到卡資料，請重新整理。");
       }
     } catch (err) {
-      console.error(err);
+      console.error("[activate] 系統錯誤：", err);
       setStatus("❌ 系統錯誤，請重新感應卡片");
     }
   };
 
+  // ------------------------------------------------------------
+  // 🧩 畫面渲染
+  // ------------------------------------------------------------
   return (
     <div className={styles.page}>
-      <h2 className={styles.title}>✨ NFC 靈動生日書開卡 ✨</h2>
+      <h2 className={styles.title}>
+        {isUpdate ? "✏️ 補填生日書資訊" : "✨ NFC 靈動生日書開卡 ✨"}
+      </h2>
+
       <form className={styles.card} onSubmit={handleSubmit}>
         <label>姓名</label>
         <input
@@ -89,6 +133,7 @@ export default function Activate() {
           name="blood_type"
           value={form.blood_type}
           onChange={handleChange}
+          required={!isUpdate}
         >
           <option value="">請選擇</option>
           <option value="A">A 型</option>
@@ -98,7 +143,7 @@ export default function Activate() {
         </select>
 
         <p className={styles.tip}>
-          🔮 若希望產生「紫微命格分析」，請同時填寫 [性別] 與 [出生時辰]
+          🔮 若要開啟「紫微命格分析」，請同時填寫【性別】與【出生時辰】
         </p>
 
         <label>性別</label>
@@ -109,11 +154,7 @@ export default function Activate() {
         </select>
 
         <label>出生時辰</label>
-        <select
-          name="birth_time"
-          value={form.birth_time}
-          onChange={handleChange}
-        >
+        <select name="birth_time" value={form.birth_time} onChange={handleChange}>
           <option value="">請選擇</option>
           <option value="子">00:00~00:59（早子）</option>
           <option value="丑">01:00~02:59（丑）</option>
@@ -135,11 +176,11 @@ export default function Activate() {
           name="hobbies"
           value={form.hobbies}
           onChange={handleChange}
-          placeholder="例如：Music"
+          placeholder="例如：Music / NFC / Reading"
         />
 
         <button type="submit" className={styles.button}>
-          送出開卡 ✨
+          {isUpdate ? "送出補填 ✨" : "送出開卡 ✨"}
         </button>
       </form>
 

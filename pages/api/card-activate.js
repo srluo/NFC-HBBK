@@ -1,8 +1,14 @@
-// /pages/api/card-activate.js — v2.1.0（整合 v1.63 紫微命盤 + AI 同步寫入）
 // ------------------------------------------------------------
-import { redis } from "../../lib/redis";
-import { calcZodiac } from "../../lib/zodiac";
-import { getLuckyNumber } from "../../lib/luckyNumber";
+// /pages/api/card-activate.js — v2.6.3-final
+// ✅ 一次性獎勵邏輯（首次完整開卡或首次補填）
+// ✅ 整合 fortuneCore (農曆 + 四柱 + 紫微)
+// ✅ AI Summary 自動生成
+// ✅ Redis 一次寫入，防止 undefined
+// ------------------------------------------------------------
+
+import { redis } from "../../lib/redis.js";
+import { fortuneCore } from "../../lib/fortuneCore.js";
+import { getLuckyNumber } from "../../lib/luckyNumber.js";
 
 export default async function handler(req, res) {
   if (req.method !== "POST") return res.status(405).end();
@@ -21,127 +27,136 @@ export default async function handler(req, res) {
     if (!token || !user_name || !birthday)
       return res.status(400).json({ error: "缺少必要參數" });
 
-    // 🧩 Token 解析出 UID
+    // ------------------------------------------------------------
+    // 🧩 Token → UID
+    // ------------------------------------------------------------
     const [uid] = Buffer.from(token, "base64").toString().split(":");
     if (!uid) return res.status(400).json({ error: "Token 解析錯誤" });
 
-    const { lunarDate, zodiac, constellation } = calcZodiac(birthday);
-    const key = `card:${uid}`;
-    const existing = (await redis.hgetall(key)) || {};
-
-    const first_time = !existing.status || existing.status !== "ACTIVE";
-    let points = Number(existing.points || 0);
-    if (first_time) points += 20;
-
-    // 🎯 幸運數字
-    const { number, masterNumber } = getLuckyNumber(birthday);
-    const lucky_number = masterNumber
-      ? `${masterNumber}（大師數字）`
-      : String(number);
-    const lucky_desc =
-      masterNumber === 11
-        ? "擁有強烈直覺與靈性洞察力。"
-        : masterNumber === 22
-        ? "天生的實踐者，能將理想化為現實。"
-        : masterNumber === 33
-        ? "具備療癒與啟發能量，象徵無私與人道精神。"
-        : {
-            1: "象徵領導與創造，勇於開拓新局。",
-            2: "代表協調與感應，擅長人際互動。",
-            3: "充滿靈感與表達力，帶來歡樂與創意。",
-            4: "實事求是，重視穩定與秩序。",
-            5: "熱愛自由，勇於探索新體驗。",
-            6: "充滿愛心與責任感，重視家庭與人際關係。",
-            7: "思考深入，追求真理與智慧。",
-            8: "擁有強大行動力與影響力。",
-            9: "富有同理與包容，渴望助人與理想。",
-          }[number] || "";
-
-    // ✅ 基礎卡片資料
-    const card = {
-      uid,
-      status: "ACTIVE",
-      user_name,
-      gender: gender || "",
-      blood_type: blood_type || "",
-      hobbies: hobbies || "",
-      birth_time: birth_time || "",
+    // ------------------------------------------------------------
+    // 🌕 Step 1. 命理核心：fortuneCore()
+    // ------------------------------------------------------------
+    const { ok, lunar, pillars, ziwei, error } = await fortuneCore(
       birthday,
-      lunar_birthday: lunarDate,
-      zodiac,
-      constellation,
-      lucky_number,
-      lucky_desc,
-      points: points.toString(),
-      last_seen: new Date().toISOString(),
-      updated_at: Date.now().toString(),
-    };
+      birth_time,
+      gender
+    );
 
-    // ------------------------------------------------------------
-    // 🧭 紫微命盤（v1.63 完整演算法）
-    // ------------------------------------------------------------
-    let ziweiData = {};
-    if (gender && birth_time) {
-      try {
-        const ziweiRes = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL}/api/ziwei-core`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            ymd: birthday,
-            hourLabel: `${birth_time}時`,
-            gender,
-          }),
-        });
-        const ziweiJson = await ziweiRes.json();
-        if (ziweiRes.ok && !ziweiJson.error) {
-          ziweiData = ziweiJson;
-        } else {
-          console.warn("⚠️ 紫微命盤生成失敗:", ziweiJson.error);
-        }
-      } catch (err) {
-        console.warn("⚠️ 紫微分析錯誤:", err);
-      }
+    if (!ok) console.warn("⚠️ fortuneCore 錯誤:", error);
+    else {
+      console.log("🌕 農曆:", lunar);
+      console.log("🪐 四柱:", pillars);
+      console.log("🔮 紫微命盤:", ziwei);
     }
 
     // ------------------------------------------------------------
-    // 🧠 AI Summary 生成（同步等待）
+    // 🎯 Step 2. 幸運數字
+    // ------------------------------------------------------------
+    const { lucky_number, lucky_desc } = getLuckyNumber(String(birthday));
+
+    // ------------------------------------------------------------
+    // 🗄️ Step 3. 讀取 Redis 舊資料
+    // ------------------------------------------------------------
+    const cardKey = `card:${uid}`;
+    const existing = (await redis.hgetall(cardKey)) || {};
+    const first_time = !existing.status || existing.status !== "ACTIVE";
+
+    let points = Number(existing.points || 0);
+
+    // ------------------------------------------------------------
+    // 💎 Step 4. 一次性獎勵邏輯
+    // ------------------------------------------------------------
+    if (first_time) {
+      if (gender && birth_time) {
+        points += 20;
+        console.log(`🎁 ${uid} 首次開卡資料完整，贈送 20 點`);
+      } else {
+        console.log(`ℹ️ ${uid} 首次開卡資料不完整，暫不贈點`);
+      }
+    } else if (
+      gender &&
+      birth_time &&
+      (!existing.gender || !existing.birth_time) &&
+      Number(existing.points || 0) < 20
+    ) {
+      points += 20;
+      console.log(`🎁 ${uid} 完成補填，獲得一次性 20 點獎勵`);
+    } else {
+      console.log(`ℹ️ ${uid} 無加點條件（重複修改或已領過獎勵）`);
+    }
+
+    // ------------------------------------------------------------
+    // 🤖 Step 5. AI 個性摘要（v1.9.4 Stable）
     // ------------------------------------------------------------
     let ai_summary = "";
     try {
-      const aiRes = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL}/api/ai`, {
+      const aiRes = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL}/api/ai-summary`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           name: user_name,
           gender,
-          zodiac,
-          constellation,
+          zodiac: lunar?.zodiac || "",
+          constellation: lunar?.constellation || "",
           blood_type,
-          bureau: ziweiData.bureau || "",
-          ming_lord: ziweiData.ming_lord || "",
-          shen_lord: ziweiData.shen_lord || "",
-          ming_stars: ziweiData.ming_stars || [],
+          bureau: ziwei?.bureau || "",
+          ming_lord: ziwei?.ming_lord || "",
+          shen_lord: ziwei?.shen_lord || "",
+          ming_stars: ziwei?.ming_main_stars || [],
         }),
       });
       const aiData = await aiRes.json();
-      if (aiRes.ok && aiData.summary) {
-        ai_summary = aiData.summary;
-      } else {
-        console.warn("⚠️ AI 摘要生成失敗:", aiData.error);
-      }
+      if (aiRes.ok && aiData.summary) ai_summary = aiData.summary;
+      else console.warn("⚠️ AI 摘要生成失敗:", aiData.error);
     } catch (err) {
       console.error("AI 生成錯誤:", err);
     }
 
     // ------------------------------------------------------------
-    // ✅ 寫入 Redis
+    // 🧭 Step 6. 組合卡片資料
     // ------------------------------------------------------------
-    const finalCard = { ...card, ...ziweiData, ai_summary };
-    await redis.hset(key, finalCard);
+    const cardData = {
+      uid,
+      user_name,
+      gender: gender || "",
+      birth_time: birth_time || "",
+      blood_type: blood_type || "",
+      hobbies: hobbies || "",
+      birthday,
+      lunar_birthday: lunar?.lunar_birthday || "",
+      zodiac: lunar?.zodiac || "",
+      constellation: lunar?.constellation || "",
+      year_ganzhi: lunar?.year_ganzhi || "",
+      four_pillars: JSON.stringify(pillars || {}),
+      bureau: ziwei?.bureau || "",
+      ming_branch: ziwei?.ming_branch || "",
+      shen_branch: ziwei?.shen_branch || "",
+      ming_lord: ziwei?.ming_lord || "",
+      shen_lord: ziwei?.shen_lord || "",
+      ming_stars: JSON.stringify(ziwei?.ming_main_stars || []),
+      lucky_number,
+      lucky_desc,
+      ai_summary,
+      status: "ACTIVE",
+      points,
+      opened: true,
+      last_seen: new Date().toLocaleString("zh-TW", { hour12: false }),
+      updated_at: Date.now(),
+    };
 
-    return res.json({ ok: true, first_time, card: finalCard });
+    // ------------------------------------------------------------
+    // 💾 Step 7. Redis 寫入
+    // ------------------------------------------------------------
+    try {
+      await redis.hset(cardKey, cardData);
+    } catch (err) {
+      console.error("❌ Redis 寫入錯誤:", err.message);
+    }
+
+    console.log(`🎉 開卡成功: ${user_name} ${lunar?.zodiac} ${lunar?.constellation}`);
+    return res.json({ ok: true, first_time, card: cardData });
   } catch (err) {
-    console.error("card-activate fatal error:", err);
+    console.error("❌ card-activate fatal error:", err);
     return res.status(500).json({ error: "伺服器錯誤" });
   }
 }

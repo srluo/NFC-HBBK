@@ -1,4 +1,8 @@
-// /pages/book/index.jsx — v1.7.7 對應版（含 AI 狀態提示）
+// /pages/book/index.jsx — v2.4.8-final
+// ✅ 以 v2.4.7 為基礎，移除主題／語氣行
+// ✅ 保持 v2.4.4 原配色與結構一致
+// ------------------------------------------------------------
+
 "use client";
 
 import { useEffect, useState } from "react";
@@ -10,8 +14,13 @@ export default function Book() {
   const [card, setCard] = useState(null);
   const [status, setStatus] = useState("loading");
   const [token, setToken] = useState(null);
+  const [daily, setDaily] = useState(null);
+  const [subStatus, setSubStatus] = useState("checking"); // ok | not_subscribed | error
   const router = useRouter();
 
+  // ------------------------------------------------------------
+  // 讀卡資料
+  // ------------------------------------------------------------
   useEffect(() => {
     const urlParams = new URLSearchParams(window.location.search);
     const t = urlParams.get("token");
@@ -43,9 +52,79 @@ export default function Book() {
     fetchCard();
   }, [router]);
 
+  // ------------------------------------------------------------
+  // 檢查每日行動建議訂閱狀態
+  // ------------------------------------------------------------
+  useEffect(() => {
+    if (!card) return;
+    async function checkSubscription() {
+      try {
+        const res = await fetch("/api/check-subscription", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ uid: card.uid, service: "daily" }),
+        });
+        const data = await res.json();
+        if (data.ok && data.subscribed) {
+          setSubStatus("ok");
+        } else {
+          setSubStatus("not_subscribed");
+        }
+      } catch (err) {
+        console.error("訂閱檢查錯誤:", err);
+        setSubStatus("error");
+      }
+    }
+    checkSubscription();
+  }, [card]);
+
+  // ------------------------------------------------------------
+  // 取得每日行動建議（含快取）
+  // ------------------------------------------------------------
+  useEffect(() => {
+    if (!card || subStatus !== "ok") return;
+
+    const todayKey = `ai-daily-${card.uid}-${new Date().toISOString().slice(0, 10)}`;
+    const cached = localStorage.getItem(todayKey);
+    if (cached) {
+      setDaily(JSON.parse(cached));
+      return;
+    }
+
+    async function fetchDaily() {
+      try {
+        const res = await fetch("/api/ai-daily", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            uid: card.uid,
+            birthday: card.birthday,
+            gender: card.gender,
+            ming_lord: card.ming_lord,
+            constellation: card.constellation,
+            blood_type: card.blood_type,
+          }),
+        });
+        const data = await res.json();
+        if (data.ok && data.suggestion) {
+          setDaily(data);
+          localStorage.setItem(todayKey, JSON.stringify(data));
+        }
+      } catch (err) {
+        console.error("AI 行動建議錯誤:", err);
+      }
+    }
+    fetchDaily();
+  }, [card, subStatus]);
+
   if (status === "loading") return <p className={styles.loading}>⏳ 載入中...</p>;
   if (status !== "ok") return <p className={styles.error}>{status}</p>;
 
+  const isBasic = !card.gender || !card.birth_time;
+
+  // ------------------------------------------------------------
+  // 畫面區塊
+  // ------------------------------------------------------------
   return (
     <div className={styles.container}>
       {/* 卡片封面 */}
@@ -66,28 +145,76 @@ export default function Book() {
         <h2>{card.user_name || "未命名"}</h2>
         <p>{card.birthday}</p>
 
-        {/* AI 狀態提示 */}
-        {card.ai_status && (
-          <p style={{ fontSize: "0.95rem", color: "#555", marginTop: "0.3rem" }}>
-            {card.ai_status === "ok"
-              ? "🤖 已生成專屬 AI 摘要"
-              : card.ai_status === "pending"
-              ? "⏳ AI 正在準備您的個性摘要..."
-              : card.ai_status === "timeout"
-              ? "⚠️ AI 系統稍慢，建議稍後再查看摘要"
-              : "⚠️ AI 摘要生成失敗，您可稍後重新開啟"}
-          </p>
-        )}
-
         <button
           className={styles.expandBtn}
           onClick={() => router.push(`/book/first?token=${token}`)}
         >
-          📖 展開完整生日書
+          {isBasic ? "📖 展開基本生日書" : "📖 展開完整生日書"}
         </button>
       </div>
 
-      {/* 錢包區 */}
+      {/* 補填提示（基本層級） */}
+      {isBasic && (
+        <section className={styles.walletBox}>
+          <h3>🎁 填寫完整資訊可獲贈 <strong>20 點</strong>！</h3>
+          <p style={{ marginTop: "0.3rem" }}>
+            補填性別與出生時辰，開啟紫微命格分析 🔮
+          </p>
+          <button
+            className={styles.expandBtn}
+            style={{ marginTop: "0.6rem" }}
+            onClick={() =>
+              router.push(`/activate?token=${token}&mode=update&d=${card.birthday}`)
+            }
+          >
+            ✏️ 立即補填
+          </button>
+        </section>
+      )}
+
+      {/* 💡 今日行動建議（保留 walletBox 樣式） */}
+      {subStatus === "ok" && daily && (
+        <section className={styles.walletBox}>
+          <h3>☀️ 今日行動建議</h3>
+          <p>{daily.suggestion}</p>
+        </section>
+      )}
+
+      {subStatus === "not_subscribed" && (
+        <section className={styles.walletBox}>
+          <h3>🔓 尚未開通 AI 行動建議</h3>
+          <button
+            className={styles.expandBtn}
+            onClick={async () => {
+              try {
+                const res = await fetch("/api/subscribe-service", {
+                  method: "POST",
+                  headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify({
+                    uid: card.uid,
+                    service: "daily",
+                    days: 365,
+                    cost: 5,
+                  }),
+                });
+                const data = await res.json();
+                if (data.ok) {
+                  alert("✅ 已成功開通每日行動建議！");
+                  window.location.reload();
+                } else {
+                  alert(`⚠️ ${data.message || "開通失敗"}`);
+                }
+              } catch (err) {
+                alert("⚠️ 系統錯誤，請稍後再試");
+              }
+            }}
+          >
+            ✨ 開通每日行動建議
+          </button>
+        </section>
+      )}
+
+      {/* 點數資訊 */}
       <div className={styles.walletBox}>
         <p>目前點數：<strong>{card.points}</strong></p>
       </div>
@@ -113,7 +240,9 @@ export default function Book() {
         >
           🌐 前往 NFCTOGO 官網
         </button>
-        <p className={styles.copy}>©2025 NFC靈動生日書 · Powered by NFCTOGO</p>
+        <p className={styles.copy}>
+          ©2025 NFC靈動生日書 · Powered by NFCTOGO
+        </p>
       </footer>
     </div>
   );
