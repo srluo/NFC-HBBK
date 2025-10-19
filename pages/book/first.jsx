@@ -151,7 +151,7 @@ export default function BookFirst() {
           >
             ※ 本段分析由 NFCTOGO 智能系統生成，綜合
             <strong> 生肖、星座、紫微命盤、血型與出生時間 </strong>
-            等多重人格向度，透過 OpenAI 模型進行語意推演，呈現屬於你的獨特洞察。
+            等多重人格向度，透過 OpenAI 模型進行語意推演，呈現屬於你的獨特洞察報告。
           </p>
 
           {/* 💠 延伸探索（未來加值服務） */}
@@ -177,21 +177,22 @@ export default function BookFirst() {
                 className={styles.exploreButton}
                 onClick={() => router.push(`/service/fortune?uid=${card.uid}`)}
               >
-                🔮 紫微流年解析 <span>（每次5點，專屬報告）</span>
+                🔮 紫微流年解析 
+                <span>（5點，報告）</span>
               </button>
 
               <button
                 className={styles.exploreButton}
                 onClick={() => router.push(`/service/lifepath?uid=${card.uid}`)}
               >
-                🧭 生命靈數分析 <span>（每次2點，短文顯示）</span>
+                🧭 生命靈數分析 <span>（2點，短文）</span>
               </button>
 
               <button
                 className={styles.exploreButton}
                 onClick={() => router.push(`/service/mbti?uid=${card.uid}`)}
               >
-                🧠 MBTI 性格測驗 <span>（每次5點，問卷/專屬報告）</span>
+                🧠 MBTI 性格測驗 <span>（5點，問卷/報告）</span>
               </button>
             </div>
           </div>
