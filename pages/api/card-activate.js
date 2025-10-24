@@ -1,5 +1,6 @@
 // ------------------------------------------------------------
-// /pages/api/card-activate.js — v2.6.3-final
+// /pages/api/card-activate.js — v2.6.4-final
+// ✅ 四柱與紫微改為 JSON 儲存格式
 // ✅ 一次性獎勵邏輯（首次完整開卡或首次補填）
 // ✅ 整合 fortuneCore (農曆 + 四柱 + 紫微)
 // ✅ AI Summary 自動生成
@@ -60,7 +61,6 @@ export default async function handler(req, res) {
     const cardKey = `card:${uid}`;
     const existing = (await redis.hgetall(cardKey)) || {};
     const first_time = !existing.status || existing.status !== "ACTIVE";
-
     let points = Number(existing.points || 0);
 
     // ------------------------------------------------------------
@@ -113,8 +113,26 @@ export default async function handler(req, res) {
     }
 
     // ------------------------------------------------------------
-    // 🧭 Step 6. 組合卡片資料
+    // 🧭 Step 6. 組合卡片資料（JSON 結構化）
     // ------------------------------------------------------------
+    const four_pillars = {
+      year: pillars?.year || "",
+      month: pillars?.month || "",
+      day: pillars?.day || "",
+      hour: pillars?.hour || "",
+      jieqi_month: pillars?.jieqi_month || "",
+    };
+
+    const ziweis = {
+      year_ganzhi: ziwei?.year_ganzhi || "",
+      bureau: ziwei?.bureau || "",
+      ming_branch: ziwei?.ming_branch || "",
+      shen_branch: ziwei?.shen_branch || "",
+      ming_lord: ziwei?.ming_lord || "",
+      shen_lord: ziwei?.shen_lord || "",
+      ming_stars: ziwei?.ming_main_stars || [],
+    };
+
     const cardData = {
       uid,
       user_name,
@@ -127,13 +145,8 @@ export default async function handler(req, res) {
       zodiac: lunar?.zodiac || "",
       constellation: lunar?.constellation || "",
       year_ganzhi: lunar?.year_ganzhi || "",
-      four_pillars: JSON.stringify(pillars || {}),
-      bureau: ziwei?.bureau || "",
-      ming_branch: ziwei?.ming_branch || "",
-      shen_branch: ziwei?.shen_branch || "",
-      ming_lord: ziwei?.ming_lord || "",
-      shen_lord: ziwei?.shen_lord || "",
-      ming_stars: JSON.stringify(ziwei?.ming_main_stars || []),
+      four_pillars: JSON.stringify(four_pillars),
+      ziweis: JSON.stringify(ziweis),
       lucky_number,
       lucky_desc,
       ai_summary,
