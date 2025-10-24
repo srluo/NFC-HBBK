@@ -1,17 +1,17 @@
-// /pages/api/ai-daily.js — v3.5 Stable
-// AI 行動建議生成引擎 v3.5 Stable
+// /pages/api/ai-daily.js — v3.6-final
+// AI 行動建議生成引擎 v3.6-final
 // 作者：Roger Luo｜NFCTOGO 研究出版
-// 日期：2025.10.18
-// 架構：LocalStorage 緩存策略（無 Redis 寫入）
-// 依賴模組：toneMatrix.js v1.0 / subscriptions.js v1.2 / redis.js*
+// 日期：2025.10.24
+// ✅ 支援新版 ziweis 結構（v2.6.4）
+// ✅ 舊版參數相容（ming_lord 仍可用）
+// ✅ 保留 toneMatrix / subscriptions / Redis 緩存邏輯
+// ------------------------------------------------------------
 
 import { redis } from "../../lib/redis";
 import OpenAI from "openai";
 import { getToneProfile } from "../../lib/toneMatrix";
 import {
   parseSubscriptions,
-  stringifySubscriptions,
-  updateSubscription,
   isSubscriptionActive,
 } from "../../lib/subscriptions";
 
@@ -20,7 +20,7 @@ const bloodTone = {
   A: "語氣應安撫，協助降低焦慮。",
   B: "語氣應引導，幫助集中行動。",
   O: "語氣應穩定，避免過度衝動。",
-  AB: "語氣應平衡，鼓勵內外兼顧。"
+  AB: "語氣應平衡，鼓勵內外兼顧。",
 };
 function getBloodTone(type) {
   return bloodTone[type] || "語氣中性穩定。";
@@ -32,7 +32,7 @@ const THEMES = [
   { key: "行動啟發", desc: "激發行動與突破慣性。" },
   { key: "人際互動", desc: "提醒覺察與溝通細節。" },
   { key: "自我成長", desc: "反思、洞察、長期思維。" },
-  { key: "放下與休息", desc: "引導放鬆與節奏意識。" }
+  { key: "放下與休息", desc: "引導放鬆與節奏意識。" },
 ];
 
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
@@ -43,8 +43,21 @@ export default async function handler(req, res) {
   }
 
   try {
-    const { uid, birthday, gender, ming_lord, constellation, blood_type } = req.body || {};
-    if (!uid || !birthday || !gender || !ming_lord || !constellation) {
+    const {
+      uid,
+      birthday,
+      gender,
+      constellation,
+      blood_type,
+      ming_lord,
+      ziweis = {},
+    } = req.body || {};
+
+    // ✅ 新舊格式相容
+    const mingLord = ziweis?.ming_lord || ming_lord || "未知";
+    const bureau = ziweis?.bureau || "未定";
+
+    if (!uid || !birthday || !gender || !constellation) {
       return res.status(400).json({ ok: false, message: "缺少必要參數" });
     }
 
@@ -54,7 +67,7 @@ export default async function handler(req, res) {
       return res.status(404).json({ ok: false, message: "找不到卡片資料" });
 
     // ------------------------------------------------------------
-    // 🧩 檢查訂閱狀態，不寫入資料庫
+    // 🧩 檢查訂閱狀態
     // ------------------------------------------------------------
     let subs = parseSubscriptions(card.subscriptions);
     const service = "daily";
@@ -66,7 +79,7 @@ export default async function handler(req, res) {
     }
 
     // ------------------------------------------------------------
-    // 📅 檢查今日是否已有快取
+    // 📅 檢查 Redis 快取
     // ------------------------------------------------------------
     const today = new Date().toISOString().slice(0, 10);
     const redisKey = `ai-daily:${uid}:${today}`;
@@ -82,7 +95,7 @@ export default async function handler(req, res) {
     // ------------------------------------------------------------
     // 🎨 語氣設定
     // ------------------------------------------------------------
-    const tone = getToneProfile(ming_lord, gender);
+    const tone = getToneProfile(mingLord, gender);
     const theme = THEMES[Math.floor(Math.random() * THEMES.length)];
     const bloodToneHint = getBloodTone(blood_type);
 
@@ -94,16 +107,18 @@ export default async function handler(req, res) {
 - 年齡層：約 ${age} 歲
 - 性別：${gender}
 - 星座：${constellation}
-- 命主星：${ming_lord}
-- 血型：${blood_type}（${bloodToneHint}）
+- 命主星：${mingLord}
+- 五行局：${bureau}
+- 血型：${blood_type || "未知"}（${bloodToneHint}）
 - 主題：${theme.key}（${theme.desc}）
 - 語氣特徵：${tone.tone}
 - 參考示例：${tone.sample}
 
 規範：
-1. 使用繁體中文，40–60 字。
-2. 語氣自然、有溫度。
-3. 不使用命令語氣，不重複示例。
+1. 使用繁體中文，40～60 字。
+2. 語氣自然、有溫度，帶有行動導向。
+3. 不使用命令語氣，不重複示例內容。
+4. 不出現「星座」「命理」「占卜」等字詞。
 `;
 
     const aiRes = await openai.chat.completions.create({
@@ -118,18 +133,28 @@ export default async function handler(req, res) {
 
     const suggestion = aiRes.choices?.[0]?.message?.content?.trim() || "";
 
-    if (!suggestion) {
-      return res.json({
-        ok: true,
-        suggestion: "今天適合放慢步調，穩住節奏，給自己喘息的空間。"
-      });
+    const result = {
+      ok: true,
+      suggestion:
+        suggestion ||
+        "今天適合放慢步調，穩住節奏，給自己喘息的空間。",
+      theme: theme.key,
+      tone: tone.tone,
+    };
+
+    // ------------------------------------------------------------
+    // 🧠 寫入 Redis 快取（有效期：1 天）
+    // ------------------------------------------------------------
+    try {
+      await redis.set(redisKey, JSON.stringify(result), "EX", 86400);
+    } catch (e) {
+      console.warn("⚠️ Redis 快取失敗:", e.message);
     }
 
     // ------------------------------------------------------------
     // 🎯 回傳結果
     // ------------------------------------------------------------
-    return res.json({ ok: true, suggestion, theme: theme.key, tone: tone.tone });
-
+    return res.json(result);
   } catch (err) {
     console.error("AI 行動建議錯誤:", err);
     return res.status(500).json({ ok: false, message: "伺服器錯誤" });

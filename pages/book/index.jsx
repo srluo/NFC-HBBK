@@ -1,6 +1,7 @@
-// /pages/book/index.jsx — v2.4.8-final
-// ✅ 以 v2.4.7 為基礎，移除主題／語氣行
-// ✅ 保持 v2.4.4 原配色與結構一致
+// /pages/book/index.jsx — v2.5.0-final
+// ✅ 支援新版 ziweis JSON 結構（v2.6.4）
+// ✅ four_pillars、ziweis JSON 自動解析
+// ✅ 改以 ziweis 全包傳遞給 /api/ai-daily
 // ------------------------------------------------------------
 
 "use client";
@@ -15,7 +16,7 @@ export default function Book() {
   const [status, setStatus] = useState("loading");
   const [token, setToken] = useState(null);
   const [daily, setDaily] = useState(null);
-  const [subStatus, setSubStatus] = useState("checking"); // ok | not_subscribed | error
+  const [subStatus, setSubStatus] = useState("checking");
   const router = useRouter();
 
   // ------------------------------------------------------------
@@ -39,7 +40,19 @@ export default function Book() {
             router.replace(`/book/first?token=${t}`);
             return;
           }
-          setCard(data.card);
+
+          // ✅ JSON 欄位解析（新版結構）
+          const parsed = { ...data.card };
+          try {
+            if (typeof parsed.four_pillars === "string")
+              parsed.four_pillars = JSON.parse(parsed.four_pillars);
+            if (typeof parsed.ziweis === "string")
+              parsed.ziweis = JSON.parse(parsed.ziweis);
+          } catch (err) {
+            console.warn("⚠️ JSON 解析錯誤:", err);
+          }
+
+          setCard(parsed);
           setStatus("ok");
         } else {
           setStatus(`❌ 錯誤: ${data.error || "讀取失敗"}`);
@@ -100,9 +113,9 @@ export default function Book() {
             uid: card.uid,
             birthday: card.birthday,
             gender: card.gender,
-            ming_lord: card.ming_lord,
-            constellation: card.constellation,
             blood_type: card.blood_type,
+            constellation: card.constellation,
+            ziweis: card.ziweis || {}, // ✅ 傳整包
           }),
         });
         const data = await res.json();
@@ -122,9 +135,6 @@ export default function Book() {
 
   const isBasic = !card.gender || !card.birth_time;
 
-  // ------------------------------------------------------------
-  // 畫面區塊
-  // ------------------------------------------------------------
   return (
     <div className={styles.container}>
       {/* 卡片封面 */}
@@ -153,7 +163,7 @@ export default function Book() {
         </button>
       </div>
 
-      {/* 補填提示（基本層級） */}
+      {/* 補填提示 */}
       {isBasic && (
         <section className={styles.walletBox}>
           <h3>🎁 填寫完整資訊可獲贈 <strong>20 點</strong>！</h3>
@@ -172,7 +182,7 @@ export default function Book() {
         </section>
       )}
 
-      {/* 💡 今日行動建議（保留 walletBox 樣式） */}
+      {/* 💡 今日行動建議 */}
       {subStatus === "ok" && daily && (
         <section className={styles.walletBox}>
           <h3>☀️ 今日行動建議</h3>
