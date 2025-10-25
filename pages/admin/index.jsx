@@ -408,11 +408,17 @@ export default function AdminPage() {
                     });
                     const data = await res.json();
                     if (data.ok && data.data) {
-                      alert(
-                        `UID：${data.data.uid}\n生日：${data.data.birthday}\n生命靈數：${calcLifeNumber(
-                          data.data.birthday
-                        )}\n點數：${data.data.points}\n狀態：${data.data.status}`
-                      );
+                      const card = data.data;
+                      if (card.status === "ACTIVE") {
+                        // ✅ 跳轉到 cardView 頁面
+                        window.location.href = `/admin/cardView?uid=${card.uid}`;
+                      } else {
+                        alert(
+                          `UID：${data.data.uid}\n生日：${data.data.birthday}\n生命靈數：${calcLifeNumber(
+                            data.data.birthday
+                          )}\n點數：${data.data.points}\n狀態：${data.data.status}`
+                        );
+                      }
                     } else alert("❌ 查詢失敗");
                   }}
                 >

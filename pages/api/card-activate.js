@@ -124,7 +124,7 @@ export default async function handler(req, res) {
     };
 
     const ziweis = {
-      year_ganzhi: ziwei?.year_ganzhi || "",
+      yyear_ganzhi: ziwei?.year_ganzhi || lunar?.year_ganzhi || "",
       bureau: ziwei?.bureau || "",
       ming_branch: ziwei?.ming_branch || "",
       shen_branch: ziwei?.shen_branch || "",
@@ -144,7 +144,6 @@ export default async function handler(req, res) {
       lunar_birthday: lunar?.lunar_birthday || "",
       zodiac: lunar?.zodiac || "",
       constellation: lunar?.constellation || "",
-      year_ganzhi: lunar?.year_ganzhi || "",
       four_pillars: JSON.stringify(four_pillars),
       ziweis: JSON.stringify(ziweis),
       lucky_number,
