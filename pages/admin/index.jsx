@@ -2,9 +2,9 @@
 import { useState, useEffect } from "react";
 
 /**
- * NFC BirthdayBook Admin Dashboard v2.9-Final
+ * NFC BirthdayBook Admin Dashboard v2.9.1-final
  * 功能：
- * ✅ 登入（JWT）
+ * ✅ 登入（JWT、自動登入）
  * ✅ 匯入 CSV（貼上或上傳）
  * ✅ 新增單筆
  * ✅ 查詢卡片（全列表、生日搜尋、UID 點擊）
@@ -13,6 +13,7 @@ import { useState, useEffect } from "react";
  * ✅ 點擊表頭可排序（含方向箭頭）
  * ✅ 狀態彩色顯示
  * ✅ 勾選多筆 → 批次刪除
+ * ✅ 登入後自動載入、每 5 分鐘自動刷新
  */
 
 function calcLifeNumber(birthday) {
@@ -90,6 +91,7 @@ export default function AdminPage() {
         localStorage.setItem("adminToken", data.token);
         setToken(data.token);
         setMessage("✅ 登入成功！");
+        fetchCards(); // 自動載入
       } else setMessage("❌ 登入失敗");
     } catch (err) {
       console.error(err);
@@ -99,11 +101,19 @@ export default function AdminPage() {
 
   // ---- 取得卡片列表 ----
   const fetchCards = async () => {
+    if (!token) return;
     setLoading(true);
     try {
       const res = await fetch("/api/admin/cards", {
         headers: { Authorization: `Bearer ${token}` },
       });
+      if (res.status === 401) {
+        alert("⚠️ 登入逾時，請重新登入");
+        localStorage.removeItem("adminToken");
+        setToken("");
+        setCards([]);
+        return;
+      }
       const data = await res.json();
       if (data.ok && Array.isArray(data.data)) {
         setCards(data.data);
@@ -192,10 +202,48 @@ export default function AdminPage() {
     }
   };
 
+  // ✅ 自動登入、定時刷新
   useEffect(() => {
     const savedToken = localStorage.getItem("adminToken");
-    if (savedToken) setToken(savedToken);
+    if (savedToken) {
+      setToken(savedToken);
+      fetchCards();
+      const interval = setInterval(() => {
+        console.log("⏳ 自動刷新卡片列表...");
+        fetchCards();
+      }, 5 * 60 * 1000);
+      return () => clearInterval(interval);
+    }
   }, []);
+
+  // ---- 排序 ----
+  const order = ["PENDING", "ACTIVE", "BONUSED", "LOCKED", "VOID"];
+  const sortedCards = [...cards].sort((a, b) => {
+    const valA = a[sortField] || "";
+    const valB = b[sortField] || "";
+    if (sortField === "status")
+      return (order.indexOf(valA) - order.indexOf(valB)) * (sortAsc ? 1 : -1);
+    if (!isNaN(valA) && !isNaN(valB))
+      return (Number(valA) - Number(valB)) * (sortAsc ? 1 : -1);
+    return valA.localeCompare(valB) * (sortAsc ? 1 : -1);
+  });
+
+  // ---- 全選切換 ----
+  const toggleSelectAll = () => {
+    if (selectAll) {
+      setSelectedUIDs([]);
+      setSelectAll(false);
+    } else {
+      setSelectedUIDs(sortedCards.map((c) => c.uid));
+      setSelectAll(true);
+    }
+  };
+
+  const toggleSelect = (uid) => {
+    setSelectedUIDs((prev) =>
+      prev.includes(uid) ? prev.filter((x) => x !== uid) : [...prev, uid]
+    );
+  };
 
   if (!token)
     return (
@@ -227,35 +275,6 @@ export default function AdminPage() {
         <p>{message}</p>
       </div>
     );
-
-  // ---- 排序 ----
-  const order = ["PENDING", "ACTIVE", "BONUSED", "LOCKED", "VOID"];
-  const sortedCards = [...cards].sort((a, b) => {
-    const valA = a[sortField] || "";
-    const valB = b[sortField] || "";
-    if (sortField === "status")
-      return (order.indexOf(valA) - order.indexOf(valB)) * (sortAsc ? 1 : -1);
-    if (!isNaN(valA) && !isNaN(valB))
-      return (Number(valA) - Number(valB)) * (sortAsc ? 1 : -1);
-    return valA.localeCompare(valB) * (sortAsc ? 1 : -1);
-  });
-
-  // ---- 全選切換 ----
-  const toggleSelectAll = () => {
-    if (selectAll) {
-      setSelectedUIDs([]);
-      setSelectAll(false);
-    } else {
-      setSelectedUIDs(sortedCards.map((c) => c.uid));
-      setSelectAll(true);
-    }
-  };
-
-  const toggleSelect = (uid) => {
-    setSelectedUIDs((prev) =>
-      prev.includes(uid) ? prev.filter((x) => x !== uid) : [...prev, uid]
-    );
-  };
 
   return (
     <div style={{ padding: "2rem", fontFamily: "sans-serif" }}>
@@ -410,7 +429,6 @@ export default function AdminPage() {
                     if (data.ok && data.data) {
                       const card = data.data;
                       if (card.status === "ACTIVE") {
-                        // ✅ 跳轉到 cardView 頁面
                         window.location.href = `/admin/cardView?uid=${card.uid}`;
                       } else {
                         alert(
@@ -469,7 +487,7 @@ export default function AdminPage() {
                       alert(data.ok ? "✅ 更新成功" : "❌ 更新失敗");
                     }}
                   >
-                    💾 儲存
+                                        💾 儲存
                   </button>
                 </td>
               </tr>
@@ -477,6 +495,15 @@ export default function AdminPage() {
           </tbody>
         </table>
       )}
+
+      <style jsx>{`
+        /* 🔧 隱藏 Chrome / Safari 的上下箭頭 */
+        input[type="number"]::-webkit-inner-spin-button,
+        input[type="number"]::-webkit-outer-spin-button {
+          -webkit-appearance: none;
+          margin: 0;
+        }
+      `}</style>
     </div>
   );
 }

@@ -105,24 +105,31 @@ export default async function handler(req, res) {
     }
   }
 
-  // 🟢 PATCH：更新卡片欄位
-  if (method === "PATCH") {
-    try {
-      const { card } = req.body || {};
-      if (!card?.uid) return res.status(400).json({ error: "缺少 UID" });
+// 🟢 PATCH：更新卡片欄位
+if (method === "PATCH") {
+  try {
+    const { card } = req.body || {};
+    if (!card?.uid) return res.status(400).json({ error: "缺少 UID" });
 
-      const key = `card:${card.uid}`;
-      const fields = Object.fromEntries(
-        Object.entries(card).map(([k, v]) => [k, String(v ?? "")])
-      );
+    const key = `card:${card.uid}`;
 
-      await redis.hset(key, fields);
-      return res.json({ ok: true });
-    } catch (err) {
-      console.error("admin/cards PATCH error:", err);
-      return res.status(500).json({ error: "伺服器錯誤" });
-    }
+    // 🔧 保護 JSON 欄位，轉回字串
+    const jsonFields = ["four_pillars", "ziweis", "subscriptions"];
+    const fields = Object.fromEntries(
+      Object.entries(card).map(([k, v]) => {
+        if (jsonFields.includes(k) && typeof v === "object")
+          return [k, JSON.stringify(v)];
+        return [k, String(v ?? "")];
+      })
+    );
+
+    await redis.hset(key, fields);
+    return res.json({ ok: true });
+  } catch (err) {
+    console.error("admin/cards PATCH error:", err);
+    return res.status(500).json({ error: "伺服器錯誤" });
   }
+}
 
   // 🟢 DELETE：刪除卡片
   if (method === "DELETE") {
