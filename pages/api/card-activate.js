@@ -124,7 +124,7 @@ export default async function handler(req, res) {
     };
 
     const ziweis = {
-      yyear_ganzhi: ziwei?.year_ganzhi || lunar?.year_ganzhi || "",
+      year_ganzhi: ziwei?.year_ganzhi || lunar?.year_ganzhi || "",
       bureau: ziwei?.bureau || "",
       ming_branch: ziwei?.ming_branch || "",
       shen_branch: ziwei?.shen_branch || "",
