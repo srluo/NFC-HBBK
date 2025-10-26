@@ -412,13 +412,13 @@ export default function Book() {
       <footer className={styles.footer}>
         <button
           className={`${styles.footerBtn} ${styles.buyBtn}`}
-          onClick={() => window.open("https://nfctogo.com/birthdaycard", "_blank")}
+          onClick={() => window.open("https://www.nfctogo.com/birthdaycard", "_blank")}
         >
           🎁 購買生日卡
         </button>
         <button
           className={`${styles.footerBtn} ${styles.siteBtn}`}
-          onClick={() => window.open("https://nfctogo.com", "_blank")}
+          onClick={() => window.open("https://www.nfctogo.com", "_blank")}
         >
           🌐 前往 NFCTOGO 官網
         </button>
