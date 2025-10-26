@@ -284,6 +284,7 @@ export default function Book() {
                 maxLength="6"
                 value={pinInput}
                 onChange={(e) => setPinInput(e.target.value)}
+                className={styles.pinInput}
               />
               <input
                 type="password"
@@ -292,6 +293,7 @@ export default function Book() {
                 maxLength="6"
                 value={pinNew}
                 onChange={(e) => setPinNew(e.target.value)}
+                className={styles.pinInput}
                 style={{ marginTop: "0.5rem" }}
               />
               <button className={styles.expandBtn} onClick={handleChangePin}>
