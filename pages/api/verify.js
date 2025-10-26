@@ -1,6 +1,7 @@
 import { redis } from "../../lib/redis";
 import { sign } from "../../lib/sign";
 
+// 產生台北時區的人類可讀時間字串
 function safeNowString() {
   const now = new Date();
   try {
@@ -28,6 +29,10 @@ export default async function handler(req, res) {
       return res.status(400).json({ ok: false, error: "缺少參數" });
     }
 
+    // 基本解析
+    if (uuid.length < 14 + 2 + 8 + 8) {
+      return res.status(400).json({ ok: false, error: "uuid 長度不符" });
+    }
     const uid = uuid.slice(0, 14);
     const tp  = uuid.slice(14, 16);
     const ts  = uuid.slice(16, 24);
@@ -40,43 +45,49 @@ export default async function handler(req, res) {
       return res.status(400).json({ ok: false, error: "TS / RLC 長度錯誤" });
     }
 
-    // ✅ RLC 驗章
+    // ✅ RLC 驗章（MICKEY 1.0）
     let expectRlc;
     try {
       expectRlc = sign({ uid, ts });
     } catch (e) {
-      console.error("sign error:", e);
+      console.error("[sign error]", uid, ts, e);
       return res.status(400).json({ ok: false, error: "TS/RLC 驗算失敗" });
     }
     if (!expectRlc || expectRlc.toLowerCase() !== rlc.toLowerCase()) {
       return res.status(403).json({ ok: false, error: "RLC 驗證失敗" });
     }
 
+    // 讀卡資料
     const key = `card:${uid}`;
     const card = await redis.hgetall(key);
     if (!card || Object.keys(card).length === 0) {
       return res.status(404).json({ ok: false, error: `找不到卡片 uid=${uid}` });
     }
 
-    // ✅ TS 只擋倒退，不擋同值
+    // ✅ 防重播：只擋倒退，允許同值（同次感應刷新）
     const lastTs = card.last_ts || "00000000";
     if (parseInt(ts, 16) < parseInt(lastTs, 16)) {
       return res.status(403).json({ ok: false, error: "TS 無效 (重播攻擊?)" });
     }
 
+    // 更新狀態（不新增欄位）
+    const now = Date.now();
     await redis.hset(key, {
       uid,
       last_ts: ts,
       last_seen: safeNowString(),
-      updated_at: Date.now().toString(),
+      updated_at: now.toString(),
     });
 
-    const token = Buffer.from(`${uid}:${d}:${Date.now()}:${ts}`).toString("base64");
+    // ✅ Token：加入 exp（10 分鐘）
+    const exp = now + 10 * 60 * 1000;
+    const token = Buffer.from(`${uid}:${d}:${now}:${ts}:${exp}`).toString("base64");
+
     const status = card.status === "ACTIVE" ? "ACTIVE" : "PENDING";
 
-    return res.json({ ok: true, status, token });
+    return res.json({ ok: true, status, token, exp });
   } catch (err) {
-    console.error("verify fatal error:", err);
+    console.error("[verify fatal error]:", err);
     return res.status(500).json({ ok: false, error: "伺服器錯誤" });
   }
 }

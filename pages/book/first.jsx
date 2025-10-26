@@ -19,32 +19,57 @@ export default function BookFirst() {
   const [symbol, setSymbol] = useState(null);
   const router = useRouter();
 
-  useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    const t = params.get("token");
-    if (!t) {
-      setStatus("❌ 缺少 token，請重新感應生日卡 📱");
+useEffect(() => {
+  const params = new URLSearchParams(window.location.search);
+  const t = params.get("token");
+  const cached = sessionStorage.getItem("book_token");
+  const exp = Number(sessionStorage.getItem("book_token_exp") || 0);
+
+  // 若網址沒 token 且沒有快取
+  if (!t && !cached) {
+    setStatus("❌ 缺少 token，請重新感應生日卡 📱");
+    return;
+  }
+
+  const tokenToUse = t || cached;
+
+  // 🔒 檢查是否過期
+  try {
+    const decoded = atob(tokenToUse);
+    const parts = decoded.split(":");
+    const expFromToken = parts.length >= 5 ? Number(parts[4]) : Date.now() + 600000;
+    if (Date.now() > expFromToken) {
+      setStatus("⚠️ Token 已逾時，請重新感應生日卡 📱");
       return;
     }
-    setToken(t);
+    // ✅ 合法 → 寫入 sessionStorage（若是新 token）
+    sessionStorage.setItem("book_token", tokenToUse);
+    sessionStorage.setItem("book_token_exp", expFromToken.toString());
+    setToken(tokenToUse);
+  } catch (err) {
+    console.error("Token 解碼錯誤:", err);
+    setStatus("❌ Token 無效，請重新感應生日卡");
+    return;
+  }
 
-    async function fetchCard() {
-      try {
-        const res = await fetch(`/api/getCard?token=${t}`);
-        const data = await res.json();
-        if (res.ok && !data.error) {
-          setCard(data.card);
-          setStatus("ok");
-        } else {
-          setStatus(`❌ 錯誤: ${data.error || "讀取失敗"}`);
-        }
-      } catch (err) {
-        console.error("fetchCard error:", err);
-        setStatus("❌ 系統錯誤，請重新感應生日卡 📱");
+  async function fetchCard() {
+    try {
+      const res = await fetch(`/api/getCard?token=${tokenToUse}`);
+      const data = await res.json();
+      if (res.ok && !data.error) {
+        setCard(data.card);
+        setStatus("ok");
+      } else {
+        setStatus(`❌ 錯誤: ${data.error || "讀取失敗"}`);
       }
+    } catch (err) {
+      console.error("fetchCard error:", err);
+      setStatus("❌ 系統錯誤，請重新感應生日卡 📱");
     }
-    fetchCard();
-  }, []);
+  }
+
+  fetchCard();
+}, []);
 
   useEffect(() => {
     if (!card?.birthday) return;
