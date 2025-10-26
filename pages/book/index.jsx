@@ -267,7 +267,7 @@ export default function Book() {
             </>
           ) : (
             <>
-              <p>請輸入 4-6 位數 PIN 碼，以保護個人資料。</p>
+              <p>請輸入 4-6 位數 PIN 碼。</p>
               <input
                 type="password"
                 inputMode="numeric"
