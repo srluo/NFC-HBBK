@@ -182,3 +182,36 @@
 .exploreButton span {
   color: #555;
 }
+
+.pinOverlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+}
+.pinBox {
+  background: white;
+  padding: 1.5rem;
+  border-radius: 12px;
+  width: 300px;
+  text-align: center;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+}
+.pinBox input {
+  width: 80%;
+  margin: 0.6rem 0;
+  text-align: center;
+  font-size: 1.2rem;
+}
+.pinMsg {
+  color: crimson;
+  font-size: 0.9rem;
+}
+.pinLocked {
+  color: #555;
+  font-size: 0.9rem;
+  margin-top: 0.4rem;
+}

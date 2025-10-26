@@ -1,11 +1,4 @@
-// /pages/book/index.jsx — v2.5.0-final
-// ✅ 支援新版 ziweis JSON 結構（v2.6.4）
-// ✅ four_pillars、ziweis JSON 自動解析
-// ✅ 改以 ziweis 全包傳遞給 /api/ai-daily
-// ------------------------------------------------------------
-
 "use client";
-
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import styles from "./book.module.css";
@@ -17,14 +10,18 @@ export default function Book() {
   const [token, setToken] = useState(null);
   const [daily, setDaily] = useState(null);
   const [subStatus, setSubStatus] = useState("checking");
+  const [pinStage, setPinStage] = useState("checking"); // checking / set / verify / unlocked / modify / disable
+  const [pinInput, setPinInput] = useState("");
+  const [pinNew, setPinNew] = useState("");
+  const [pinMsg, setPinMsg] = useState("");
   const router = useRouter();
 
   // ------------------------------------------------------------
   // 讀卡資料
   // ------------------------------------------------------------
   useEffect(() => {
-    const urlParams = new URLSearchParams(window.location.search);
-    const t = urlParams.get("token");
+    const params = new URLSearchParams(window.location.search);
+    const t = params.get("token");
     if (!t) {
       setStatus("❌ 缺少 token，請重新感應生日卡 📱");
       return;
@@ -36,37 +33,51 @@ export default function Book() {
         const res = await fetch(`/api/getCard?token=${t}`);
         const data = await res.json();
         if (res.ok && !data.error) {
-          if (data.is_first_open) {
-            router.replace(`/book/first?token=${t}`);
-            return;
-          }
-
-          // ✅ JSON 欄位解析（新版結構）
           const parsed = { ...data.card };
           try {
             if (typeof parsed.four_pillars === "string")
               parsed.four_pillars = JSON.parse(parsed.four_pillars);
             if (typeof parsed.ziweis === "string")
               parsed.ziweis = JSON.parse(parsed.ziweis);
+            if (typeof parsed.pins === "string")
+              parsed.pins = JSON.parse(parsed.pins);
           } catch (err) {
             console.warn("⚠️ JSON 解析錯誤:", err);
           }
 
           setCard(parsed);
           setStatus("ok");
+          if (parsed.pins && parsed.pins.enabled === true)
+            setPinStage("verify");
+          else setPinStage("unlocked");
         } else {
-          setStatus(`❌ 錯誤: ${data.error || "讀取失敗"}`);
+          setStatus(`❌ ${data.error || "讀取失敗"}`);
         }
       } catch (err) {
         console.error(err);
-        setStatus("❌ 系統錯誤，請重新感應生日卡 📱");
+        setStatus("❌ 系統錯誤");
       }
     }
     fetchCard();
   }, [router]);
 
   // ------------------------------------------------------------
-  // 檢查每日行動建議訂閱狀態
+  // 自動上鎖機制：閒置 5 分鐘自動進入 verify
+  // ------------------------------------------------------------
+  useEffect(() => {
+    let timer;
+    if (pinStage === "unlocked") {
+      timer = setTimeout(() => {
+        console.log("⏳ 自動上鎖");
+        setPinStage("verify");
+        setPinInput("");
+      }, 5 * 60 * 1000);
+    }
+    return () => clearTimeout(timer);
+  }, [pinStage]);
+
+  // ------------------------------------------------------------
+  // 訂閱檢查
   // ------------------------------------------------------------
   useEffect(() => {
     if (!card) return;
@@ -78,11 +89,8 @@ export default function Book() {
           body: JSON.stringify({ uid: card.uid, service: "daily" }),
         });
         const data = await res.json();
-        if (data.ok && data.subscribed) {
-          setSubStatus("ok");
-        } else {
-          setSubStatus("not_subscribed");
-        }
+        if (data.ok && data.subscribed) setSubStatus("ok");
+        else setSubStatus("not_subscribed");
       } catch (err) {
         console.error("訂閱檢查錯誤:", err);
         setSubStatus("error");
@@ -92,7 +100,7 @@ export default function Book() {
   }, [card]);
 
   // ------------------------------------------------------------
-  // 取得每日行動建議（含快取）
+  // 每日行動建議
   // ------------------------------------------------------------
   useEffect(() => {
     if (!card || subStatus !== "ok") return;
@@ -115,7 +123,7 @@ export default function Book() {
             gender: card.gender,
             blood_type: card.blood_type,
             constellation: card.constellation,
-            ziweis: card.ziweis || {}, // ✅ 傳整包
+            ziweis: card.ziweis || {},
           }),
         });
         const data = await res.json();
@@ -130,14 +138,179 @@ export default function Book() {
     fetchDaily();
   }, [card, subStatus]);
 
+  // ------------------------------------------------------------
+  // 設定 PIN
+  // ------------------------------------------------------------
+  const handleSetPin = async () => {
+    if (pinInput.length < 4) return setPinMsg("請輸入至少 4 位數 PIN");
+    try {
+      const res = await fetch("/api/pin/set", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ uid: card.uid, pin: pinInput }),
+      });
+      const data = await res.json();
+      if (data.ok) {
+        setPinMsg("✅ 已設定 PIN 鎖！");
+        setPinStage("unlocked");
+        card.pins = { ...card.pins, enabled: true };
+      } else setPinMsg(`⚠️ ${data.error}`);
+    } catch (err) {
+      console.error(err);
+      setPinMsg("❌ 系統錯誤");
+    }
+  };
+
+  // ------------------------------------------------------------
+  // 驗證 PIN
+  // ------------------------------------------------------------
+  const handleVerifyPin = async () => {
+    if (pinInput.length < 4) return setPinMsg("請輸入 PIN 碼");
+    try {
+      const res = await fetch("/api/pin/verify", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ uid: card.uid, pin: pinInput }),
+      });
+      const data = await res.json();
+      if (data.ok) {
+        setPinStage("unlocked");
+        setPinMsg("");
+      } else {
+        setPinMsg(data.error || "PIN 錯誤");
+      }
+    } catch (err) {
+      console.error(err);
+      setPinMsg("❌ 系統錯誤");
+    }
+  };
+
+  // ------------------------------------------------------------
+  // 修改 PIN
+  // ------------------------------------------------------------
+  const handleChangePin = async () => {
+    if (pinInput.length < 4 || pinNew.length < 4)
+      return setPinMsg("請輸入舊 PIN 與新 PIN");
+    try {
+      const res = await fetch("/api/pin/update", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ uid: card.uid, oldPin: pinInput, newPin: pinNew }),
+      });
+      const data = await res.json();
+      if (data.ok) {
+        setPinMsg("✅ PIN 已更新！");
+        setPinStage("unlocked");
+      } else setPinMsg(`⚠️ ${data.error}`);
+    } catch (err) {
+      console.error(err);
+      setPinMsg("❌ 系統錯誤");
+    }
+  };
+
+  // ------------------------------------------------------------
+  // 關閉 PIN 鎖
+  // ------------------------------------------------------------
+  const handleDisablePin = async () => {
+    if (!confirm("確定要解除 PIN 鎖？")) return;
+    try {
+      const res = await fetch("/api/pin/disable", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ uid: card.uid }),
+      });
+      const data = await res.json();
+      if (data.ok) {
+        alert("🔓 PIN 鎖已解除");
+        setPinStage("unlocked");
+        setCard({ ...card, pins: { enabled: false } });
+      } else alert(`⚠️ ${data.error}`);
+    } catch (err) {
+      console.error(err);
+      alert("❌ 系統錯誤");
+    }
+  };
+
+  // ------------------------------------------------------------
+  // 畫面狀態
+  // ------------------------------------------------------------
   if (status === "loading") return <p className={styles.loading}>⏳ 載入中...</p>;
   if (status !== "ok") return <p className={styles.error}>{status}</p>;
 
+  // 🔒 PIN 互動階段（設定 / 驗證 / 修改）
+  if (["verify", "set", "modify"].includes(pinStage)) {
+    return (
+      <div className={styles.container}>
+        <div className={styles.walletBox}>
+          <h3>
+            🔐{" "}
+            {pinStage === "set"
+              ? "設定 PIN 碼"
+              : pinStage === "modify"
+              ? "修改 PIN 碼"
+              : "輸入 PIN 碼"}
+          </h3>
+
+          {pinStage === "modify" ? (
+            <>
+              <p>請輸入原 PIN 及新 PIN 碼：</p>
+              <input
+                type="password"
+                placeholder="原 PIN"
+                inputMode="numeric"
+                maxLength="6"
+                value={pinInput}
+                onChange={(e) => setPinInput(e.target.value)}
+              />
+              <input
+                type="password"
+                placeholder="新 PIN"
+                inputMode="numeric"
+                maxLength="6"
+                value={pinNew}
+                onChange={(e) => setPinNew(e.target.value)}
+                style={{ marginTop: "0.5rem" }}
+              />
+              <button className={styles.expandBtn} onClick={handleChangePin}>
+                更新
+              </button>
+            </>
+          ) : (
+            <>
+              <p>請輸入 4 位數 PIN 碼，以保護個人資料。</p>
+              <input
+                type="password"
+                inputMode="numeric"
+                maxLength="6"
+                value={pinInput}
+                onChange={(e) => setPinInput(e.target.value)}
+                style={{
+                  fontSize: "1.5rem",
+                  textAlign: "center",
+                  letterSpacing: "0.4rem",
+                  marginBottom: "1rem",
+                }}
+              />
+              <button
+                className={styles.expandBtn}
+                onClick={pinStage === "set" ? handleSetPin : handleVerifyPin}
+              >
+                {pinStage === "set" ? "設定" : "確認"}
+              </button>
+            </>
+          )}
+          {pinMsg && <p style={{ color: "#c00" }}>{pinMsg}</p>}
+        </div>
+      </div>
+    );
+  }
+
+  // ✅ 已解鎖畫面
   const isBasic = !card.gender || !card.birth_time;
 
   return (
     <div className={styles.container}>
-      {/* 卡片封面 */}
+      {/* Header */}
       <div className={styles.cardHeader}>
         <div className={styles.iconBox}>
           <img
@@ -151,10 +324,8 @@ export default function Book() {
             className={styles.icon}
           />
         </div>
-
         <h2>{card.user_name || "未命名"}</h2>
         <p>{card.birthday}</p>
-
         <button
           className={styles.expandBtn}
           onClick={() => router.push(`/book/first?token=${token}`)}
@@ -163,26 +334,7 @@ export default function Book() {
         </button>
       </div>
 
-      {/* 補填提示 */}
-      {isBasic && (
-        <section className={styles.walletBox}>
-          <h3>🎁 填寫完整資訊可獲贈 <strong>20 點</strong>！</h3>
-          <p style={{ marginTop: "0.3rem" }}>
-            補填性別與出生時辰，開啟紫微命格分析 🔮
-          </p>
-          <button
-            className={styles.expandBtn}
-            style={{ marginTop: "0.6rem" }}
-            onClick={() =>
-              router.push(`/activate?token=${token}&mode=update&d=${card.birthday}`)
-            }
-          >
-            ✏️ 立即補填
-          </button>
-        </section>
-      )}
-
-      {/* 💡 今日行動建議 */}
+      {/* 行動建議 */}
       {subStatus === "ok" && daily && (
         <section className={styles.walletBox}>
           <h3>☀️ 今日行動建議</h3>
@@ -190,51 +342,51 @@ export default function Book() {
         </section>
       )}
 
-      {subStatus === "not_subscribed" && (
-        <section className={styles.walletBox}>
-          <h3>🔓 尚未開通 AI 行動建議</h3>
-          <button
-            className={styles.expandBtn}
-            onClick={async () => {
-              try {
-                const res = await fetch("/api/subscribe-service", {
-                  method: "POST",
-                  headers: { "Content-Type": "application/json" },
-                  body: JSON.stringify({
-                    uid: card.uid,
-                    service: "daily",
-                    days: 365,
-                    cost: 5,
-                  }),
-                });
-                const data = await res.json();
-                if (data.ok) {
-                  alert("✅ 已成功開通每日行動建議！");
-                  window.location.reload();
-                } else {
-                  alert(`⚠️ ${data.message || "開通失敗"}`);
-                }
-              } catch (err) {
-                alert("⚠️ 系統錯誤，請稍後再試");
-              }
-            }}
-          >
-            ✨ 開通每日行動建議
-          </button>
-        </section>
-      )}
-
-      {/* 點數資訊 */}
+      {/* 點數 */}
       <div className={styles.walletBox}>
         <p>目前點數：<strong>{card.points}</strong></p>
       </div>
 
-      {/* 功能選單 */}
-      <div className={styles.menuBox}>
-        <button>🔮 占卜</button>
-        <button>🌠 紫微流年</button>
-        <button>🧠 MBTI 測驗</button>
-      </div>
+      {/* 🔐 PIN 設定區 */}
+      {!card.pins || card.pins.enabled === false ? (
+        <section className={styles.walletBox} style={{ marginTop: "1rem" }}>
+          <h3>🔐 生日書安全設定</h3>
+          <p>您尚未啟用 PIN 上鎖，來保護個人資料。</p>
+          <button
+            className={styles.expandBtn}
+            style={{ background: "#b46c2a" }}
+            onClick={() => {
+              setPinMsg("");
+              setPinInput("");
+              setPinStage("set");
+            }}
+          >
+            設定 PIN 上鎖
+          </button>
+        </section>
+      ) : (
+        <section className={styles.walletBox} style={{ marginTop: "1rem" }}>
+          <h3>🔒 PIN 鎖已啟用</h3>
+          <button
+            className={styles.expandBtn}
+            onClick={() => {
+              setPinStage("modify");
+              setPinMsg("");
+              setPinInput("");
+              setPinNew("");
+            }}
+          >
+            修改 PIN
+          </button>&nbsp;&nbsp;
+          <button
+            className={styles.expandBtn}
+            style={{ background: "#8b0000" }}
+            onClick={handleDisablePin}
+          >
+            解除 PIN 鎖
+          </button>
+        </section>
+      )}
 
       {/* Footer */}
       <footer className={styles.footer}>
@@ -250,9 +402,7 @@ export default function Book() {
         >
           🌐 前往 NFCTOGO 官網
         </button>
-        <p className={styles.copy}>
-          ©2025 NFC靈動生日書 · Powered by NFCTOGO
-        </p>
+        <p className={styles.copy}>©2025 NFC靈動生日書 · Powered by NFCTOGO</p>
       </footer>
     </div>
   );
