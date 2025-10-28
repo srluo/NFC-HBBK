@@ -1,3 +1,4 @@
+// /api/verify.js — v1.8.1-stable
 import { redis } from "../../lib/redis";
 import { sign } from "../../lib/sign";
 
@@ -78,6 +79,9 @@ export default async function handler(req, res) {
       last_seen: safeNowString(),
       updated_at: now.toString(),
     });
+
+    // ✅ 延遲 200ms 保證資料同步（防首次跳轉 404）
+    await new Promise((r) => setTimeout(r, 200));
 
     // ✅ Token：加入 exp（10 分鐘）
     const exp = now + 10 * 60 * 1000;

@@ -1,9 +1,4 @@
-// /pages/book/first.jsx — v2.6.0-preview by Roger (2025.10.19)
-// ------------------------------------------------------------
-// ✅ 增加「延伸探索」區（未來放置加值服務）
-// ✅ 保留附註說明（AI 生成邏輯）
-// ✅ 與 HBBK_2.6 架構一致
-// ------------------------------------------------------------
+// 修正版 /pages/book/first.jsx — v2.6.2-stable
 
 "use client";
 
@@ -19,58 +14,71 @@ export default function BookFirst() {
   const [symbol, setSymbol] = useState(null);
   const router = useRouter();
 
-useEffect(() => {
-  const params = new URLSearchParams(window.location.search);
-  const t = params.get("token");
-  const cached = sessionStorage.getItem("book_token");
-  const exp = Number(sessionStorage.getItem("book_token_exp") || 0);
-
-  // 若網址沒 token 且沒有快取
-  if (!t && !cached) {
-    setStatus("❌ 缺少 token，請重新感應生日卡 📱");
-    return;
+  // ✅ 加入重試版 fetchCard（防 Redis 延遲）
+  async function fetchCardWithRetry(token, retries = 3) {
+    for (let i = 0; i < retries; i++) {
+      try {
+        const res = await fetch(`/api/getCard?token=${token}`);
+        const data = await res.json();
+        if (res.ok && !data.error) return data.card;
+        console.warn(`⚠️ fetchCard 第 ${i + 1} 次失敗: ${data.error}`);
+      } catch (err) {
+        console.error(`fetchCard 第 ${i + 1} 次例外:`, err);
+      }
+      await new Promise((r) => setTimeout(r, 500)); // 延遲再試
+    }
+    throw new Error("多次重試後仍失敗");
   }
 
-  const tokenToUse = t || cached;
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const t = params.get("token");
+    const cached = sessionStorage.getItem("book_token");
+    const exp = Number(sessionStorage.getItem("book_token_exp") || 0);
 
-  // 🔒 檢查是否過期
-  try {
-    const decoded = atob(tokenToUse);
-    const parts = decoded.split(":");
-    const expFromToken = parts.length >= 5 ? Number(parts[4]) : Date.now() + 600000;
-    if (Date.now() > expFromToken) {
-      setStatus("⚠️ Token 已逾時，請重新感應生日卡 📱");
+    if (!t && !cached) {
+      setStatus("❌ 缺少 token，請重新感應生日卡 📱");
       return;
     }
-    // ✅ 合法 → 寫入 sessionStorage（若是新 token）
-    sessionStorage.setItem("book_token", tokenToUse);
-    sessionStorage.setItem("book_token_exp", expFromToken.toString());
-    setToken(tokenToUse);
-  } catch (err) {
-    console.error("Token 解碼錯誤:", err);
-    setStatus("❌ Token 無效，請重新感應生日卡");
-    return;
-  }
 
-  async function fetchCard() {
+    const tokenToUse = t || cached;
+
+    // 🔒 Token 時效檢查
     try {
-      const res = await fetch(`/api/getCard?token=${tokenToUse}`);
-      const data = await res.json();
-      if (res.ok && !data.error) {
-        setCard(data.card);
-        setStatus("ok");
-      } else {
-        setStatus(`❌ 錯誤: ${data.error || "讀取失敗"}`);
+      const decoded = atob(tokenToUse);
+      const parts = decoded.split(":");
+      const expFromToken = parts.length >= 5 ? Number(parts[4]) : Date.now() + 600000;
+      if (Date.now() > expFromToken) {
+        setStatus("⚠️ Token 已逾時，請重新感應生日卡 📱");
+        return;
       }
+
+      sessionStorage.setItem("book_token", tokenToUse);
+      sessionStorage.setItem("book_token_exp", expFromToken.toString());
+      setToken(tokenToUse);
+
+      // ✅ 使用重試版抓卡
+      (async () => {
+        try {
+          const cardData = await fetchCardWithRetry(tokenToUse, 3);
+          setCard(cardData);
+          setStatus("ok");
+        } catch {
+          setStatus("⚠️ 系統忙碌中，請重新整理再試一次。");
+          // 可選：自動重載
+          setTimeout(() => location.reload(), 1200);
+        }
+      })();
+
     } catch (err) {
-      console.error("fetchCard error:", err);
-      setStatus("❌ 系統錯誤，請重新感應生日卡 📱");
+      console.error("Token 解碼錯誤:", err);
+      setStatus("❌ Token 無效，請重新感應生日卡");
     }
-  }
+  }, []);
 
-  fetchCard();
-}, []);
-
+  // ------------------------------------------------------------
+  // 生日象徵
+  // ------------------------------------------------------------
   useEffect(() => {
     if (!card?.birthday) return;
     const month = parseInt(String(card.birthday).slice(4, 6), 10);
@@ -89,15 +97,14 @@ useEffect(() => {
   if (status === "loading") return <p className={styles.loading}>⏳ 載入中...</p>;
   if (status !== "ok") return <p className={styles.error}>{status}</p>;
 
-  const isBasic = !card.gender || !card.birth_time;
+  // ------------------------------------------------------------
+  // 既有內容：AI Summary / 延伸探索 / 點數 / 返回按鈕 等全保留
+  // ------------------------------------------------------------
 
+  const isBasic = !card.gender || !card.birth_time;
   const renderAISummary = (text) => {
     if (!text) return null;
-    const cleanText = text
-      .replace(/^#+\s*/gm, "")
-      .replace(/\r/g, "")
-      .trim();
-
+    const cleanText = text.replace(/^#+\s*/gm, "").replace(/\r/g, "").trim();
     const sections = cleanText
       .split(/\n\s*\n/)
       .filter(Boolean)
@@ -105,14 +112,7 @@ useEffect(() => {
         const [title, ...body] = part.split(/[:：]/);
         return (
           <div key={i} style={{ marginBottom: "1rem", lineHeight: 1.7 }}>
-            <h4
-              style={{
-                color: "#222",
-                fontWeight: "700",
-                marginBottom: "0.3rem",
-                letterSpacing: "0.5px",
-              }}
-            >
+            <h4 style={{ color: "#222", fontWeight: "700", marginBottom: "0.3rem" }}>
               {title.trim()}：
             </h4>
             <p style={{ whiteSpace: "pre-line", marginLeft: "0.5rem" }}>
@@ -121,7 +121,6 @@ useEffect(() => {
           </div>
         );
       });
-
     return sections;
   };
 
@@ -175,48 +174,21 @@ useEffect(() => {
             }}
           >
             ※ 本段分析由 NFCTOGO 智能系統生成，綜合
-            <strong> 生肖、星座、紫微命盤、血型與出生時間 </strong>
-            等多重人格向度，透過 OpenAI 模型進行語意推演，呈現屬於你的獨特洞察報告。
+            <strong>生肖、星座、紫微命盤、血型與出生時間</strong>
+            等多重人格向度，透過 OpenAI 模型進行語意推演。
           </p>
 
-          {/* 💠 延伸探索（未來加值服務） */}
-          <div
-            style={{
-              marginTop: "1.2rem",
-              paddingTop: "0.8rem",
-              borderTop: "1px dashed #ccc",
-            }}
-          >
-            <h4 style={{ color: "#333", fontWeight: "700", marginBottom: "0.4rem" }}>
-              🌠 延伸探索
-            </h4>
-            <div
-              style={{
-                display: "flex",
-                flexDirection: "column",
-                gap: "0.5rem",
-                marginTop: "0.8rem",
-              }}
-            >
-              <button
-                className={styles.exploreButton}
-                onClick={() => router.push(`/service/fortune?uid=${card.uid}`)}
-              >
-                🔮 紫微流年解析 
-                <span>（5點，報告）</span>
+          {/* 💠 延伸探索 */}
+          <div style={{ marginTop: "1.2rem", paddingTop: "0.8rem", borderTop: "1px dashed #ccc" }}>
+            <h4 style={{ color: "#333", fontWeight: "700", marginBottom: "0.4rem" }}>🌠 延伸探索</h4>
+            <div style={{ display: "flex", flexDirection: "column", gap: "0.5rem", marginTop: "0.8rem" }}>
+              <button className={styles.exploreButton} onClick={() => router.push(`/service/fortune?uid=${card.uid}`)}>
+                🔮 紫微流年解析 <span>（5點，報告）</span>
               </button>
-
-              <button
-                className={styles.exploreButton}
-                onClick={() => router.push(`/service/lifepath?uid=${card.uid}`)}
-              >
+              <button className={styles.exploreButton} onClick={() => router.push(`/service/lifepath?uid=${card.uid}`)}>
                 🧭 生命靈數分析 <span>（2點，短文）</span>
               </button>
-
-              <button
-                className={styles.exploreButton}
-                onClick={() => router.push(`/service/mbti?uid=${card.uid}`)}
-              >
+              <button className={styles.exploreButton} onClick={() => router.push(`/service/mbti?uid=${card.uid}`)}>
                 🧠 MBTI 性格測驗 <span>（5點，問卷/報告）</span>
               </button>
             </div>
@@ -228,15 +200,11 @@ useEffect(() => {
       {isBasic && (
         <section className={styles.walletBox}>
           <h3>🎁 填寫完整資訊可獲贈 <strong>20 點</strong>！</h3>
-          <p style={{ marginTop: "0.3rem" }}>
-            補填性別與出生時辰，開啟紫微命格分析 🔮
-          </p>
+          <p style={{ marginTop: "0.3rem" }}>補填性別與出生時辰，開啟紫微命格分析 🔮</p>
           <button
             className={styles.expandBtn}
             style={{ background: "#ff9800", marginTop: "0.6rem" }}
-            onClick={() =>
-              router.push(`/activate?token=${token}&mode=update&d=${card.birthday}`)
-            }
+            onClick={() => router.push(`/activate?token=${token}&mode=update&d=${card.birthday}`)}
           >
             ✏️ 立即補填
           </button>
