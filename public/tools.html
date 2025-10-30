@@ -3,138 +3,196 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>NFC HBBK｜快速連結工具</title>
+  <title>NFC HBBK｜發卡工具（混合安全版）</title>
   <style>
     :root{--bg:#0b0c10;--card:#13151b;--muted:#9aa3b2;--text:#e6e9ef;--accent:#ffd166;--accent2:#7cc5ff}
     *{box-sizing:border-box}
-    body{margin:0;font-family:ui-sans-serif,system-ui,Segoe UI,Roboto,Helvetica,Arial,"Noto Sans TC",sans-serif;background:linear-gradient(135deg,#0b0c10,#0f1218);color:var(--text);}
-    .wrap{max-width:760px;margin:48px auto;padding:0 20px}
+    body{margin:0;font-family:system-ui,Segoe UI,Roboto,"Noto Sans TC",sans-serif;background:linear-gradient(135deg,#0b0c10,#0f1218);color:var(--text)}
+    .wrap{max-width:880px;margin:48px auto;padding:0 20px}
     h1{font-size:24px;margin:0 0 4px}
     .sub{color:var(--muted);margin:0 0 24px}
-    .card{background:var(--card);border:1px solid #222634;border-radius:16px;padding:20px 18px;box-shadow:0 10px 24px rgba(0,0,0,.25)}
+    .card{background:var(--card);border:1px solid #222634;border-radius:16px;padding:20px 18px;box-shadow:0 10px 24px rgba(0,0,0,.25);margin-bottom:18px}
     label{display:block;font-weight:600;margin:14px 0 8px}
     .row{display:flex;gap:8px;align-items:center}
-    input{flex:1;appearance:none;background:#0f1218;border:1px solid #2a2f3a;border-radius:10px;padding:12px 14px;color:var(--text);font-size:16px;outline:none}
+    input{flex:1;background:#0f1218;border:1px solid #2a2f3a;border-radius:10px;padding:12px 14px;color:var(--text);font-size:16px;outline:none}
     input::placeholder{color:#677084}
-    .prefix{background:#0f1218;border:1px dashed #2a2f3a;color:#c3cad7;padding:12px 10px;border-radius:10px;font-family:ui-monospace,Menlo,Monaco,Consolas,"Liberation Mono","Courier New",monospace}
+    .prefix{background:#0f1218;border:1px dashed #2a2f3a;color:#c3cad7;padding:12px 10px;border-radius:10px;font-family:monospace}
     .btn{cursor:pointer;border:1px solid #32394a;background:#1a1f2a;color:var(--text);padding:10px 12px;border-radius:10px;font-weight:600}
-    .btn:hover{filter:brightness(1.05)}
+    .btn:hover{filter:brightness(1.08)}
     .btn.primary{background:linear-gradient(135deg,#4cc9f0,#4361ee);border-color:#3554d4}
     .btn.warn{background:linear-gradient(135deg,#ef476f,#f78c6b);border-color:#e85d5d}
-    .muted{color:var(--muted);font-size:13px}
-    .out{margin-top:18px;background:#0f1218;border:1px solid #2a2f3a;border-radius:12px;padding:14px}
-    .mono{font-family:ui-monospace,Menlo,Monaco,Consolas,"Liberation Mono","Courier New",monospace}
-    .hint{font-size:12px;color:#9aa3b2;margin-top:6px}
     .kpi{display:inline-block;padding:8px 10px;border-radius:10px;background:#0f1218;border:1px solid #2a2f3a;margin-left:8px}
+    .mono{font-family:ui-monospace,Menlo,Monaco,Consolas,monospace}
+    .hint{font-size:12px;color:#9aa3b2;margin-top:6px}
     .toast{position:fixed;inset:auto 16px 16px auto;background:#111827;color:#e5e7eb;padding:10px 14px;border-radius:10px;border:1px solid #374151;opacity:0;transform:translateY(10px);transition:.25s}
     .toast.show{opacity:1;transform:translateY(0)}
     .err{color:#ff6b6b;font-size:13px;margin-top:6px}
+    .section-title{margin:4px 0 6px;color:#cbd5e1;font-size:14px;text-transform:uppercase;letter-spacing:.12em}
   </style>
 </head>
 <body>
   <div class="wrap">
-    <h1>HB 快速連結工具</h1>
-    <p class="sub">輸入 UID 後 8 碼與出生年月日（<b>YYYYMMDD</b>），即時產生目標連結，可一鍵複製。</p>
+    <h1>HB 發卡工具</h1>
+    <p class="sub">前端即時計算生命靈數與網址格式，輸入正確 PIN 後向伺服端取得 RLC 簽章。</p>
 
+    <!-- 基本資料 -->
     <div class="card">
-      <!-- UID -->
-      <label for="uid8">卡片 UID（後 8 碼）</label>
+      <div class="section-title">基本資料</div>
+      <label>卡片 UID（後 8 碼）</label>
       <div class="row">
         <span class="prefix mono">394950</span>
-        <input id="uid8" inputmode="numeric" autocomplete="off" placeholder="01949175" maxlength="8" />
-        <button class="btn" id="copyUid">複製</button>
+        <input id="uid8" maxlength="8" inputmode="numeric" placeholder="01949175">
+        <button id="copyUid" class="btn">複製</button>
       </div>
-      <div class="hint">前 6 碼固定為 <span class="mono">394950</span>，請輸入後 8 碼。</div>
-      <div id="uidErr" class="err" style="display:none"></div>
 
-      <!-- Birthday -->
-      <label for="bday" style="margin-top:18px">出生年月日（8 碼，YYYYMMDD）</label>
+      <label>出生年月日（8 碼 YYYYMMDD）</label>
       <div class="row">
-        <input id="bday" inputmode="numeric" placeholder="19801231" maxlength="8" />
+        <input id="bday" maxlength="8" inputmode="numeric" placeholder="19801231">
         <span class="kpi">生命靈數：<b id="lpn">—</b></span>
       </div>
-      <div id="bdayErr" class="err" style="display:none"></div>
 
-      <!-- Output URL -->
-      <label style="margin-top:18px">產生的網址</label>
+      <label>測試用網址（無簽章）</label>
       <div class="row">
-        <input id="urlOut" class="mono" readonly placeholder="nfc-hbbk.vercel.app/?d=YYYYMMDD&uuid=" />
-        <button class="btn primary" id="copyUrl">複製</button>
-        <button class="btn warn" id="clearAll">清除</button>
+        <input id="urlOut" class="mono" readonly placeholder="nfc-hbbk.vercel.app/?d=YYYYMMDD&uuid=">
+        <button id="copyUrl" class="btn">複製</button>
+        <button id="clearAll" class="btn warn">清除</button>
       </div>
-      <div class="hint">依需求輸出：<span class="mono">nfc-hbbk.vercel.app/?d=出生年月日&uuid=</span></div>
+    </div>
+
+    <!-- 簽章專區 -->
+    <div class="card">
+      <div class="section-title">TS / RLC（伺服端簽章）</div>
+      <label>TS（8 位 HEX）</label>
+      <div class="row">
+        <input id="tshex" maxlength="8" placeholder="000001A3">
+        <button id="genTs" class="btn">隨機</button>
+      </div>
+
+      <label>PIN 碼（工廠驗證）</label>
+      <div class="row">
+        <input id="pin" type="password" maxlength="12" placeholder="輸入工廠PIN">
+        <button id="getRlc" class="btn primary">取得 RLC</button>
+      </div>
+
+      <label>RLC（伺服端回傳）</label>
+      <div class="row">
+        <input id="rlc" class="mono" readonly placeholder="簽章將顯示於此">
+        <button id="copyRlc" class="btn">複製</button>
+      </div>
+
+      <label>正式網址（含簽章）</label>
+      <div class="row">
+        <input id="finalUrl" class="mono" readonly placeholder="https://nfc-hbbk.vercel.app/?d=YYYYMMDD&uuid=...">
+        <button id="copyFinal" class="btn primary">複製</button>
+        <button id="clearFinal" class="btn warn">清除</button>
+      </div>
     </div>
   </div>
 
-  <div id="toast" class="toast" role="status" aria-live="polite"></div>
+  <div id="toast" class="toast"></div>
 
   <script>
-    const uid8 = document.getElementById('uid8');
-    const bday = document.getElementById('bday');
-    const lpn = document.getElementById('lpn');
-    const urlOut = document.getElementById('urlOut');
-    const toast = document.getElementById('toast');
-    const uidErr = document.getElementById('uidErr');
-    const bdayErr = document.getElementById('bdayErr');
+    // -----------------------------------------
+    // 公用工具
+    // -----------------------------------------
+    const toast=document.getElementById("toast");
+    const showToast=(msg)=>{toast.textContent=msg;toast.classList.add("show");setTimeout(()=>toast.classList.remove("show"),1300);};
+    const onlyDigits=s=>/^[0-9]+$/.test(s);
+    const isHex8=s=>/^[0-9A-Fa-f]{8}$/.test(s);
 
-    function showToast(msg){
-      toast.textContent = msg; toast.classList.add('show');
-      setTimeout(()=>toast.classList.remove('show'), 1400);
+    const uid8=document.getElementById("uid8");
+    const bday=document.getElementById("bday");
+    const lpn=document.getElementById("lpn");
+    const urlOut=document.getElementById("urlOut");
+    const tshex=document.getElementById("tshex");
+    const pin=document.getElementById("pin");
+    const rlc=document.getElementById("rlc");
+    const finalUrl=document.getElementById("finalUrl");
+
+    const fullUid=()=>uid8.value.length===8?`394950${uid8.value}`:"";
+    const computeLifePath=(ymd)=>{if(!ymd||ymd.length!==8||!onlyDigits(ymd))return null;let s=ymd.split('').reduce((a,c)=>a+Number(c),0);while(![11,22,33].includes(s)&&s>9)s=String(s).split('').reduce((a,c)=>a+Number(c),0);return s;};
+
+    // -----------------------------------------
+    // 生命靈數 + 測試網址更新
+    // -----------------------------------------
+    function updateBasic(){
+      const d=bday.value.replace(/\D/g,'').slice(0,8);
+      bday.value=d;
+      const val=computeLifePath(d);
+      lpn.textContent=val?String(val):'—';
+      urlOut.value=d?`nfc-hbbk.vercel.app/?d=${d}&uuid=`:'nfc-hbbk.vercel.app/?d=YYYYMMDD&uuid=';
     }
 
-    function onlyDigits(s){ return /^[0-9]+$/.test(s); }
+    uid8.addEventListener("input",updateBasic);
+    bday.addEventListener("input",updateBasic);
 
-    function computeLifePath(ymd){
-      // ymd: YYYYMMDD (8 digits)
-      if(!ymd || ymd.length!==8 || !onlyDigits(ymd)) return null;
-      let sum = ymd.split('').reduce((a,c)=>a+Number(c),0);
-      // Reduce until 1 digit, except master numbers 11/22/33
-      while(![11,22,33].includes(sum) && sum>9){
-        sum = String(sum).split('').reduce((a,c)=>a+Number(c),0);
-      }
-      return sum;
-    }
-
-    function update(){
-      uidErr.style.display='none'; bdayErr.style.display='none';
-
-      // Enforce digits only
-      uid8.value = uid8.value.replace(/\D/g,'').slice(0,8);
-      bday.value = bday.value.replace(/\D/g,'').slice(0,8);
-
-      // URL output
-      const d = bday.value;
-      urlOut.value = d && d.length===8 ? `nfc-hbbk.vercel.app/?d=${d}&uuid=` : 'nfc-hbbk.vercel.app/?d=YYYYMMDD&uuid=';
-
-      // Life path
-      const val = computeLifePath(d);
-      lpn.textContent = val? String(val) : '—';
-    }
-
-    uid8.addEventListener('input', update);
-    bday.addEventListener('input', update);
-
-    document.getElementById('copyUid').addEventListener('click', async()=>{
-      const full = '394950' + (uid8.value||'');
-      if(uid8.value.length!==8){ uidErr.textContent='請輸入完整 8 碼（後 8 碼）'; uidErr.style.display='block'; return; }
+    document.getElementById("copyUid").onclick=async()=>{
+      const full=fullUid();
+      if(!full){alert("請輸入完整 UID");return;}
       await navigator.clipboard.writeText(full);
-      showToast('UID 已複製：' + full);
-    });
+      showToast("UID已複製");
+    };
 
-    document.getElementById('copyUrl').addEventListener('click', async()=>{
-      if(bday.value.length!==8){ bdayErr.textContent='出生年月日需為 8 碼 YYYYMMDD'; bdayErr.style.display='block'; return; }
+    document.getElementById("copyUrl").onclick=async()=>{
       await navigator.clipboard.writeText(urlOut.value);
-      showToast('網址已複製');
-    });
+      showToast("測試網址已複製");
+    };
 
-    document.getElementById('clearAll').addEventListener('click', ()=>{
-      uid8.value=''; bday.value=''; lpn.textContent='—'; urlOut.value='nfc-hbbk.vercel.app/?d=YYYYMMDD&uuid='; 
-      uidErr.style.display='none'; bdayErr.style.display='none';
-      showToast('已清除');
-    });
+    document.getElementById("clearAll").onclick=()=>{
+      uid8.value='';bday.value='';lpn.textContent='—';urlOut.value='nfc-hbbk.vercel.app/?d=YYYYMMDD&uuid=';showToast("已清除基本資料");
+    };
 
-    // Initialize
-    update();
+    // -----------------------------------------
+    // TS / RLC 區
+    // -----------------------------------------
+    document.getElementById("genTs").onclick=()=>{
+      const n=Math.floor(Math.random()*0x100000000)>>>0;
+      tshex.value=n.toString(16).padStart(8,'0').toUpperCase();
+    };
+
+    async function getRLC(uid,ts,pinValue){
+      try{
+        const res=await fetch(`/api/sign?uid=${uid}&tp=HB&ts=${ts}&pin=${pinValue}`);
+        const data=await res.json();
+        if(!data.ok) throw new Error(data.error||"PIN 驗證失敗");
+        return data.rlc;
+      }catch(e){
+        alert("⚠️ 無法取得 RLC："+e.message);
+        return null;
+      }
+    }
+
+    document.getElementById("getRlc").onclick=async()=>{
+      const uid=fullUid();
+      const d=bday.value;
+      const ts=tshex.value.trim();
+      const p=pin.value.trim();
+      if(!uid||!d||!isHex8(ts)){alert("請輸入完整 UID、生日、TS");return;}
+      if(!p){alert("請輸入 PIN 碼");return;}
+      const r=await getRLC(uid,ts,p);
+      if(!r)return;
+      rlc.value=r.toUpperCase();
+      finalUrl.value=`https://nfc-hbbk.vercel.app/?d=${d}&uuid=${uid}HB${ts.toUpperCase()}${r}`;
+      showToast("✅ 已取得 RLC");
+    };
+
+    document.getElementById("copyRlc").onclick=async()=>{
+      if(!rlc.value){alert("尚無 RLC 可複製");return;}
+      await navigator.clipboard.writeText(rlc.value);
+      showToast("RLC 已複製");
+    };
+
+    document.getElementById("copyFinal").onclick=async()=>{
+      if(!finalUrl.value){alert("尚未生成正式網址");return;}
+      await navigator.clipboard.writeText(finalUrl.value);
+      showToast("正式網址已複製");
+    };
+
+    document.getElementById("clearFinal").onclick=()=>{
+      tshex.value='';pin.value='';rlc.value='';finalUrl.value='';showToast("已清除簽章欄位");
+    };
+
+    updateBasic();
   </script>
 </body>
 </html>
