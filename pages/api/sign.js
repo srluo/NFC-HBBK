@@ -7,7 +7,7 @@ export default async function handler(req, res) {
     if (!uid || !ts) return res.status(400).json({ ok: false, error: "缺少參數" });
 
     // ✅ 工廠 PIN 驗證
-    const VALID_PIN = process.env.FACTORY_PIN || "HBBK2025";
+    const VALID_PIN = process.env.FACTORY_PIN || "53616743";
     if (pin !== VALID_PIN) {
       return res.status(403).json({ ok: false, error: "PIN 驗證失敗" });
     }
