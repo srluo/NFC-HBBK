@@ -3,7 +3,8 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>NFC HBBK｜發卡工具（混合安全版）</title>
+  <meta name="autocomplete" content="off">
+  <title>NFC HBBK｜發卡工具（穩定完整版）</title>
   <style>
     :root{--bg:#0b0c10;--card:#13151b;--muted:#9aa3b2;--text:#e6e9ef;--accent:#ffd166;--accent2:#7cc5ff}
     *{box-sizing:border-box}
@@ -14,9 +15,11 @@
     .card{background:var(--card);border:1px solid #222634;border-radius:16px;padding:20px 18px;box-shadow:0 10px 24px rgba(0,0,0,.25);margin-bottom:18px}
     label{display:block;font-weight:600;margin:14px 0 8px}
     .row{display:flex;gap:8px;align-items:center}
-    input{flex:1;background:#0f1218;border:1px solid #2a2f3a;border-radius:10px;padding:12px 14px;color:var(--text);font-size:16px;outline:none}
+    .row input{flex:1;min-width:0;}
+    .row .btn{flex-shrink:0;}
+    input{background:#0f1218;border:1px solid #2a2f3a;border-radius:10px;padding:12px 14px;color:var(--text);font-size:16px;outline:none}
     input::placeholder{color:#677084}
-    .prefix{background:#0f1218;border:1px dashed #2a2f3a;color:#c3cad7;padding:12px 10px;border-radius:10px;font-family:monospace}
+    .prefix{background:#0f1218;border:1px dashed #2a2f3a;color:#c3cad7;padding:12px 10px;border-radius:10px;font-family:monospace;flex-shrink:0}
     .btn{cursor:pointer;border:1px solid #32394a;background:#1a1f2a;color:var(--text);padding:10px 12px;border-radius:10px;font-weight:600}
     .btn:hover{filter:brightness(1.08)}
     .btn.primary{background:linear-gradient(135deg,#4cc9f0,#4361ee);border-color:#3554d4}
@@ -26,11 +29,13 @@
     .hint{font-size:12px;color:#9aa3b2;margin-top:6px}
     .toast{position:fixed;inset:auto 16px 16px auto;background:#111827;color:#e5e7eb;padding:10px 14px;border-radius:10px;border:1px solid #374151;opacity:0;transform:translateY(10px);transition:.25s}
     .toast.show{opacity:1;transform:translateY(0)}
-    .err{color:#ff6b6b;font-size:13px;margin-top:6px}
     .section-title{margin:4px 0 6px;color:#cbd5e1;font-size:14px;text-transform:uppercase;letter-spacing:.12em}
   </style>
 </head>
 <body>
+  <!-- Chrome Autofill Trap -->
+  <input type="text" name="fakeuser" style="display:none" autocomplete="username">
+
   <div class="wrap">
     <h1>HB 發卡工具</h1>
     <p class="sub">前端即時計算生命靈數與網址格式，輸入正確 PIN 後向伺服端取得 RLC 簽章。</p>
@@ -38,16 +43,20 @@
     <!-- 基本資料 -->
     <div class="card">
       <div class="section-title">基本資料</div>
-      <label>卡片 UID（後 8 碼）</label>
+      <label>卡片 UID（後 8 碼 HEX）</label>
       <div class="row">
         <span class="prefix mono">394950</span>
-        <input id="uid8" maxlength="8" inputmode="numeric" placeholder="01949175">
+        <input id="uid8" maxlength="8" inputmode="text" placeholder="01949175"
+          pattern="[0-9A-Fa-f]*"
+          autocomplete="new-password" autocorrect="off" autocapitalize="off" spellcheck="false"
+          oninput="this.value=this.value.toUpperCase().replace(/[^0-9A-F]/g,'');">
         <button id="copyUid" class="btn">複製</button>
       </div>
 
       <label>出生年月日（8 碼 YYYYMMDD）</label>
       <div class="row">
-        <input id="bday" maxlength="8" inputmode="numeric" placeholder="19801231">
+        <input id="bday" maxlength="8" inputmode="numeric" placeholder="19801231"
+          autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false">
         <span class="kpi">生命靈數：<b id="lpn">—</b></span>
       </div>
 
@@ -64,13 +73,16 @@
       <div class="section-title">TS / RLC（伺服端簽章）</div>
       <label>TS（8 位 HEX）</label>
       <div class="row">
-        <input id="tshex" maxlength="8" placeholder="000001A3">
+        <input id="tshex" maxlength="8" placeholder="000001A3"
+          autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"
+          oninput="this.value=this.value.toUpperCase().replace(/[^0-9A-F]/g,'');">
         <button id="genTs" class="btn">隨機</button>
       </div>
 
       <label>PIN 碼（工廠驗證）</label>
       <div class="row">
-        <input id="pin" type="password" maxlength="12" placeholder="輸入工廠PIN">
+        <input id="pin" type="password" maxlength="12" placeholder="輸入工廠PIN"
+          autocomplete="new-password" autocorrect="off" autocapitalize="off" spellcheck="false">
         <button id="getRlc" class="btn primary">取得 RLC</button>
       </div>
 
