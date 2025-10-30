@@ -1,0 +1,140 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>NFC HBBK｜快速連結工具</title>
+  <style>
+    :root{--bg:#0b0c10;--card:#13151b;--muted:#9aa3b2;--text:#e6e9ef;--accent:#ffd166;--accent2:#7cc5ff}
+    *{box-sizing:border-box}
+    body{margin:0;font-family:ui-sans-serif,system-ui,Segoe UI,Roboto,Helvetica,Arial,"Noto Sans TC",sans-serif;background:linear-gradient(135deg,#0b0c10,#0f1218);color:var(--text);}
+    .wrap{max-width:760px;margin:48px auto;padding:0 20px}
+    h1{font-size:24px;margin:0 0 4px}
+    .sub{color:var(--muted);margin:0 0 24px}
+    .card{background:var(--card);border:1px solid #222634;border-radius:16px;padding:20px 18px;box-shadow:0 10px 24px rgba(0,0,0,.25)}
+    label{display:block;font-weight:600;margin:14px 0 8px}
+    .row{display:flex;gap:8px;align-items:center}
+    input{flex:1;appearance:none;background:#0f1218;border:1px solid #2a2f3a;border-radius:10px;padding:12px 14px;color:var(--text);font-size:16px;outline:none}
+    input::placeholder{color:#677084}
+    .prefix{background:#0f1218;border:1px dashed #2a2f3a;color:#c3cad7;padding:12px 10px;border-radius:10px;font-family:ui-monospace,Menlo,Monaco,Consolas,"Liberation Mono","Courier New",monospace}
+    .btn{cursor:pointer;border:1px solid #32394a;background:#1a1f2a;color:var(--text);padding:10px 12px;border-radius:10px;font-weight:600}
+    .btn:hover{filter:brightness(1.05)}
+    .btn.primary{background:linear-gradient(135deg,#4cc9f0,#4361ee);border-color:#3554d4}
+    .btn.warn{background:linear-gradient(135deg,#ef476f,#f78c6b);border-color:#e85d5d}
+    .muted{color:var(--muted);font-size:13px}
+    .out{margin-top:18px;background:#0f1218;border:1px solid #2a2f3a;border-radius:12px;padding:14px}
+    .mono{font-family:ui-monospace,Menlo,Monaco,Consolas,"Liberation Mono","Courier New",monospace}
+    .hint{font-size:12px;color:#9aa3b2;margin-top:6px}
+    .kpi{display:inline-block;padding:8px 10px;border-radius:10px;background:#0f1218;border:1px solid #2a2f3a;margin-left:8px}
+    .toast{position:fixed;inset:auto 16px 16px auto;background:#111827;color:#e5e7eb;padding:10px 14px;border-radius:10px;border:1px solid #374151;opacity:0;transform:translateY(10px);transition:.25s}
+    .toast.show{opacity:1;transform:translateY(0)}
+    .err{color:#ff6b6b;font-size:13px;margin-top:6px}
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <h1>HB 快速連結工具</h1>
+    <p class="sub">輸入 UID 後 8 碼與出生年月日（<b>YYYYMMDD</b>），即時產生目標連結，可一鍵複製。</p>
+
+    <div class="card">
+      <!-- UID -->
+      <label for="uid8">卡片 UID（後 8 碼）</label>
+      <div class="row">
+        <span class="prefix mono">394950</span>
+        <input id="uid8" inputmode="numeric" autocomplete="off" placeholder="01949175" maxlength="8" />
+        <button class="btn" id="copyUid">複製</button>
+      </div>
+      <div class="hint">前 6 碼固定為 <span class="mono">394950</span>，請輸入後 8 碼。</div>
+      <div id="uidErr" class="err" style="display:none"></div>
+
+      <!-- Birthday -->
+      <label for="bday" style="margin-top:18px">出生年月日（8 碼，YYYYMMDD）</label>
+      <div class="row">
+        <input id="bday" inputmode="numeric" placeholder="19801231" maxlength="8" />
+        <span class="kpi">生命靈數：<b id="lpn">—</b></span>
+      </div>
+      <div id="bdayErr" class="err" style="display:none"></div>
+
+      <!-- Output URL -->
+      <label style="margin-top:18px">產生的網址</label>
+      <div class="row">
+        <input id="urlOut" class="mono" readonly placeholder="nfc-hbbk.vercel.app/?d=YYYYMMDD&uuid=" />
+        <button class="btn primary" id="copyUrl">複製</button>
+        <button class="btn warn" id="clearAll">清除</button>
+      </div>
+      <div class="hint">依需求輸出：<span class="mono">nfc-hbbk.vercel.app/?d=出生年月日&uuid=</span></div>
+    </div>
+  </div>
+
+  <div id="toast" class="toast" role="status" aria-live="polite"></div>
+
+  <script>
+    const uid8 = document.getElementById('uid8');
+    const bday = document.getElementById('bday');
+    const lpn = document.getElementById('lpn');
+    const urlOut = document.getElementById('urlOut');
+    const toast = document.getElementById('toast');
+    const uidErr = document.getElementById('uidErr');
+    const bdayErr = document.getElementById('bdayErr');
+
+    function showToast(msg){
+      toast.textContent = msg; toast.classList.add('show');
+      setTimeout(()=>toast.classList.remove('show'), 1400);
+    }
+
+    function onlyDigits(s){ return /^[0-9]+$/.test(s); }
+
+    function computeLifePath(ymd){
+      // ymd: YYYYMMDD (8 digits)
+      if(!ymd || ymd.length!==8 || !onlyDigits(ymd)) return null;
+      let sum = ymd.split('').reduce((a,c)=>a+Number(c),0);
+      // Reduce until 1 digit, except master numbers 11/22/33
+      while(![11,22,33].includes(sum) && sum>9){
+        sum = String(sum).split('').reduce((a,c)=>a+Number(c),0);
+      }
+      return sum;
+    }
+
+    function update(){
+      uidErr.style.display='none'; bdayErr.style.display='none';
+
+      // Enforce digits only
+      uid8.value = uid8.value.replace(/\D/g,'').slice(0,8);
+      bday.value = bday.value.replace(/\D/g,'').slice(0,8);
+
+      // URL output
+      const d = bday.value;
+      urlOut.value = d && d.length===8 ? `nfc-hbbk.vercel.app/?d=${d}&uuid=` : 'nfc-hbbk.vercel.app/?d=YYYYMMDD&uuid=';
+
+      // Life path
+      const val = computeLifePath(d);
+      lpn.textContent = val? String(val) : '—';
+    }
+
+    uid8.addEventListener('input', update);
+    bday.addEventListener('input', update);
+
+    document.getElementById('copyUid').addEventListener('click', async()=>{
+      const full = '394950' + (uid8.value||'');
+      if(uid8.value.length!==8){ uidErr.textContent='請輸入完整 8 碼（後 8 碼）'; uidErr.style.display='block'; return; }
+      await navigator.clipboard.writeText(full);
+      showToast('UID 已複製：' + full);
+    });
+
+    document.getElementById('copyUrl').addEventListener('click', async()=>{
+      if(bday.value.length!==8){ bdayErr.textContent='出生年月日需為 8 碼 YYYYMMDD'; bdayErr.style.display='block'; return; }
+      await navigator.clipboard.writeText(urlOut.value);
+      showToast('網址已複製');
+    });
+
+    document.getElementById('clearAll').addEventListener('click', ()=>{
+      uid8.value=''; bday.value=''; lpn.textContent='—'; urlOut.value='nfc-hbbk.vercel.app/?d=YYYYMMDD&uuid='; 
+      uidErr.style.display='none'; bdayErr.style.display='none';
+      showToast('已清除');
+    });
+
+    // Initialize
+    update();
+  </script>
+</body>
+</html>
