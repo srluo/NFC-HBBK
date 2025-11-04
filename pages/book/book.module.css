@@ -1,4 +1,6 @@
-/* /pages/book/book.module.css */
+/* ------------------------------------------ */
+/* 基底樣式（原生日書） */
+/* ------------------------------------------ */
 
 .container {
   min-height: 100vh;
@@ -49,19 +51,8 @@
   font-size: 1rem;
 }
 
-/* 錢包 */
-.walletBox {
-  background: #fff;
-  padding: 1rem;
-  border-radius: 16px;
-  max-width: 420px;
-  margin: 1rem auto;
-  text-align: center;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-}
-
-/* 菜單 */
-.menuBox {
+/* 錢包與菜單 */
+.walletBox, .menuBox {
   background: #fff;
   padding: 1rem;
   border-radius: 16px;
@@ -87,16 +78,24 @@
 .section {
   background: #fff;
   border-radius: 16px;
-  padding: 1rem;
+  padding: 1.2rem 1rem;
   margin: 1rem auto;
   max-width: 420px;
   box-shadow: 0 2px 8px rgba(0,0,0,0.1);
 }
 
+.section h1,
+.section h2,
 .section h3 {
-  font-size: 1.3rem;
-  margin-bottom: 0.3rem;
+  text-align: center;
   color: #d2691e;
+  margin-bottom: 0.6rem;
+}
+
+.section p {
+  text-align: center;
+  line-height: 1.7;
+  color: #333;
 }
 
 /* Footer */
@@ -106,7 +105,7 @@
   padding-bottom: 1rem;
 }
 
-.footerBtn {
+.footerBtn, .buyBtn, .siteBtn, .backBtn {
   display: block;
   width: 100%;
   max-width: 420px;
@@ -122,11 +121,9 @@
 .buyBtn {
   background: linear-gradient(90deg, #ff7f50, #ff6347);
 }
-
 .siteBtn {
   background: linear-gradient(90deg, #40c0ff, #0099cc);
 }
-
 .backBtn {
   background: #d2691e;
 }
@@ -137,12 +134,11 @@
   margin-top: 0.6rem;
 }
 
-/* Header 區塊微調 */
+/* Header 區塊 */
 .header {
   text-align: center;
   margin-bottom: 1.2rem;
 }
-
 .title {
   font-size: 1.8rem;
   font-weight: bold;
@@ -150,7 +146,6 @@
   text-align: center;
   margin: 0.5rem 0 0.3rem 0;
 }
-
 .subtitle {
   font-size: 1rem;
   color: #555;
@@ -183,6 +178,7 @@
   color: #555;
 }
 
+/* PIN 輸入 */
 .pinOverlay {
   position: fixed;
   inset: 0;
@@ -227,4 +223,143 @@
   border: 1px solid #ccc;
   outline: none;
   background: #fff;
+}
+
+/* ------------------------------------------ */
+/* Intro 專用：淡入動畫與輪播 */
+/* ------------------------------------------ */
+.price {
+  font-size: 1.2rem;
+  color: #d2691e;
+  margin: 8px 0;
+}
+
+.backLink {
+  display: inline-block;
+  margin-top: 8px;
+  color: #d2691e;
+  text-decoration: none;
+  font-size: 0.95rem;
+}
+
+.fade {
+  opacity: 0;
+  transform: translateY(24px);
+  transition: opacity 0.8s ease, transform 0.8s ease;
+}
+.visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* React 輪播區塊外觀（由 Carousel 元件控制） */
+.carousel {
+  overflow: hidden;
+  border-radius: 16px;
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.15);
+  margin: 1.2rem auto;
+  max-width: 900px;
+}
+
+/* ------------------------------------------ */
+/* Icon 三格版式（Intro 第三區） */
+/* ------------------------------------------ */
+
+.grid3 {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 24px;
+  margin-top: 1.5rem;
+  justify-items: center;
+  align-items: start;
+}
+
+.grid3 div {
+  background: #fff;
+  border-radius: 16px;
+  padding: 1.2rem 1rem;
+  text-align: center;
+  box-shadow: 0 3px 8px rgba(0,0,0,0.08);
+  transition: transform 0.25s ease, box-shadow 0.25s ease;
+  width: 100%;
+  max-width: 260px;
+}
+
+.grid3 div:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 6px 16px rgba(0,0,0,0.12);
+}
+
+.grid3 img {
+  width: 72px;
+  height: 72px;
+  object-fit: contain;
+  margin-bottom: 0.6rem;
+  display: block;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.grid3 p {
+  font-size: 0.92rem;
+  line-height: 1.5;
+  color: #333;
+}
+
+.grid3 strong {
+  color: #d2691e;
+  font-size: 1rem;
+  display: block;
+  margin-bottom: 0.2rem;
+}
+
+/* ------------------------------------------ */
+/* 共用輔助樣式 */
+/* ------------------------------------------ */
+
+.highlight {
+  color: #d2691e;
+  font-weight: 700;
+  margin-top: 0.6rem;
+}
+
+.heroImage {
+  width: 100%;
+  max-width: 420px;
+  display: block;
+  margin: 1rem auto;
+  border-radius: 12px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+}
+
+.buyBtn {
+  display: block;
+  width: 100%;
+  max-width: 420px;
+  margin: 0.5rem auto;
+  padding: 0.7rem;
+  font-size: 1rem;
+  border: none;
+  border-radius: 10px;
+  color: #fff;
+  cursor: pointer;
+  background: linear-gradient(90deg, #ff7f50, #ff6347);
+}
+
+.copy {
+  font-size: 0.85rem;
+  color: #777;
+  margin-top: 0.6rem;
+}
+
+/* ------------------------------------------ */
+/* 結尾動畫（scroll 進入時逐格淡入） */
+/* ------------------------------------------ */
+
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(20px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.fade.visible {
+  animation: fadeUp 0.8s ease forwards;
 }
