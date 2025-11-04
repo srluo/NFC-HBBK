@@ -412,7 +412,7 @@ export default function Book() {
       <footer className={styles.footer}>
         <button
           className={`${styles.footerBtn} ${styles.buyBtn}`}
-          onClick={() => window.open("https://www.nfctogo.com/birthdaycard", "_blank")}
+          onClick={() => window.open("/intro", "_blank")}
         >
           🎁 購買生日卡
         </button>
