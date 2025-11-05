@@ -17,7 +17,7 @@ export default function Book() {
   const router = useRouter();
 
   // ------------------------------------------------------------
-  // Token 驗證與 Session 儲存 (10 分鐘 TTL)
+  // Token 驗證與 Session 儲存 (10 分鐘 TTL) — v3.9.1 Secure Fix
   // ------------------------------------------------------------
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -25,27 +25,40 @@ export default function Book() {
     const cached = sessionStorage.getItem("book_token");
     const exp = Number(sessionStorage.getItem("book_token_exp") || 0);
 
-    // 若無新 token 且舊 token 過期
+    // 若無新 token 且舊 token 過期 → 清除並要求重新感應
     if (!t && (!cached || Date.now() > exp)) {
-      setStatus("❌ Token 過期或缺失，請重新感應生日卡 📱");
+      console.warn("⚠️ Token 過期或缺失，需重新感應生日卡");
+      sessionStorage.removeItem("book_token");
+      sessionStorage.removeItem("book_token_exp");
+      sessionStorage.removeItem("book_card_cache");
+      setStatus("❌ Token 已過期，請重新感應生日卡 📱");
       return;
     }
 
-    // 使用新 token 時：解碼並存入 sessionStorage
+    // 使用新 token 或仍在有效期內的舊 token
     const tokenToUse = t || cached;
     try {
       const decoded = atob(tokenToUse);
       const parts = decoded.split(":");
       const expFromToken = parts.length >= 5 ? Number(parts[4]) : Date.now() + 600000;
+
       if (Date.now() > expFromToken) {
+        console.warn("⚠️ Token 已逾時，請重新感應生日卡");
+        sessionStorage.removeItem("book_token");
+        sessionStorage.removeItem("book_token_exp");
+        sessionStorage.removeItem("book_card_cache");
         setStatus("⚠️ Token 已逾時，請重新感應生日卡 📱");
         return;
       }
+
+      // 儲存 token 與有效期
       sessionStorage.setItem("book_token", tokenToUse);
       sessionStorage.setItem("book_token_exp", expFromToken.toString());
       setToken(tokenToUse);
     } catch (err) {
       console.error("Token 解碼錯誤:", err);
+      sessionStorage.removeItem("book_token");
+      sessionStorage.removeItem("book_token_exp");
       setStatus("❌ Token 無效，請重新感應生日卡");
       return;
     }
@@ -71,6 +84,7 @@ export default function Book() {
             console.warn("⚠️ JSON 解析錯誤:", err);
           }
           setCard(parsed);
+          sessionStorage.setItem("book_card_cache", JSON.stringify(parsed));
           setStatus("ok");
           if (parsed.pins && parsed.pins.enabled === true) setPinStage("verify");
           else setPinStage("unlocked");
@@ -85,19 +99,24 @@ export default function Book() {
   }, [token]);
 
   // ------------------------------------------------------------
-  // 自動上鎖：閒置 5 分鐘
+  // 自動上鎖：閒置 5 分鐘（僅在 PIN 啟用時）
   // ------------------------------------------------------------
   useEffect(() => {
     let timer;
     if (pinStage === "unlocked") {
       timer = setTimeout(() => {
-        console.log("⏳ 自動上鎖");
-        setPinStage("verify");
-        setPinInput("");
+        if (card?.pins?.enabled) {
+          console.log("⏳ 自動上鎖（PIN 已啟用）");
+          setPinStage("verify");
+          setPinInput("");
+        } else {
+          console.log("⏳ Session 過期但未設定 PIN，保持解鎖狀態");
+          setPinStage("unlocked");
+        }
       }, 5 * 60 * 1000);
     }
     return () => clearTimeout(timer);
-  }, [pinStage]);
+  }, [pinStage, card]);
 
   // ------------------------------------------------------------
   // 訂閱檢查
@@ -127,7 +146,6 @@ export default function Book() {
   // ------------------------------------------------------------
   useEffect(() => {
     if (!card || subStatus !== "ok") return;
-
     const todayKey = `ai-daily-${card.uid}-${new Date().toISOString().slice(0, 10)}`;
     const cached = localStorage.getItem(todayKey);
     if (cached) {
@@ -162,7 +180,7 @@ export default function Book() {
   }, [card, subStatus]);
 
   // ------------------------------------------------------------
-  // 設定 PIN
+  // 設定 / 驗證 / 修改 / 關閉 PIN
   // ------------------------------------------------------------
   const handleSetPin = async () => {
     if (pinInput.length < 4) return setPinMsg("請輸入至少 4 位數 PIN");
@@ -178,15 +196,11 @@ export default function Book() {
         setPinStage("unlocked");
         card.pins = { ...card.pins, enabled: true };
       } else setPinMsg(`⚠️ ${data.error}`);
-    } catch (err) {
-      console.error(err);
+    } catch {
       setPinMsg("❌ 系統錯誤");
     }
   };
 
-  // ------------------------------------------------------------
-  // 驗證 PIN
-  // ------------------------------------------------------------
   const handleVerifyPin = async () => {
     if (pinInput.length < 4) return setPinMsg("請輸入 PIN 碼");
     try {
@@ -199,18 +213,12 @@ export default function Book() {
       if (data.ok) {
         setPinStage("unlocked");
         setPinMsg("");
-      } else {
-        setPinMsg(data.error || "PIN 錯誤");
-      }
-    } catch (err) {
-      console.error(err);
+      } else setPinMsg(data.error || "PIN 錯誤");
+    } catch {
       setPinMsg("❌ 系統錯誤");
     }
   };
 
-  // ------------------------------------------------------------
-  // 修改 PIN
-  // ------------------------------------------------------------
   const handleChangePin = async () => {
     if (pinInput.length < 4 || pinNew.length < 4)
       return setPinMsg("請輸入舊 PIN 與新 PIN");
@@ -225,15 +233,11 @@ export default function Book() {
         setPinMsg("✅ PIN 已更新！");
         setPinStage("unlocked");
       } else setPinMsg(`⚠️ ${data.error}`);
-    } catch (err) {
-      console.error(err);
+    } catch {
       setPinMsg("❌ 系統錯誤");
     }
   };
 
-  // ------------------------------------------------------------
-  // 關閉 PIN 鎖
-  // ------------------------------------------------------------
   const handleDisablePin = async () => {
     if (!confirm("確定要解除 PIN 鎖？")) return;
     try {
@@ -248,8 +252,7 @@ export default function Book() {
         setPinStage("unlocked");
         setCard({ ...card, pins: { enabled: false } });
       } else alert(`⚠️ ${data.error}`);
-    } catch (err) {
-      console.error(err);
+    } catch {
       alert("❌ 系統錯誤");
     }
   };
@@ -258,7 +261,25 @@ export default function Book() {
   // 畫面狀態
   // ------------------------------------------------------------
   if (status === "loading") return <p className={styles.loading}>⏳ 載入中...</p>;
-  if (status !== "ok") return <p className={styles.error}>{status}</p>;
+
+  if (status !== "ok") {
+    return (
+      <div className={styles.container}>
+        <div className={styles.cardHeader}>
+          <h3>📡 {status}</h3>
+          <p style={{ marginTop: "1rem", color: "#666" }}>
+            若卡片仍有效，請重新感應 NFC 生日卡以繼續使用。
+          </p>
+          <button
+            className={styles.expandBtn}
+            onClick={() => (window.location.href = "https://nfc-hbbk.vercel.app/")}
+          >
+            🔄 重新感應生日卡
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   // 🔒 PIN 互動階段（設定 / 驗證 / 修改）
   if (["verify", "set", "modify"].includes(pinStage)) {
