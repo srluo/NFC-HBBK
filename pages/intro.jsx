@@ -20,6 +20,12 @@ export default function Intro() {
 
   return (
     <div className={styles.container}>
+      <header className={styles.header}>
+        <h1 className={styles.title}>NFC 生日書</h1>
+        <p className={styles.subtitle}>
+          感應智慧科技，開啟你的故事。
+        </p>
+      </header>
       {/* 第一區｜什麼是 NFC 生日書 */}
       <section className={`${styles.section} ${styles.fade}`}>
         <h2>🌅 誕生的意義</h2>
