@@ -81,15 +81,18 @@ export default function Intro() {
         <div className={styles.grid3}>
           <div>
             <img src="/icons/nfc.png" alt="NFC" />
-            <p><strong>NFC 感應卡片</strong><br/>專屬硬體識別，唯一序號</p>
+            <h3 className={styles.highlight}>NFC 感應卡片</h3>
+            <p>專屬硬體識別，唯一序號</p>
             </div>
             <div>
             <img src="/icons/lock.png" alt="安全" />
-            <p><strong>個人隱私保護</strong><br/>PIN 解鎖，僅本人可開啟</p>
+            <h3 className={styles.highlight}>個人隱私保護</h3> 
+            <p>PIN 解鎖，僅本人可開啟</p>
             </div>
             <div>
             <img src="/icons/data.png" alt="輕量" />
-            <p><strong>資料最小化</strong><br/>不留報告，只保存必要命盤</p>
+              <h3 className={styles.highlight}>資料最小化</h3>
+            <p>不留報告，只保存必要命盤</p>
             </div>
         </div>
       </section>
