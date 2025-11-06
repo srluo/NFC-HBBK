@@ -131,14 +131,17 @@ export default function Intro() {
         {/* 三角色簡介 */}
         <div className={styles.grid3}>
           <div>
+            <img src="/icons/mentor.png" alt="導師" />
             <h3 className={styles.highlight}>導師</h3>
             <p>提供方向與洞察，幫助你理解人生節奏。</p>
           </div>
           <div>
+            <img src="/icons/partner.png" alt="夥伴" />
             <h3 className={styles.highlight}>夥伴</h3>
             <p>陪你面對選擇與挑戰，保持穩定與勇氣。</p>
           </div>
           <div>
+            <img src="/icons/companion.png" alt="陪伴者" />
             <h3 className={styles.highlight}>陪伴者</h3>
             <p>以溫柔語氣提醒，適時給予支持與安慰。</p>
           </div>
