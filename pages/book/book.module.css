@@ -267,9 +267,9 @@
 
 .grid3 {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  grid-template-columns: repeat(1, 1fr);
   gap: 24px;
-  margin-top: 1.5rem;
+  margin-top: 1rem;
   justify-items: center;
   align-items: start;
 }
@@ -282,17 +282,19 @@
   box-shadow: 0 3px 8px rgba(0,0,0,0.08);
   transition: transform 0.25s ease, box-shadow 0.25s ease;
   width: 100%;
-  max-width: 260px;
+  max-width: 380px;
 }
 
-.grid3 div:hover {
-  transform: translateY(-4px);
-  box-shadow: 0 6px 16px rgba(0,0,0,0.12);
+/* 讓第三格居中顯示 */
+.grid3 div:last-child {
+  grid-column: 1 / -1;
+  justify-self: center;
+  max-width: 380px;
 }
 
 .grid3 img {
-  width: 72px;
-  height: 72px;
+  width: 96px;
+  height: 96px;
   object-fit: contain;
   margin-bottom: 0.6rem;
   display: block;
@@ -367,7 +369,7 @@
 /* 對話語錄樣式（簡潔正式版） */
 .dialogQuote {
   font-style: italic;
-  color: #999;
+  color: #a15539 !important;
   line-height: 1.6;
   margin-top: 0.6rem;
 }

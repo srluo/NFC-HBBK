@@ -133,7 +133,7 @@ export default function Intro() {
           <div>
             <img src="/icons/mentor.png" alt="導師" />
             <h3 className={styles.highlight}>導師</h3>
-            <p>提供方向與洞察，幫助你理解人生節奏。</p>
+            <p>提供方向與洞察， <br/>幫助你理解人生節奏。</p>
             <p className={styles.dialogQuote}>
                 妳有強烈的表達慾望與創造能量，同時也渴望被理解與認可。...
                 今天，請勇敢說出妳心中的想法。妳的真誠，就是最有力量的起點。</p>
@@ -141,7 +141,7 @@ export default function Intro() {
           <div>
             <img src="/icons/partner.png" alt="夥伴" />
             <h3 className={styles.highlight}>夥伴</h3>
-            <p>陪你面對選擇與挑戰，保持穩定與勇氣。</p>
+            <p>陪你面對選擇與挑戰， <br/>保持穩定與勇氣。</p>
             <p className={styles.dialogQuote}>
                 你有掌控的慾望，也有分享的熱情。真正的力量，在於懂得給別人空間。...  
                 今天的主題是節奏。在會議中多聽三秒再回答，你的判斷會因此更準確。</p>      
@@ -149,7 +149,7 @@ export default function Intro() {
           <div>
             <img src="/icons/companion.png" alt="陪伴者" />
             <h3 className={styles.highlight}>陪伴者</h3>
-            <p>以溫柔語氣提醒，適時給予支持與安慰。</p>
+            <p>以溫柔語氣提醒， <br/>適時給予支持與安慰。</p>
             <p className={styles.dialogQuote}>
                 你是行動派的思考者。經驗讓你更懂得取捨，也讓你學會溫柔地面對不確定。...
                 今天適合慢下腳步，整理思緒而非衝刺。放過自己一點，才能走得更遠。</p>
