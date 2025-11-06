@@ -363,3 +363,17 @@
 .fade.visible {
   animation: fadeUp 0.8s ease forwards;
 }
+
+/* 對話語錄樣式（簡潔正式版） */
+.dialogQuote {
+  font-style: italic;
+  color: #999;
+  line-height: 1.6;
+  margin-top: 0.6rem;
+}
+.dialogQuote::before {
+  content: "「";
+}
+.dialogQuote::after {
+  content: "」";
+}
