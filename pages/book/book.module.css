@@ -289,7 +289,7 @@
 .grid3 div:last-child {
   grid-column: 1 / -1;
   justify-self: center;
-  max-width: 280px;
+  max-width: 240px;
 }
 
 .grid3 img {
