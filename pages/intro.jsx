@@ -97,6 +97,30 @@ export default function Intro() {
         </div>
       </section>
 
+      {/* 第四區｜探索人生（加值服務） */}
+      <section className={`${styles.section} ${styles.fade}`}>
+        <h2>🔮 探索人生</h2>
+        <h3 className={styles.highlight}>智慧加值服務</h3>
+        <p>
+          NFC 生日書不僅是一份禮物，更是一套能隨時間成長的智慧系統。  
+          透過「加值服務」，你可以解鎖更深入的個人報告、  
+          每日行動建議、年度運勢與人格洞察。  
+          每一次感應，都是一次與自己的對話。
+        </p>
+
+        <img
+          src="/img/demo_mpc.png"
+          alt="智慧引導模型"
+          className={styles.heroImage}
+        />
+
+        <p>
+          以「導師、夥伴、陪伴者」三角色模型為核心，  
+          系統會根據你的節奏調整內容。  
+          它不只是命理，而是一種溫柔而智慧的提醒。  
+        </p>
+      </section>
+
       {/* CTA 區｜結尾 */}
       <footer className={styles.footer}>
         <h3>🎁 讓「生日」成為被記錄與理解的一天</h3>
