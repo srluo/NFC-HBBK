@@ -282,14 +282,14 @@
   box-shadow: 0 3px 8px rgba(0,0,0,0.08);
   transition: transform 0.25s ease, box-shadow 0.25s ease;
   width: 100%;
-  max-width: 320px;
+  max-width: 240px;
 }
 
 /* 讓第三格居中顯示 */
 .grid3 div:last-child {
   grid-column: 1 / -1;
   justify-self: center;
-  max-width: 320px;
+  max-width: 280px;
 }
 
 .grid3 img {
