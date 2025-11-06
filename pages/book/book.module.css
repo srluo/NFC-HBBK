@@ -277,7 +277,7 @@
 .grid3 div {
   background: #fff2d6;
   border-radius: 16px;
-  padding: 1.2rem 1rem;
+  padding: 30px 30px;
   text-align: center;
   box-shadow: 0 3px 8px rgba(0,0,0,0.08);
   transition: transform 0.25s ease, box-shadow 0.25s ease;
