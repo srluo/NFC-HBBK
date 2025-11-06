@@ -30,8 +30,8 @@ export default function Intro() {
         <h2>🌅 誕生的意義</h2>
         <p>
           NFC 生日書是一份專屬於你的智慧禮物。  
-          每張卡內含 NFC 感應晶片，結合現代科技與溫度設計，  
-          感應之間，開啟屬於你的人格故事。
+          每張卡內含 NFC 感應晶片，結合現代科技與人文設計，  
+          在每次感應之際，開啟屬於你的人生故事。
         </p>
 
         <Carousel
@@ -42,7 +42,7 @@ export default function Intro() {
           ]}
         />
         <p>
-          這不是一本普通的書，而是一份「屬於你的人格記錄」。  
+          這不是一本普通的『書』，而是一份『屬於你的人生記錄』。  
           從生日開始，它記下你的特質、節奏與潛能，  
           是每個階段都能重新開啟的時間膠囊。
         </p>
@@ -82,17 +82,17 @@ export default function Intro() {
           <div>
             <img src="/icons/nfc.png" alt="NFC" />
             <h3 className={styles.highlight}>NFC 感應卡片</h3>
-            <p>專屬硬體識別，唯一序號</p>
+            <p>專屬硬體識別，唯一序號；每次感應即產生新的存取動態碼，防止竊取。</p>
           </div>
           <div>
             <img src="/icons/lock.png" alt="安全" />
             <h3 className={styles.highlight}>個人隱私保護</h3> 
-            <p>PIN 解鎖，僅本人可開啟</p>
+            <p>PIN 解鎖，僅本人可開啟；具時效性的生日書頁瀏覽，閒置即自動上鎖。</p>
           </div>
           <div>
             <img src="/icons/data.png" alt="輕量" />
             <h3 className={styles.highlight}>資料最小化</h3>
-            <p>不留報告，只保存必要命盤</p>
+            <p>不留報告，只保存必要命盤；可以暱稱保存，無需綁定個資帳號。</p>
           </div>
         </div>
       </section>
