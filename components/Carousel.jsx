@@ -4,6 +4,7 @@ import styles from "./Carousel.module.css";
 
 export default function Carousel({ images = [] }) {
   const [index, setIndex] = useState(0);
+  const [selectedImage, setSelectedImage] = useState(null); // 新增：放大預覽
   const timeoutRef = useRef(null);
 
   // 自動輪播控制
@@ -17,14 +18,30 @@ export default function Carousel({ images = [] }) {
   const prev = () => setIndex((i) => (i - 1 + images.length) % images.length);
   const next = () => setIndex((i) => (i + 1) % images.length);
 
+  // Esc 關閉預覽
+  useEffect(() => {
+    const handleEsc = (e) => {
+      if (e.key === "Escape") setSelectedImage(null);
+    };
+    window.addEventListener("keydown", handleEsc);
+    return () => window.removeEventListener("keydown", handleEsc);
+  }, []);
+
   return (
     <div className={styles.carousel}>
+      {/* 輪播主體 */}
       <div
         className={styles.slides}
         style={{ transform: `translateX(-${index * 100}%)` }}
       >
         {images.map((src, i) => (
-          <img key={i} src={src} alt={`slide-${i}`} />
+          <img
+            key={i}
+            src={src}
+            alt={`slide-${i}`}
+            onClick={() => setSelectedImage(src)} // 點擊放大
+            className={styles.slideImage}
+          />
         ))}
       </div>
 
@@ -46,6 +63,20 @@ export default function Carousel({ images = [] }) {
           ></span>
         ))}
       </div>
+
+      {/* 放大預覽層 */}
+      {selectedImage && (
+        <div
+          className={styles.lightboxOverlay}
+          onClick={() => setSelectedImage(null)}
+        >
+          <img
+            src={selectedImage}
+            alt="Preview"
+            className={styles.lightboxImage}
+          />
+        </div>
+      )}
     </div>
   );
 }
