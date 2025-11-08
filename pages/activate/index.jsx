@@ -1,4 +1,4 @@
-// /pages/activate/index.jsx — v2.2.1-stable（補填完成自動回書本）
+// /pages/activate/index.jsx — v2.3.1-birthdayLockNotice
 "use client";
 import { useState, useEffect } from "react";
 import styles from "./activate.module.css";
@@ -6,6 +6,9 @@ import styles from "./activate.module.css";
 export default function Activate() {
   const [status, setStatus] = useState("idle");
   const [isUpdate, setIsUpdate] = useState(false);
+  const [isLocked, setIsLocked] = useState(false); // 🔒 是否鎖定生日
+  const [isUnbound, setIsUnbound] = useState(false); // 🎯 d=00000000
+
   const [form, setForm] = useState({
     token: "",
     user_name: "",
@@ -17,7 +20,7 @@ export default function Activate() {
   });
 
   // ------------------------------------------------------------
-  // 🧭 初始化：讀取 URL 參數
+  // 🧭 初始化：讀取 URL 參數 + 嘗試讀取既有卡資料
   // ------------------------------------------------------------
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -25,20 +28,26 @@ export default function Activate() {
     const token = params.get("token") || "";
     const mode = params.get("mode") || "";
     setIsUpdate(mode === "update");
+
+    const unbound = d === "00000000";
+    setIsUnbound(unbound);
     setForm((prev) => ({ ...prev, birthday: d, token }));
 
-    // 若為補填模式，自動載入舊資料
-    if (mode === "update" && token) {
+    if (token) {
       fetch(`/api/getCard?token=${token}`)
         .then((res) => res.json())
         .then((data) => {
-          if (data.ok && data.card) {
+          if (data?.ok && data.card) {
             const c = data.card;
+            const hasBirth = !!c.birthday && c.birthday !== "00000000";
+            const alreadyActive = c.status === "ACTIVE";
+            setIsLocked(hasBirth || alreadyActive);
+
             setForm({
               token,
               user_name: c.user_name || "",
               gender: c.gender || "",
-              birthday: c.birthday || d,
+              birthday: hasBirth ? c.birthday : d,
               blood_type: c.blood_type || "",
               hobbies: c.hobbies || "",
               birth_time: c.birth_time || "",
@@ -56,15 +65,43 @@ export default function Activate() {
     setForm({ ...form, [e.target.name]: e.target.value });
 
   // ------------------------------------------------------------
+  // 🧪 基本生日格式檢查（YYYYMMDD）
+  // ------------------------------------------------------------
+  function isValidYYYYMMDD(x) {
+    if (!/^\d{8}$/.test(x)) return false;
+    const y = parseInt(x.slice(0, 4), 10);
+    const m = parseInt(x.slice(4, 6), 10);
+    const d = parseInt(x.slice(6, 8), 10);
+    if (y < 1900 || y > 2100) return false;
+    if (m < 1 || m > 12) return false;
+    const mdays = [31, (y % 4 === 0 && y % 100 !== 0) || y % 400 === 0 ? 29 : 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
+    return d >= 1 && d <= mdays[m - 1];
+  }
+
+  // ------------------------------------------------------------
   // 🚀 送出開卡／補填
   // ------------------------------------------------------------
   const handleSubmit = async (e) => {
     e.preventDefault();
 
+    if (!isLocked) {
+      if (!form.birthday || form.birthday === "19990101") {
+        alert("請輸入生日（YYYYMMDD）後再送出。");
+        return;
+      }
+      if (!isValidYYYYMMDD(form.birthday)) {
+        alert("生日格式需為 YYYYMMDD，請重新確認。");
+        return;
+      }
+
+      // ⚠️ 一次性警示
+      const confirmLock = confirm("⚠️ 生日輸入後將永久綁定，無法再修改。\n請再次確認生日是否正確。");
+      if (!confirmLock) return;
+    }
+
     const hasGender = !!form.gender && form.gender.trim() !== "";
     const hasTime = !!form.birth_time && form.birth_time.trim() !== "";
 
-    // ⚠️ 檢查性別與時辰必須同時存在或同時留空
     if ((hasGender && !hasTime) || (!hasGender && hasTime)) {
       alert("性別與出生時辰必須同時填寫或同時留空。");
       return;
@@ -87,13 +124,7 @@ export default function Activate() {
       }
 
       if (data.ok && data.card) {
-        if (isUpdate) {
-          setStatus("✅ 補填完成，已贈送 20 點！正在返回生日書...");
-        } else {
-          setStatus("🎉 開卡成功！即將進入生日書...");
-        }
-
-        // ✅ 延遲 1.5 秒，確保 Redis 寫入完成
+        setStatus(isUpdate ? "✅ 補填完成！正在返回生日書..." : "🎉 開卡成功！即將進入生日書...");
         setTimeout(() => {
           window.location.href = `/book?token=${form.token}`;
         }, 1500);
@@ -126,7 +157,25 @@ export default function Activate() {
         />
 
         <label>生日</label>
-        <input name="birthday" value={form.birthday} readOnly />
+        <input
+          name="birthday"
+          value={form.birthday}
+          onChange={handleChange}
+          readOnly={isLocked}
+          required={!isLocked}
+          placeholder="YYYYMMDD"
+        />
+        {/* 🎯 生日提示 */}
+        {!isLocked && isUnbound && (
+          <p className={styles.tip} style={{ color: "#d00", fontWeight: "bold" }}>
+            ⚠️ 生日輸入後將無法再更改！
+          </p>
+        )}
+        {isLocked && (
+          <p className={styles.tip} style={{ color: "#666" }}>
+            🔒 此生日已綁定，無法修改。
+          </p>
+        )}
 
         <label>血型</label>
         <select

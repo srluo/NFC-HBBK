@@ -198,7 +198,7 @@ export default function BookFirst() {
 
       {/* 🎁 補填提示 */}
       {isBasic && (
-        <section className={styles.walletBox}>
+        <section className={styles.menuBox}>
           <h3>🎁 填寫完整資訊可獲贈 <strong>20 點</strong>！</h3>
           <p style={{ marginTop: "0.3rem" }}>補填性別與出生時辰，開啟紫微命格分析 🔮</p>
           <button
@@ -212,11 +212,11 @@ export default function BookFirst() {
       )}
 
       {/* 💎 點數資訊 */}
-      <section className={styles.walletBox}>
+      <section className={styles.menuBox}>
         <h3>💎 目前點數：{card.points}</h3>
         <button
           className={styles.expandBtn}
-          style={{ marginTop: "0.6rem" }}
+          style={{ background: "#ff9800", marginTop: "0.6rem" }}
           onClick={() => router.push(`/book?token=${token}`)}
         >
           🔙 返回生日書

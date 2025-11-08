@@ -52,7 +52,16 @@
 }
 
 /* 錢包與菜單 */
-.walletBox, .menuBox {
+.walletBox {
+  background: #fff;
+  padding: 1rem;
+  border-radius: 16px;
+  max-width: 420px;
+  margin: 1rem auto;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+}
+
+.menuBox {
   background: #fff;
   padding: 1rem;
   border-radius: 16px;
@@ -93,7 +102,6 @@
 }
 
 .section p {
-  text-align: center;
   line-height: 1.7;
   color: #333;
 }

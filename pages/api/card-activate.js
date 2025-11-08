@@ -1,8 +1,8 @@
-// ------------------------------------------------------------
-// /pages/api/card-activate.js — v2.6.5-stable
-// ✅ 自動建立 pins:{} 結構
-// ✅ 保留原有邏輯完全不變
-// ------------------------------------------------------------
+// /pages/api/card-activate.js — v2.7.5-minimalSub
+// ✅ 補填送點後不再建立 daily=false 結構
+// ✅ 若無訂閱資料則保持空值（undefined）
+// ✅ 保留 birthday lock + AI + points 流程一致
+
 import { redis } from "../../lib/redis.js";
 import { fortuneCore } from "../../lib/fortuneCore.js";
 import { getLuckyNumber } from "../../lib/luckyNumber.js";
@@ -13,48 +13,44 @@ export default async function handler(req, res) {
   try {
     const { token, user_name, gender, blood_type, hobbies, birth_time, birthday } =
       req.body || {};
-    if (!token || !user_name || !birthday)
+    if (!token || !user_name)
       return res.status(400).json({ error: "缺少必要參數" });
 
-    // 🧩 Token → UID
     const [uid] = Buffer.from(token, "base64").toString().split(":");
     if (!uid) return res.status(400).json({ error: "Token 解析錯誤" });
 
-    // 🌕 命理核心
-    const { ok, lunar, pillars, ziwei, error } = await fortuneCore(
-      birthday,
-      birth_time,
-      gender
-    );
-
-    if (!ok) console.warn("⚠️ fortuneCore 錯誤:", error);
-
-    // 🎯 幸運數字
-    const { lucky_number, lucky_desc } = getLuckyNumber(String(birthday));
-
-    // 🗄️ 讀取舊資料
     const cardKey = `card:${uid}`;
     const existing = (await redis.hgetall(cardKey)) || {};
+
+    // 🔒 生日鎖定
+    const existingBirthday = existing.birthday || "00000000";
+    const existingStatus = existing.status || "PENDING";
+    const isAlreadyBound = existingBirthday !== "00000000";
+    const isActive = existingStatus === "ACTIVE";
+
+    if ((isAlreadyBound || isActive) && birthday && birthday !== existingBirthday)
+      return res.status(400).json({ error: "生日已綁定，無法修改" });
+
+    if (!isAlreadyBound && (!birthday || birthday === "00000000"))
+      return res.status(400).json({ error: "Capsule 卡必須輸入生日" });
+
+    const finalBirthday = isAlreadyBound ? existingBirthday : birthday;
+
+    // 🌕 命理與幸運數字
+    const { ok, lunar, pillars, ziwei } = await fortuneCore(finalBirthday, birth_time, gender);
+    const { lucky_number, lucky_desc } = getLuckyNumber(String(finalBirthday));
+
+    // 💎 點數邏輯
     const first_time = !existing.status || existing.status !== "ACTIVE";
     let points = Number(existing.points || 0);
-
-    // 💎 一次性獎勵邏輯
-    if (first_time) {
-      if (gender && birth_time) {
-        points += 20;
-        console.log(`🎁 ${uid} 首次開卡資料完整，贈送 20 點`);
-      }
-    } else if (
-      gender &&
-      birth_time &&
+    if (first_time && gender && birth_time) points += 20;
+    else if (
+      gender && birth_time &&
       (!existing.gender || !existing.birth_time) &&
       Number(existing.points || 0) < 20
-    ) {
-      points += 20;
-      console.log(`🎁 ${uid} 補填完整資料，贈送 20 點`);
-    }
+    ) points += 20;
 
-    // 🤖 AI 個性摘要
+    // 🤖 AI 摘要
     let ai_summary = "";
     try {
       const aiRes = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL}/api/ai-summary`, {
@@ -74,11 +70,9 @@ export default async function handler(req, res) {
       });
       const aiData = await aiRes.json();
       if (aiRes.ok && aiData.summary) ai_summary = aiData.summary;
-    } catch (err) {
-      console.error("AI 生成錯誤:", err);
-    }
+    } catch {}
 
-    // 🧭 組合資料
+    const now = new Date();
     const four_pillars = {
       year: pillars?.year || "",
       month: pillars?.month || "",
@@ -86,7 +80,6 @@ export default async function handler(req, res) {
       hour: pillars?.hour || "",
       jieqi_month: pillars?.jieqi_month || "",
     };
-
     const ziweis = {
       year_ganzhi: ziwei?.year_ganzhi || lunar?.year_ganzhi || "",
       bureau: ziwei?.bureau || "",
@@ -97,14 +90,16 @@ export default async function handler(req, res) {
       ming_stars: ziwei?.ming_main_stars || [],
     };
 
-    // 🆕 新增 pins 結構
-    const now = new Date().toISOString();
+    // 🔐 pins
     const pins = JSON.stringify({
       enabled: false,
       attempts: 0,
       locked_until: 0,
-      updated_at: now,
+      updated_at: now.toISOString(),
     });
+
+    // 🗃 subscriptions — 僅保留既有，不建立空 daily
+    let subscriptions = existing.subscriptions || "";
 
     const cardData = {
       uid,
@@ -113,7 +108,7 @@ export default async function handler(req, res) {
       birth_time: birth_time || "",
       blood_type: blood_type || "",
       hobbies: hobbies || "",
-      birthday,
+      birthday: finalBirthday,
       lunar_birthday: lunar?.lunar_birthday || "",
       zodiac: lunar?.zodiac || "",
       constellation: lunar?.constellation || "",
@@ -125,15 +120,15 @@ export default async function handler(req, res) {
       status: "ACTIVE",
       points,
       opened: true,
-      pins, // ✅ 新增欄位
+      pins,
+      subscriptions, // 🚫 不建立空 daily
       last_seen: new Date().toLocaleString("zh-TW", { hour12: false }),
       updated_at: Date.now(),
     };
 
-    // 💾 Redis 寫入
     await redis.hset(cardKey, cardData);
+    console.log(`🎉 開卡成功: ${user_name} (${uid}) ${lunar?.zodiac} ${lunar?.constellation}`);
 
-    console.log(`🎉 開卡成功: ${user_name} ${lunar?.zodiac} ${lunar?.constellation}`);
     return res.json({ ok: true, first_time, card: cardData });
   } catch (err) {
     console.error("❌ card-activate fatal error:", err);
