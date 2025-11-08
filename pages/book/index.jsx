@@ -257,7 +257,7 @@ export default function Book() {
   if (["verify", "set", "modify"].includes(pinStage)) {
     return (
       <div className={styles.container}>
-        <div className={styles.menuBox}>
+        <div className={styles.toolBox}>
           <h3>🔐 {pinStage === "set" ? "設定 PIN 碼" : pinStage === "modify" ? "修改 PIN 碼" : "輸入 PIN 碼"}</h3>
           {pinStage === "modify" ? (
             <>
@@ -358,7 +358,7 @@ export default function Book() {
 
       {/* PIN 區塊 */}
       {!card.pins || card.pins.enabled === false ? (
-        <section className={styles.menuBox}>
+        <section className={styles.toolBox}>
           <h3>🔐 生日書安全設定</h3>
           <p>您尚未啟用 PIN 上鎖。</p>
           <button className={styles.expandBtn} style={{ background: "#b46c2a" }}
@@ -367,7 +367,7 @@ export default function Book() {
           </button>
         </section>
       ) : (
-        <section className={styles.menuBox}>
+        <section className={styles.toolBox}>
           <h3>🔒 PIN 鎖已啟用</h3>
           <button className={styles.expandBtn}
             onClick={() => { setPinStage("modify"); setPinMsg(""); setPinInput(""); setPinNew(""); }}>

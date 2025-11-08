@@ -212,7 +212,7 @@ export default function BookFirst() {
       )}
 
       {/* 💎 點數資訊 */}
-      <section className={styles.menuBox}>
+      <section className={styles.toolBox}>
         <h3>💎 目前點數：{card.points}</h3>
         <button
           className={styles.expandBtn}
