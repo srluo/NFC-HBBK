@@ -244,8 +244,24 @@
 }
 
 /* ------------------------------------------ */
-/* Intro 專用：淡入動畫與輪播 */
+/* Intro/checkout 專用：淡入動畫與輪播 */
 /* ------------------------------------------ */
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 16px;
+  margin-top: 12px;
+}
+
+.panel {
+  background: #fff;
+  border: 1px solid #f2d1a1;
+  border-radius: 12px;
+  padding: 1rem;
+  text-align: center;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.05);
+}
+
 .price {
   font-size: 1.2rem;
   color: #d2691e;
