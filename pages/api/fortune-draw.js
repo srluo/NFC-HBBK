@@ -1,11 +1,13 @@
 /*****************************************************
- * 📘 fortune-draw.js — v3.7 Final (LocalStorage-based)
+ * 今日運勢分析 API v3.6.0 (for NFC Birthday Book)
  * ---------------------------------------------------
- * ✅ 只記錄 TXLOG，不再寫入 fortune:<UID>:<DATE>
- * ✅ 每次呼叫都會生成新運勢（由前端快取防重複）
- * ✅ 將結果存入 Redis txlog:<UID>:<timestamp>
+ * 改進重點：
+ * 1️⃣ 單一寫入 TXLOG（不再由 points-deduct 重複紀錄）
+ * 2️⃣ 安全處理 points_before / after
+ * 3️⃣ Fortune 結果自動寫入 localStorage 快取（前端依 key）
  * ---------------------------------------------------
- * Ver: 2025.11.10
+ * Author: Roger Luo｜NFCTOGO
+ * Date: 2025.11.10
  *****************************************************/
 import OpenAI from "openai";
 import { redis } from "../../lib/redis";
@@ -18,40 +20,44 @@ export default async function handler(req, res) {
     const { token } = req.query;
     if (!token) return res.status(400).json({ error: "缺少 token" });
 
-    // 解析 Base64 token
+    // ------------------------------------------------------------
+    // Token 解析
+    // ------------------------------------------------------------
     const decoded = Buffer.from(token, "base64").toString("utf8");
-    const [uid] = decoded.split(":");
+    const [uid, ts, rand] = decoded.split(":");
     if (!uid) return res.status(400).json({ error: "Token 格式錯誤" });
 
-    const card = await redis.hgetall(`card:${uid}`);
+    const cardKey = `card:${uid}`;
+    const card = await redis.hgetall(cardKey);
     if (!card) return res.status(404).json({ error: "找不到卡片資料" });
 
     const sign = card.constellation || "未知";
     const blood = card.blood_type || "未知";
+    const currentPoints = Number(card.points || 0);
 
-    // 🧩 Prompt A: 整體運勢
+    // ------------------------------------------------------------
+    // 生成 AI 結果
+    // ------------------------------------------------------------
     const summaryPrompt = `
 你是一位結合星座與血型的 AI 命理師。
 請根據「${sign}」與「${blood} 型」，
 生成一段約 180～220 字的今日整體運勢，
 包含：情緒、人際、能量、機會。
-語氣溫暖誠懇，避免過度樂觀。
+語氣溫暖、自然，避免重複詞。
 `;
 
-    // 🧩 Prompt B: 行動建議
     const suggestionPrompt = `
 請根據「${sign}」與「${blood} 型」，
 生成一段今日的「行動建議」，
-語氣具體溫和，約 120～180 字。
+語氣具體、平衡，約 120～180 字。
 `;
 
-    // ✨ 並行生成
     const [summaryRes, suggestionRes] = await Promise.all([
       openai.chat.completions.create({
         model: "gpt-4o-mini",
         messages: [{ role: "user", content: summaryPrompt }],
         temperature: 0.7,
-        max_tokens: 500,
+        max_tokens: 600,
       }),
       openai.chat.completions.create({
         model: "gpt-4o-mini",
@@ -64,28 +70,64 @@ export default async function handler(req, res) {
     const summary = summaryRes.choices[0].message.content.trim();
     const suggestion = suggestionRes.choices[0].message.content.trim();
 
-    // 🧾 TXLOG 寫入（保留最近 10 筆）
-    const txKey = `card:${uid}:txlog`;
-    const txItem = {
+    // ------------------------------------------------------------
+    // 扣點邏輯（僅第一次扣）
+    // ------------------------------------------------------------
+    const today = new Date().toISOString().slice(0, 10);
+    const flagKey = `fortune:${uid}:${today}`;
+    const done = await redis.get(flagKey);
+    let deducted = 0;
+    let before = currentPoints;
+    let after = currentPoints;
+
+    if (!done) {
+      if (currentPoints <= 0)
+        return res.status(403).json({ error: "點數不足" });
+
+      deducted = 1;
+      after = currentPoints - 1;
+
+      await redis
+        .multi()
+        .hincrby(cardKey, "points", -1)
+        .set(flagKey, "1", { EX: 60 * 60 * 24 })
+        .exec();
+    }
+
+    // ------------------------------------------------------------
+    // 寫入 TXLOG（card:<uid>:txlog）
+    // ------------------------------------------------------------
+    const txlogKey = `card:${uid}:txlog`;
+    const record = {
       type: "fortune",
-      sign,
-      blood,
-      summary: summary.slice(0, 200),
-      suggestion: suggestion.slice(0, 200),
-      date: new Date().toLocaleString("zh-TW", { timeZone: TZ }),
-    };
-
-    // 寫入 Redis List，保留最新 10 筆
-    await redis.lpush(txKey, JSON.stringify(txItem));
-    await redis.ltrim(txKey, 0, 9);
-
-    // 🔁 回傳結果
-    res.status(200).json({
-      ok: true,
+      service: "西洋占星・今日運勢",
+      deducted,
+      points_before: before,
+      points_after: after,
       sign,
       blood,
       summary,
       suggestion,
+      date: new Date().toLocaleString("zh-TW", { timeZone: TZ }),
+    };
+    await redis.lpush(txlogKey, JSON.stringify(record));
+    await redis.ltrim(txlogKey, 0, 9);
+
+    // ------------------------------------------------------------
+    // 回傳結果
+    // ------------------------------------------------------------
+    return res.status(200).json({
+      ok: true,
+      deducted,
+      sign,
+      blood,
+      summary,
+      suggestion,
+      points_before: before,
+      points_after: after,
+      message: deducted
+        ? "✅ 已扣 1 點並完成今日運勢。"
+        : "☀️ 今日運勢已完成（未重複扣點）。",
     });
   } catch (err) {
     console.error("[fortune-draw.js] Error:", err);

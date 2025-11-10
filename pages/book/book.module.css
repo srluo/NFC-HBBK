@@ -487,8 +487,8 @@
   border-radius: 12px;
   padding: 10px;
   font-size: 0.9rem;
-  color: #ddd;
-  max-height: 320px;
+  color: #555;
+  max-height: 240px;
   overflow-y: auto;
 }
 

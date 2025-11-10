@@ -1,105 +1,81 @@
-// /pages/api/getCard.js — v2.5.0 Hybrid Safe + TXLOG
+/*****************************************************
+ * getCard API v3.3.4 — TXLOG Robust Parse（正式修正版）
+ * ---------------------------------------------------
+ * 1️⃣ 主檔：card:<UID>（Hash）
+ * 2️⃣ 交易紀錄：card:<UID>:txlog（List, 最近 10 筆）
+ * ---------------------------------------------------
+ * Ver: 2025.11.10
+ *****************************************************/
+
 import { redis } from "../../lib/redis";
 
-// ------------------------------------------------------------
-// 🧩 共用讀寫函式
-// ------------------------------------------------------------
-async function readCard(uid) {
-  const key = `card:${uid}`;
-  try {
-    const hash = await redis.hgetall(key);
-    if (hash && Object.keys(hash).length > 0) {
-      if (hash.points) hash.points = Number(hash.points);
-      if (hash.updated_at) hash.updated_at = Number(hash.updated_at);
-      return hash;
-    }
-  } catch (e) {
-    console.error("redis.hgetall error", e);
-  }
-
-  try {
-    const val = await redis.get(key);
-    if (val) return JSON.parse(val);
-  } catch (e) {
-    console.error("redis.get error", e);
-  }
-  return null;
-}
-
-// ------------------------------------------------------------
-// ⚙️ 防呆：修正 subscriptions
-// ------------------------------------------------------------
-function sanitizeSubscriptions(raw) {
-  if (!raw) return "{}";
-  if (typeof raw !== "string") return JSON.stringify(raw);
-  const s = raw.trim();
-  if (s === "[object Object]") return "{}";
-  if (s.startsWith("{") || s.startsWith("[")) return s;
-  return "{}";
-}
-
-// ------------------------------------------------------------
-// 🧭 API 主體
-// ------------------------------------------------------------
 export default async function handler(req, res) {
-  const { token } = req.query;
-  if (!token) return res.status(400).json({ error: "缺少 token" });
-
   try {
-    // ✅ 解析 UID
-    const decoded = Buffer.from(token, "base64").toString();
+    const { token } = req.query;
+    if (!token) return res.status(400).json({ error: "缺少 token" });
+
+    // ------------------------------
+    // 解碼 token（Base64: UID14:TS8:RAND8[:EXP]）
+    // ------------------------------
+    const decoded = Buffer.from(token, "base64").toString("utf8");
     const [uid] = decoded.split(":");
-    if (!uid) return res.status(400).json({ error: "無效 token" });
+    if (!uid) return res.status(400).json({ error: "Token 格式錯誤" });
 
-    // ✅ 讀取 Redis 資料
-    const card = await readCard(uid);
-    if (!card) return res.status(404).json({ error: `找不到卡片資料 uid=${uid}` });
+    // ------------------------------
+    // 讀取主檔 Hash
+    // ------------------------------
+    const cardKey = `card:${uid}`;
+    const card = await redis.hgetall(cardKey);
+    if (!card || Object.keys(card).length === 0)
+      return res.status(404).json({ error: "找不到卡片資料" });
 
-    // ✅ 修正 subscriptions 欄位
-    const fixedSubs = sanitizeSubscriptions(card.subscriptions);
-    if (fixedSubs !== card.subscriptions) {
-      await redis.hset(`card:${uid}`, { subscriptions: fixedSubs });
-      card.subscriptions = fixedSubs;
-    }
-
-    // ✅ 判斷是否首次開卡
-    const is_first_open =
-      card.status === "ACTIVE" && (!card.opened || card.opened === "false");
-
-    // ✅ 更新 last_seen / opened（不覆蓋整包）
-    const nowStr = new Date().toISOString().replace("T", " ").slice(0, 19);
-    await redis.hset(`card:${uid}`, {
-      last_seen: nowStr,
-      opened: "true",
+    // ------------------------------
+    // 讀取交易紀錄 List（強韌解析）
+    // ------------------------------
+    const txKey = `card:${uid}:txlog`;
+    const txList = await redis.lrange(txKey, 0, 9);
+    const txlog = txList.map((t, i) => {
+      try {
+        if (!t) return {};
+        // 若本身是物件
+        if (typeof t === "object" && t !== null) return t;
+        // 嘗試清除多餘引號後解析
+        const cleaned = t.replace(/^"+|"+$/g, "").trim();
+        if (cleaned.startsWith("{") && cleaned.endsWith("}"))
+          return JSON.parse(cleaned);
+        return {};
+      } catch (err) {
+        console.warn(`[getCard] TXLOG parse failed @${i}:`, err);
+        return {};
+      }
     });
 
-    // ✅ 讀取最近 10 筆 TXLOG
-    const logKey = `card:${uid}:txlog`;
-    let txlog = [];
-    try {
-      const raw = await redis.lrange(logKey, 0, 9);
-      txlog = raw
-        .map((item) => {
-          try { return JSON.parse(item); } catch { return null; }
-        })
-        .filter(Boolean);
-    } catch (e) {
-      console.warn("⚠️ 無法讀取 TXLOG:", e.message);
+    // ------------------------------
+    // 欄位轉型與安全處理
+    // ------------------------------
+    const parsedCard = {
+      ...card,
+      points: Number(card.points ?? 0),
+      txlog,
+    };
+
+    if (typeof parsedCard.pins === "string") {
+      try {
+        parsedCard.pins = JSON.parse(parsedCard.pins);
+      } catch {
+        parsedCard.pins = {};
+      }
     }
 
-    // ✅ 回傳整合資料
-    return res.json({
+    // ------------------------------
+    // 回傳結果
+    // ------------------------------
+    res.status(200).json({
       ok: true,
-      card: {
-        ...card,
-        opened: "true",
-        last_seen: nowStr,
-        txlog,
-      },
-      is_first_open,
+      card: parsedCard,
     });
   } catch (err) {
-    console.error("getCard fatal error:", err);
-    return res.status(500).json({ error: "伺服器錯誤" });
+    console.error("[getCard.js] Error:", err);
+    res.status(500).json({ error: "系統錯誤：" + err.message });
   }
 }

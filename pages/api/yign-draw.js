@@ -1,9 +1,10 @@
 /*****************************************************
- * 易光年・占卜引擎 API v3.4 (整合 iching.js + TXLOG)
+ * 易光年・占卜引擎 API v3.5 (TXLOG 強化版)
  * ---------------------------------------------------
  * 1️⃣ 公正隨機取卦（Mickey 常數擾動）
  * 2️⃣ 人格導向 AI 解卦（星座＋血型）
  * 3️⃣ TXLOG 寫入：card:<UID14>:txlog（保留 10 筆）
+ * 4️⃣ points_before / points_after 準確對齊 Redis
  * ---------------------------------------------------
  * Data: /data/iching.js
  * Ver: 2025.11.10
@@ -46,12 +47,13 @@ export default async function handler(req, res) {
     }
 
     // ------------------------------
-    // 取卡片資料
+    // 取卡片資料與最新點數
     // ------------------------------
     const cardKey = `card:${uid}`;
     const card = await redis.hgetall(cardKey);
     const profileDesc = makeProfileDesc(card);
-    const pointsBefore = card?.points ? Number(card.points) : null;
+    const pointsNow = await redis.hget(cardKey, "points");
+    const pointsBefore = Number(pointsNow ?? 0);
 
     // ------------------------------
     // AI 解卦
@@ -73,11 +75,12 @@ export default async function handler(req, res) {
       q: question,
       date: nowStr,
       points_before: pointsBefore,
-      points_after: pointsBefore, // 此API不動點數
+      points_after: pointsBefore, // 此 API 不動點數
       ai_used: true,
     });
+
     await redis.lpush(logKey, txRecord);
-    await redis.ltrim(logKey, 0, 9); // 僅保留最近 10 筆
+    await redis.ltrim(logKey, 0, 9); // 保留最近 10 筆
 
     // ------------------------------
     // 回傳結果
