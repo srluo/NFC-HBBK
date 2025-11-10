@@ -1,4 +1,4 @@
-// /pages/api/getCard.js — v2.4.2 Hybrid Safe
+// /pages/api/getCard.js — v2.5.0 Hybrid Safe + TXLOG
 import { redis } from "../../lib/redis";
 
 // ------------------------------------------------------------
@@ -66,20 +66,35 @@ export default async function handler(req, res) {
     const is_first_open =
       card.status === "ACTIVE" && (!card.opened || card.opened === "false");
 
-    // ✅ 僅更新 last_seen / opened，不覆蓋整包
+    // ✅ 更新 last_seen / opened（不覆蓋整包）
     const nowStr = new Date().toISOString().replace("T", " ").slice(0, 19);
     await redis.hset(`card:${uid}`, {
       last_seen: nowStr,
       opened: "true",
     });
 
-    // ⚙️ 回傳卡片資料
+    // ✅ 讀取最近 10 筆 TXLOG
+    const logKey = `card:${uid}:txlog`;
+    let txlog = [];
+    try {
+      const raw = await redis.lrange(logKey, 0, 9);
+      txlog = raw
+        .map((item) => {
+          try { return JSON.parse(item); } catch { return null; }
+        })
+        .filter(Boolean);
+    } catch (e) {
+      console.warn("⚠️ 無法讀取 TXLOG:", e.message);
+    }
+
+    // ✅ 回傳整合資料
     return res.json({
       ok: true,
       card: {
         ...card,
         opened: "true",
         last_seen: nowStr,
+        txlog,
       },
       is_first_open,
     });

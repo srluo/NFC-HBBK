@@ -1,3 +1,4 @@
+// /pages/book/index.jsx — v3.9.8 (TXLOG integrated)
 "use client";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
@@ -158,82 +159,6 @@ export default function Book() {
   }, [card, subStatus]);
 
   // ------------------------------------------------------------
-  // PIN 設定與驗證
-  // ------------------------------------------------------------
-  const handleSetPin = async () => {
-    if (pinInput.length < 4) return setPinMsg("請輸入至少 4 位數 PIN");
-    try {
-      const res = await fetch("/api/pin/set", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ uid: card.uid, pin: pinInput }),
-      });
-      const data = await res.json();
-      if (data.ok) {
-        setPinMsg("✅ 已設定 PIN 鎖！");
-        setPinStage("unlocked");
-        card.pins = { ...card.pins, enabled: true };
-      } else setPinMsg(`⚠️ ${data.error}`);
-    } catch {
-      setPinMsg("❌ 系統錯誤");
-    }
-  };
-
-  const handleVerifyPin = async () => {
-    if (pinInput.length < 4) return setPinMsg("請輸入 PIN 碼");
-    try {
-      const res = await fetch("/api/pin/verify", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ uid: card.uid, pin: pinInput }),
-      });
-      const data = await res.json();
-      if (data.ok) setPinStage("unlocked");
-      else setPinMsg(data.error || "PIN 錯誤");
-    } catch {
-      setPinMsg("❌ 系統錯誤");
-    }
-  };
-
-  const handleChangePin = async () => {
-    if (pinInput.length < 4 || pinNew.length < 4)
-      return setPinMsg("請輸入舊 PIN 與新 PIN");
-    try {
-      const res = await fetch("/api/pin/update", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ uid: card.uid, oldPin: pinInput, newPin: pinNew }),
-      });
-      const data = await res.json();
-      if (data.ok) {
-        setPinMsg("✅ PIN 已更新！");
-        setPinStage("unlocked");
-      } else setPinMsg(`⚠️ ${data.error}`);
-    } catch {
-      setPinMsg("❌ 系統錯誤");
-    }
-  };
-
-  const handleDisablePin = async () => {
-    if (!confirm("確定要解除 PIN 鎖？")) return;
-    try {
-      const res = await fetch("/api/pin/disable", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ uid: card.uid }),
-      });
-      const data = await res.json();
-      if (data.ok) {
-        alert("🔓 PIN 鎖已解除");
-        setPinStage("unlocked");
-        setCard({ ...card, pins: { enabled: false } });
-      } else alert(`⚠️ ${data.error}`);
-    } catch {
-      alert("❌ 系統錯誤");
-    }
-  };
-
-  // ------------------------------------------------------------
   // 畫面狀態
   // ------------------------------------------------------------
   if (status === "loading") return <p className={styles.loading}>⏳ 載入中...</p>;
@@ -253,52 +178,33 @@ export default function Book() {
     );
   }
 
-  // 🔒 PIN 階段
-  if (["verify", "set", "modify"].includes(pinStage)) {
-    return (
-      <div className={styles.container}>
-        <div className={styles.toolBox}>
-          <h3>🔐 {pinStage === "set" ? "設定 PIN 碼" : pinStage === "modify" ? "修改 PIN 碼" : "輸入 PIN 碼"}</h3>
-          {pinStage === "modify" ? (
-            <>
-              <input type="password" placeholder="原 PIN" inputMode="numeric" maxLength="6"
-                value={pinInput} onChange={(e) => setPinInput(e.target.value)} className={styles.pinInput} />
-              <input type="password" placeholder="新 PIN" inputMode="numeric" maxLength="6"
-                value={pinNew} onChange={(e) => setPinNew(e.target.value)} className={styles.pinInput} />
-              <button className={styles.expandBtn} onClick={handleChangePin}>更新</button>
-            </>
-          ) : (
-            <>
-              <input type="password" inputMode="numeric" maxLength="6"
-                value={pinInput} onChange={(e) => setPinInput(e.target.value)} className={styles.pinInput} />
-              <button className={styles.expandBtn}
-                onClick={pinStage === "set" ? handleSetPin : handleVerifyPin}>
-                {pinStage === "set" ? "設定" : "確認"}
-              </button>
-            </>
-          )}
-          {pinMsg && <p style={{ color: "#c00" }}>{pinMsg}</p>}
-        </div>
-      </div>
-    );
-  }
-
-  // ✅ 已解鎖畫面
   const isBasic = !card.gender || !card.birth_time;
 
+  // ------------------------------------------------------------
+  // 主畫面：已解鎖狀態
+  // ------------------------------------------------------------
   return (
     <div className={styles.container}>
       {/* Header */}
       <div className={styles.cardHeader}>
         <div className={styles.iconBox}>
-          <img src={`/icons/constellation/${constellationMap[card.constellation] || "default"}.png`}
-            alt={card.constellation} className={styles.icon} />
-          <img src={`/icons/zodiac/${zodiacMap[card.zodiac] || "default"}.png`}
-            alt={card.zodiac} className={styles.icon} />
+          <img
+            src={`/icons/constellation/${constellationMap[card.constellation] || "default"}.png`}
+            alt={card.constellation}
+            className={styles.icon}
+          />
+          <img
+            src={`/icons/zodiac/${zodiacMap[card.zodiac] || "default"}.png`}
+            alt={card.zodiac}
+            className={styles.icon}
+          />
         </div>
         <h2>{card.user_name || "未命名"}</h2>
         <p>{card.birthday}</p>
-        <button className={styles.expandBtn} onClick={() => router.push(`/book/first?token=${token}`)}>
+        <button
+          className={styles.expandBtn}
+          onClick={() => router.push(`/book/first?token=${token}`)}
+        >
           {isBasic ? "📖 展開基本生日書" : "📖 展開完整生日書"}
         </button>
       </div>
@@ -351,45 +257,122 @@ export default function Book() {
         </section>
       )}
 
-      {/* 點數 */}
-      <div className={styles.menuBox}>
-        <p>目前點數：<strong>{card.points}</strong></p>
-      </div>
-
-      {/* PIN 區塊 */}
-      {!card.pins || card.pins.enabled === false ? (
-        <section className={styles.toolBox}>
-          <h3>🔐 生日書安全設定</h3>
-          <p>您尚未啟用 PIN 上鎖。</p>
-          <button className={styles.expandBtn} style={{ background: "#b46c2a" }}
-            onClick={() => { setPinMsg(""); setPinInput(""); setPinStage("set"); }}>
-            設定 PIN 上鎖
-          </button>
-        </section>
+      {/* 🧩 加值服務區塊 */}
+      {card && Object.keys(card).length > 0 ? (
+        <div className={styles.menuBox}>
+          <p>🪙 目前點數：<strong>{card.points ?? "—"}</strong></p>
+          <hr></hr>
+          <h3>🧩 加值服務</h3>
+          <p className={styles.sub}>每次占卜將扣 <b>1 點</b></p>
+          <div className={styles.serviceRow}>
+            <button
+              disabled={!card.points || Number(card.points) <= 0}
+              onClick={() => handleService("yign", card)}
+            >
+              易光年・易經占卜 🔮
+            </button>
+            <button
+              disabled={!card.points || Number(card.points) <= 0}
+              onClick={() => handleService("fortune", card)}
+            >
+              西洋占星・今日運勢 🌟
+            </button>
+          </div>
+          {!card.points || Number(card.points) <= 0 ? (
+            <p style={{ color: "#c00", marginTop: "6px" }}>⚠️ 點數不足，請先加值。</p>
+          ) : null}
+        </div>
       ) : (
-        <section className={styles.toolBox}>
-          <h3>🔒 PIN 鎖已啟用</h3>
-          <button className={styles.expandBtn}
-            onClick={() => { setPinStage("modify"); setPinMsg(""); setPinInput(""); setPinNew(""); }}>
-            修改 PIN
-          </button>
-          &nbsp;&nbsp;
-          <button className={styles.expandBtn} style={{ background: "#8b0000" }} onClick={handleDisablePin}>
-            解除 PIN 鎖
-          </button>
+        <div className={styles.menuBox}>
+          <h3>🧩 加值服務</h3>
+          <p style={{ color: "#888" }}>⚠️ 尚未載入卡片資料，請重新感應生日卡 📱</p>
+        </div>
+      )}
+
+      {/* 🧾 我的紀錄（最近 10 筆 TXLOG） */}
+      {card?.txlog && card.txlog.length > 0 && (
+        <section className={styles.walletBox}>
+          <h3>🧾 我的紀錄</h3>
+          <p className={styles.sub}>顯示最近 10 筆占卜、運勢或加值紀錄：</p>
+          <div className={styles.txlogList}>
+            {card.txlog.map((log, i) => (
+              <div key={i} className={styles.txItem}>
+                <p><b>{log.date}</b>｜{log.service || log.type}</p>
+                {log.q && <p>🪶 {log.q}</p>}
+                {log.gua && <p>卦象：{log.gua}（{log.yao}）</p>}
+                <p>點數：{log.points_before ?? "—"} → {log.points_after ?? "—"}</p>
+                <hr />
+              </div>
+            ))}
+          </div>
         </section>
       )}
 
       {/* Footer */}
       <footer className={styles.footer}>
-        <button className={`${styles.footerBtn} ${styles.buyBtn}`} onClick={() => window.open("/intro", "_blank")}>
+        <button
+          className={`${styles.footerBtn} ${styles.buyBtn}`}
+          onClick={() => window.open("/intro", "_blank")}
+        >
           🎁 購買生日卡
         </button>
-        <button className={`${styles.footerBtn} ${styles.siteBtn}`} onClick={() => window.open("https://www.nfctogo.com", "_blank")}>
+        <button
+          className={`${styles.footerBtn} ${styles.siteBtn}`}
+          onClick={() => window.open("https://www.nfctogo.com", "_blank")}
+        >
           🌐 前往 NFCTOGO 官網
         </button>
         <p className={styles.copy}>©2025 NFC靈動生日書 · Powered by NFCTOGO</p>
+        <button
+          style={{ background: "#444", color: "#fff", marginTop: "10px" }}
+          onClick={() => {
+            const todayKey = `fortune-result-${card.uid}-${new Date().toISOString().slice(0, 10)}`;
+            localStorage.removeItem(todayKey);
+            alert("🧹 已清除今日運勢快取，下次將重新生成。");
+          }}
+        >
+          🧹 清除今日運勢快取（測試用）
+        </button>
       </footer>
     </div>
   );
+}
+
+// ------------------------------------------------------------
+// 💎 加值服務扣點（含 localStorage 檢查與重顯）
+// ------------------------------------------------------------
+// 💎 扣點＋占卜流程控制
+async function handleService(type, card) {
+  const t = sessionStorage.getItem("book_token");
+  if (!t) { alert("⚠️ Session 過期，請重新感應卡片"); return; }
+
+  // ✅ 若今日已有 localStorage 結果，直接展示，不再扣點
+  if (type === "fortune") {
+    const todayKey = `fortune-result-${card.uid}-${new Date().toISOString().slice(0, 10)}`;
+    const cached = localStorage.getItem(todayKey);
+    if (cached) {
+      const data = JSON.parse(cached);
+      sessionStorage.setItem("lastFortune", JSON.stringify(data));
+      alert("☀️ 今日運勢已完成，顯示今日結果。");
+      window.location.href = "/book/fortune";
+      return;
+    }
+  }
+
+  // ✅ 首次占卜才扣點
+  try {
+    const res = await fetch(`/api/points-deduct?token=${t}&service=${type}`);
+    const data = await res.json();
+    if (!res.ok || data.error) { alert(data.error || "扣點失敗"); return; }
+    if (data.message) alert(data.message);
+
+    sessionStorage.setItem("book_token", data.serviceToken);
+    sessionStorage.setItem("book_token_exp", (Date.now() + 10 * 60 * 1000).toString());
+
+    if (type === "yign") window.location.href = "/book/yign";
+    else if (type === "fortune") window.location.href = "/book/fortune";
+  } catch (err) {
+    console.error("扣點 API 錯誤:", err);
+    alert("⚠️ 無法連線至伺服器");
+  }
 }
