@@ -1,10 +1,11 @@
 /*****************************************************
- * getCard API v3.3.4 — TXLOG Robust Parse（正式修正版）
+ * getCard API v3.3.6 — Commercial Sync 正式修正版
  * ---------------------------------------------------
  * 1️⃣ 主檔：card:<UID>（Hash）
  * 2️⃣ 交易紀錄：card:<UID>:txlog（List, 最近 10 筆）
+ * 3️⃣ pins / subscriptions / four_pillars / ziweis 均安全補值
  * ---------------------------------------------------
- * Ver: 2025.11.10
+ * Ver: 2025.11.11
  *****************************************************/
 
 import { redis } from "../../lib/redis";
@@ -37,10 +38,8 @@ export default async function handler(req, res) {
     const txlog = txList.map((t, i) => {
       try {
         if (!t) return {};
-        // 若本身是物件
         if (typeof t === "object" && t !== null) return t;
-        // 嘗試清除多餘引號後解析
-        const cleaned = t.replace(/^"+|"+$/g, "").trim();
+        const cleaned = String(t).replace(/^"+|"+$/g, "").trim();
         if (cleaned.startsWith("{") && cleaned.endsWith("}"))
           return JSON.parse(cleaned);
         return {};
@@ -51,7 +50,7 @@ export default async function handler(req, res) {
     });
 
     // ------------------------------
-    // 欄位轉型與安全處理
+    // 欄位轉型與安全補值
     // ------------------------------
     const parsedCard = {
       ...card,
@@ -59,11 +58,36 @@ export default async function handler(req, res) {
       txlog,
     };
 
+    // ✅ pins：確保為物件
     if (typeof parsedCard.pins === "string") {
       try {
         parsedCard.pins = JSON.parse(parsedCard.pins);
       } catch {
-        parsedCard.pins = {};
+        parsedCard.pins = { enabled: false };
+      }
+    }
+    if (!parsedCard.pins || typeof parsedCard.pins !== "object")
+      parsedCard.pins = { enabled: false };
+
+    // ✅ subscriptions：確保為物件
+    if (typeof parsedCard.subscriptions === "string") {
+      try {
+        parsedCard.subscriptions = JSON.parse(parsedCard.subscriptions);
+      } catch {
+        parsedCard.subscriptions = {};
+      }
+    }
+    if (!parsedCard.subscriptions || typeof parsedCard.subscriptions !== "object")
+      parsedCard.subscriptions = {};
+
+    // ✅ four_pillars / ziweis：自動 JSON.parse
+    for (const key of ["four_pillars", "ziweis"]) {
+      if (typeof parsedCard[key] === "string") {
+        try {
+          parsedCard[key] = JSON.parse(parsedCard[key]);
+        } catch {
+          parsedCard[key] = {};
+        }
       }
     }
 
