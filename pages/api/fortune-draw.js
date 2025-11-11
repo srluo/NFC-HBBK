@@ -1,13 +1,14 @@
 /*****************************************************
- * 今日運勢分析 API v3.6.0 (for NFC Birthday Book)
+ * 今日運勢分析 API v3.6.1 (for NFC Birthday Book)
  * ---------------------------------------------------
  * 改進重點：
- * 1️⃣ 單一寫入 TXLOG（不再由 points-deduct 重複紀錄）
- * 2️⃣ 安全處理 points_before / after
- * 3️⃣ Fortune 結果自動寫入 localStorage 快取（前端依 key）
+ * ✅ 移除 Redis fortune:<uid>:date 鎖定機制
+ * ✅ 保留 points_before / after
+ * ✅ 單一 TXLOG 記錄（扣點＋結果）
+ * ✅ 由前端 localStorage 控制重複使用
  * ---------------------------------------------------
  * Author: Roger Luo｜NFCTOGO
- * Date: 2025.11.10
+ * Date: 2025.11.11
  *****************************************************/
 import OpenAI from "openai";
 import { redis } from "../../lib/redis";
@@ -24,7 +25,7 @@ export default async function handler(req, res) {
     // Token 解析
     // ------------------------------------------------------------
     const decoded = Buffer.from(token, "base64").toString("utf8");
-    const [uid, ts, rand] = decoded.split(":");
+    const [uid] = decoded.split(":");
     if (!uid) return res.status(400).json({ error: "Token 格式錯誤" });
 
     const cardKey = `card:${uid}`;
@@ -33,7 +34,8 @@ export default async function handler(req, res) {
 
     const sign = card.constellation || "未知";
     const blood = card.blood_type || "未知";
-    const currentPoints = Number(card.points || 0);
+    const before = Number(card.points || 0);
+    if (before <= 0) return res.status(403).json({ error: "點數不足" });
 
     // ------------------------------------------------------------
     // 生成 AI 結果
@@ -45,7 +47,6 @@ export default async function handler(req, res) {
 包含：情緒、人際、能量、機會。
 語氣溫暖、自然，避免重複詞。
 `;
-
     const suggestionPrompt = `
 請根據「${sign}」與「${blood} 型」，
 生成一段今日的「行動建議」，
@@ -71,37 +72,19 @@ export default async function handler(req, res) {
     const suggestion = suggestionRes.choices[0].message.content.trim();
 
     // ------------------------------------------------------------
-    // 扣點邏輯（僅第一次扣）
+    // 💎 扣 1 點
     // ------------------------------------------------------------
-    const today = new Date().toISOString().slice(0, 10);
-    const flagKey = `fortune:${uid}:${today}`;
-    const done = await redis.get(flagKey);
-    let deducted = 0;
-    let before = currentPoints;
-    let after = currentPoints;
-
-    if (!done) {
-      if (currentPoints <= 0)
-        return res.status(403).json({ error: "點數不足" });
-
-      deducted = 1;
-      after = currentPoints - 1;
-
-      await redis
-        .multi()
-        .hincrby(cardKey, "points", -1)
-        .set(flagKey, "1", { EX: 60 * 60 * 24 })
-        .exec();
-    }
+    const after = before - 1;
+    await redis.hincrby(cardKey, "points", -1);
 
     // ------------------------------------------------------------
-    // 寫入 TXLOG（card:<uid>:txlog）
+    // 🧾 寫入 TXLOG
     // ------------------------------------------------------------
     const txlogKey = `card:${uid}:txlog`;
     const record = {
       type: "fortune",
       service: "西洋占星・今日運勢",
-      deducted,
+      deducted: 1,
       points_before: before,
       points_after: after,
       sign,
@@ -114,20 +97,17 @@ export default async function handler(req, res) {
     await redis.ltrim(txlogKey, 0, 9);
 
     // ------------------------------------------------------------
-    // 回傳結果
+    // ✅ 回傳結果
     // ------------------------------------------------------------
     return res.status(200).json({
       ok: true,
-      deducted,
       sign,
       blood,
       summary,
       suggestion,
       points_before: before,
       points_after: after,
-      message: deducted
-        ? "✅ 已扣 1 點並完成今日運勢。"
-        : "☀️ 今日運勢已完成（未重複扣點）。",
+      message: "✅ 已扣 1 點並完成今日運勢。",
     });
   } catch (err) {
     console.error("[fortune-draw.js] Error:", err);
