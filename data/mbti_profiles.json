@@ -1,0 +1,114 @@
+{
+  "ISTJ": {
+    "summary": "負責任的實踐者，重視規則與效率",
+    "overview": "🧠 重視秩序與紀律，務實、可靠，講究精準與邏輯",
+    "relationship": "🧑‍🤝‍🧑 團隊中是穩定可靠的執行者與制度守護者",
+    "career": "💼 適合工作：行政、會計、法律、軍警、公務體系",
+    "icon": "MBTI-ISTJ-Hippo.png"
+  },
+  "ISFJ": {
+    "summary": "體貼的守護者，樂於協助他人",
+    "overview": "🧠 體貼有責任感，善於照顧他人，注重細節",
+    "relationship": "🧑‍🤝‍🧑 團隊中的溫暖支持者，重視他人需求與協作",
+    "career": "💼 適合工作：教育、護理、社工、客服、助理",
+    "icon": "MBTI-ISFJ-Deer.png"
+  },
+  "INFJ": {
+    "summary": "洞察的理想家，具有使命感與深度",
+    "overview": "🧠 深思熟慮、富有理想與使命感，洞察人心",
+    "relationship": "🧑‍🤝‍🧑 常扮演指導與啟發他人的角色，有遠見",
+    "career": "💼 適合工作：心理諮商、教育、寫作、非營利組織",
+    "icon": "MBTI-INFJ-Giraffe.png"
+  },
+  "INTJ": {
+    "summary": "策略型規劃者，擅長架構與預測",
+    "overview": "🧠 獨立、冷靜、分析力強，擅長規劃與創新",
+    "relationship": "🧑‍🤝‍🧑 為團隊提供宏觀策略與清晰目標，擅長領導大型專案",
+    "career": "💼 適合工作：研究、科學、工程、策略顧問、IT",
+    "icon": "MBTI-INTJ-Tiger.png"
+  },
+  "ISTP": {
+    "summary": "實作型分析者，冷靜務實、重視效率",
+    "overview": "🧠 邏輯與動手能力兼具，冷靜面對問題，反應快",
+    "relationship": "🧑‍🤝‍🧑 團隊中的問題解決者，實事求是",
+    "career": "💼 適合工作：工程、機械、科技、技術維修、運動員",
+    "icon": "MBTI-ISTP-Cat.png"
+  },
+  "ISFP": {
+    "summary": "溫和的藝術家，隨和敏感、有美感",
+    "overview": "🧠 安靜溫和、有美感，喜歡自由與感性表達",
+    "relationship": "🧑‍🤝‍🧑 團隊中溫柔貼心，避免衝突，尊重多元",
+    "career": "💼 適合工作：藝術設計、攝影、音樂、動物照護",
+    "icon": "MBTI-ISFP-Sheep.png"
+  },
+  "INFP": {
+    "summary": "理想主義者，重視價值與內在真誠",
+    "overview": "🧠 深具同理心，追求意義與價值，富想像力",
+    "relationship": "🧑‍🤝‍🧑 關注內在與人際連結，是團隊中的精神引導者",
+    "career": "💼 適合工作：創作、心理諮商、教育、人道工作",
+    "icon": "MBTI-INFP-Rabbit.png"
+  },
+  "INTP": {
+    "summary": "理性思辨者，熱愛探索概念與原理",
+    "overview": "🧠 好奇、喜歡概念與系統的思辨者，獨立性高",
+    "relationship": "🧑‍🤝‍🧑 為團隊提出獨特見解，是創新與理論的推動者",
+    "career": "💼 適合工作：科學研究、程式開發、學術、設計",
+    "icon": "MBTI-INTP-Owl.png"
+  },
+  "ESTP": {
+    "summary": "活力行動派，直接果斷、喜歡挑戰",
+    "overview": "🧠 果斷、實用、喜歡刺激與挑戰，適應力強",
+    "relationship": "🧑‍🤝‍🧑 團隊中的行動派，推動快速前進",
+    "career": "💼 適合工作：業務、創業、運動、行銷、活動企劃",
+    "icon": "MBTI-ESTP-Zebra.png"
+  },
+  "ESFP": {
+    "summary": "樂天表演者，喜歡互動與現場氣氛",
+    "overview": "🧠 充滿活力、喜歡人群與互動，現場感很強",
+    "relationship": "🧑‍🤝‍🧑 是團隊中的氣氛製造機，擅長實作與人際互動",
+    "career": "💼 適合工作：娛樂、主持、服務、業務、旅遊",
+    "icon": "MBTI-ESFP-Cow.png"
+  },
+  "ENFP": {
+    "summary": "熱情激勵者，創意豐富、樂於分享",
+    "overview": "🧠 創意豐富、開朗熱情，擅長鼓舞與連結他人",
+    "relationship": "🧑‍🤝‍🧑 是激勵士氣的關鍵人物，擁有感染力",
+    "career": "💼 適合工作：創意產業、教育、顧問、公關、媒體",
+    "icon": "MBTI-ENFP-Elephant.png"
+  },
+  "ENTP": {
+    "summary": "創新挑戰者，靈活多變、敢於辯論",
+    "overview": "🧠 聰明反應快、喜歡挑戰與創新，愛探索新觀點",
+    "relationship": "🧑‍🤝‍🧑 團隊中的點子發想王，勇於顛覆現狀",
+    "career": "💼 適合工作：創業、顧問、媒體、科技、新創產業",
+    "icon": "MBTI-ENTP-Parrot.png"
+  },
+  "ESTJ": {
+    "summary": "組織型領導者，實事求是、有效執行",
+    "overview": "🧠 實事求是、擅長管理與執行，重視效率",
+    "relationship": "🧑‍🤝‍🧑 是制度執行者與目標推進者，善於規劃流程",
+    "career": "💼 適合工作：管理、法務、財務、行政、軍政",
+    "icon": "MBTI-ESTJ-Bear.png"
+  },
+  "ESFJ": {
+    "summary": "關懷型協調者，重視團隊與和諧",
+    "overview": "🧠 重視人際與和諧，擅長照顧與組織團隊運作",
+    "relationship": "🧑‍🤝‍🧑 是團隊中的凝聚力角色，擅長建立關係網",
+    "career": "💼 適合工作：教育、社工、客服、公共服務",
+    "icon": "MBTI-ESFJ-Horse.png"
+  },
+  "ENFJ": {
+    "summary": "鼓舞型領袖，善於理解與影響他人",
+    "overview": "🧠 富有同理心、善於溝通與帶領他人，使命感強",
+    "relationship": "🧑‍🤝‍🧑 是團隊靈魂人物，鼓舞他人共同前進",
+    "career": "💼 適合工作：教育、心理、顧問、非營利、領導職",
+    "icon": "MBTI-ENFJ-Dog.png"
+  },
+  "ENTJ": {
+    "summary": "決策型指揮官，具野心與組織力",
+    "overview": "🧠 邏輯清晰、目標導向，具野心與遠見",
+    "relationship": "🧑‍🤝‍🧑 天生領導者，推動變革並帶領團隊衝鋒",
+    "career": "💼 適合工作：企業領導、策略顧問、高階主管、法律",
+    "icon": "MBTI-ENTJ-Lion.png"
+  }
+}

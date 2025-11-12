@@ -13,6 +13,8 @@ export default function BookFirst() {
   const [token, setToken] = useState(null);
   const [symbol, setSymbol] = useState(null);
   const router = useRouter();
+  const [showMBTIEdit, setShowMBTIEdit] = useState(false);
+  const [inputType, setInputType] = useState("");
 
   // ✅ 加入重試版 fetchCard（防 Redis 延遲）
   async function fetchCardWithRetry(token, retries = 3) {
@@ -158,6 +160,21 @@ export default function BookFirst() {
         )}
       </section>
 
+      {/* 🎁 補填提示 */}
+      {isBasic && (
+        <section className={styles.menuBox}>
+          <h3>🎁 填寫完整資訊可獲贈 <strong>20 點</strong>！</h3>
+          <p style={{ marginTop: "0.3rem" }}>補填性別與出生時辰，開啟紫微命格分析 🔮</p>
+          <button
+            className={styles.expandBtn}
+            style={{ background: "#ff9800", marginTop: "0.6rem" }}
+            onClick={() => router.push(`/activate?token=${token}&mode=update&d=${card.birthday}`)}
+          >
+            ✏️ 立即補填
+          </button>
+        </section>
+      )}
+
       {/* 🪞 人格洞察分析 */}
       {card.ai_summary && (
         <section className={styles.section}>
@@ -177,39 +194,181 @@ export default function BookFirst() {
             <strong>生肖、星座、紫微命盤、血型與出生時間</strong>
             等多重人格向度，透過 OpenAI 模型進行語意推演。
           </p>
+        </section>
+      )}
 
-          {/* 💠 延伸探索 */}
-          <div style={{ marginTop: "1.2rem", paddingTop: "0.8rem", borderTop: "1px dashed #ccc" }}>
-            <h4 style={{ color: "#333", fontWeight: "700", marginBottom: "0.4rem" }}>🌠 延伸探索</h4>
-            <div style={{ display: "flex", flexDirection: "column", gap: "0.5rem", marginTop: "0.8rem" }}>
-              <button className={styles.exploreButton} onClick={() => router.push(`/service/fortune?uid=${card.uid}`)}>
-                🔮 紫微流年解析 <span>（5點，報告）</span>
-              </button>
-              <button className={styles.exploreButton} onClick={() => router.push(`/service/lifepath?uid=${card.uid}`)}>
-                🧭 生命靈數分析 <span>（2點，短文）</span>
-              </button>
-              <button className={styles.exploreButton} onClick={() => router.push(`/service/mbti?uid=${card.uid}`)}>
-                🧠 MBTI 性格測驗 <span>（5點，問卷/報告）</span>
-              </button>
+      {/* 🧠 MBTI 人格特質 */}
+      {card.mbti_profile ? (
+        <section className={styles.section}>
+          <h3>🧠 MBTI 人格特質</h3>
+          <div
+            style={{
+              display: "flex",
+              gap: "1rem",
+              alignItems: "flex-start",
+              marginBottom: "0.8rem",
+            }}
+          >
+            <img
+              src={`/img/MBTI/${card.mbti_profile.icon}`}
+              alt={card.mbti_profile.type}
+              style={{
+                width: 96,
+                objectFit: "cover",
+                background: "#f8f8f8",
+                flexShrink: 0,
+              }}
+            />
+            <div style={{ flex: 1 }}>
+              <p>
+                類型：<strong>{card.mbti_profile.type}</strong>（{card.mbti_profile.summary}）
+              </p>
+              <small style={{ color: "#888" }}>
+                上次測驗時間：
+                {new Date(card.mbti_profile.last_test_ts).toLocaleString("zh-TW")}
+              </small>
             </div>
+          </div>
+
+          {/* 💬 四大描述段落 */}
+          <div
+            style={{
+              background: "#fafafa",
+              borderRadius: 12,
+              padding: "1rem",
+              lineHeight: 1.7,
+              border: "1px solid #eee",
+            }}
+          >
+            <p>
+              <strong>特質描述：</strong>
+              {card.mbti_profile.overview}
+            </p>
+            <p style={{ marginTop: "0.8rem" }}>
+              <strong>在人際與團隊中的表現：</strong>
+              {card.mbti_profile.relationship}
+            </p>
+            <p style={{ marginTop: "0.8rem" }}>
+              <strong>適合職業方向：</strong>
+              {card.mbti_profile.career}
+            </p>
+          </div>
+
+          <div style={{ display: "flex", gap: "0.6rem", marginTop: "1rem" }}>
+            <button
+              className={styles.exploreButton}
+              onClick={() =>
+                router.push(`/book/MBTI24?uid=${card.uid}&presetType=${card.mbti_profile.type}`)
+              }
+            >
+              🔁 重新測驗（扣 3 點）
+            </button>
+            <button
+              className={styles.exploreButton}
+              onClick={() => setShowMBTIEdit(true)}
+            >
+              ✏️ 修改類型
+            </button>
+          </div>
+        </section>
+      ) : (
+        <section className={styles.section}>
+          <h3>🧠 MBTI 人格特質</h3>
+          <p>尚未設定 MBTI 類型，可選擇下列方式：</p>
+          <div style={{ display: "flex", gap: "0.6rem", marginTop: "0.8rem" }}>
+            <button className={styles.exploreButton} onClick={() => setShowMBTIEdit(true)}>
+              ✏️ 手動填入
+            </button>
+            <button
+              className={styles.exploreButton}
+              onClick={() => router.push(`/book/MBTI24?uid=${card.uid}`)}
+            >
+              🧠 進行 MBTI 測驗（扣 5 點）
+            </button>
           </div>
         </section>
       )}
 
-      {/* 🎁 補填提示 */}
-      {isBasic && (
-        <section className={styles.menuBox}>
-          <h3>🎁 填寫完整資訊可獲贈 <strong>20 點</strong>！</h3>
-          <p style={{ marginTop: "0.3rem" }}>補填性別與出生時辰，開啟紫微命格分析 🔮</p>
-          <button
-            className={styles.expandBtn}
-            style={{ background: "#ff9800", marginTop: "0.6rem" }}
-            onClick={() => router.push(`/activate?token=${token}&mode=update&d=${card.birthday}`)}
-          >
-            ✏️ 立即補填
-          </button>
-        </section>
+      {/* ✏️ MBTI 輸入彈窗（安全 API 查表） */}
+      {showMBTIEdit && (
+        <div style={{
+          position: "fixed", top: 0, left: 0, right: 0, bottom: 0,
+          background: "rgba(0,0,0,0.5)", display: "flex",
+          alignItems: "center", justifyContent: "center", zIndex: 1000
+        }}>
+          <div style={{
+            background: "white", padding: "1.5rem", borderRadius: 12,
+            width: "90%", maxWidth: 360
+          }}>
+            <h3 style={{ marginBottom: "1rem" }}>手動設定 MBTI 類型</h3>
+            <input
+              type="text"
+              placeholder="如 INFP"
+              value={inputType}
+              maxLength={4}
+              onChange={(e) => setInputType(e.target.value.toUpperCase())}
+              style={{
+                width: "100%", padding: "0.6rem", fontSize: "1rem",
+                borderRadius: 8, border: "1px solid #ccc", textAlign: "center"
+              }}
+            />
+            <div style={{ display: "flex", gap: "0.6rem", marginTop: "1rem" }}>
+              <button
+                className={styles.exploreButton}
+                onClick={async () => {
+                  const type = inputType.toUpperCase();
+                  if (!type.match(/^[E|I][S|N][T|F][J|P]$/)) {
+                    alert("請輸入有效的 MBTI 類型，如 INFP");
+                    return;
+                  }
+                  try {
+                    const res = await fetch(`/api/mbti-profiles?type=${type}`);
+                    if (!res.ok) throw new Error("查詢失敗");
+                    const p = await res.json();
+                    const profile = {
+                      type,
+                      summary: p.summary,
+                      overview: p.overview,
+                      relationship: p.relationship,
+                      career: p.career,
+                      icon: p.icon,
+                      last_test_ts: new Date().toISOString(),
+                    };
+                    await fetch("/api/mbti-result", {
+                      method: "POST",
+                      headers: { "Content-Type": "application/json" },
+                      body: JSON.stringify({ uid: card.uid, mbti_profile: profile }),
+                    });
+                    setCard((prev) => ({ ...prev, mbti_profile: profile }));
+                    setShowMBTIEdit(false);
+                  } catch (err) {
+                    console.error("MBTI 查詢錯誤:", err);
+                    alert("查詢或儲存失敗，請稍後再試。");
+                  }
+                }}
+              >
+                儲存
+              </button>
+              <button className={styles.exploreButton} onClick={() => setShowMBTIEdit(false)}>
+                取消
+              </button>
+            </div>
+          </div>
+        </div>
       )}
+
+      {/* 💠 延伸探索 */}
+      <section className={styles.section}><center>
+        <h3>🌠 延伸探索</h3></center>
+        <div style={{ display: "flex", flexDirection: "column", gap: "0.5rem", marginTop: "0.8rem" }}>
+          <button className={styles.exploreButton} onClick={() => router.push(`/service/fortune?uid=${card.uid}`)}>
+            🔮 紫微流年解析 <span>（5點，報告）</span>
+          </button>
+          <button className={styles.exploreButton} onClick={() => router.push(`/service/lifepath?uid=${card.uid}`)}>
+            🧭 生命靈數分析 <span>（2點，短文）</span>
+          </button>
+        </div>
+      </section>
 
       {/* 💎 點數資訊 */}
       <section className={styles.toolBox}>
