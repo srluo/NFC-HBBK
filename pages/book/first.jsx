@@ -1,4 +1,4 @@
-// 修正版 /pages/book/first.jsx — v2.6.2-stable
+// 修正版 /pages/book/first.jsx — v2.7.0-stable
 
 "use client";
 
@@ -197,10 +197,12 @@ export default function BookFirst() {
         </section>
       )}
 
-      {/* 🧠 MBTI 人格特質 */}
+      {/* 🧠 MBTI 人格特質（新版：展示 → 前往管理頁） */}
       {card.mbti_profile ? (
         <section className={styles.section}>
           <h3>🧠 MBTI 人格特質</h3>
+
+          {/* 類型 + 圖片 */}
           <div
             style={{
               display: "flex",
@@ -214,14 +216,17 @@ export default function BookFirst() {
               alt={card.mbti_profile.type}
               style={{
                 width: 96,
+                height: 144,
                 objectFit: "cover",
                 background: "#f8f8f8",
                 flexShrink: 0,
               }}
             />
+
             <div style={{ flex: 1 }}>
               <p>
-                類型：<strong>{card.mbti_profile.type}</strong>（{card.mbti_profile.summary}）
+                類型：
+                <strong>{card.mbti_profile.type}</strong>（{card.mbti_profile.summary}）
               </p>
               <small style={{ color: "#888" }}>
                 上次測驗時間：
@@ -230,7 +235,7 @@ export default function BookFirst() {
             </div>
           </div>
 
-          {/* 💬 四大描述段落 */}
+          {/* 完整人格總覽 （三大項） */}
           <div
             style={{
               background: "#fafafa",
@@ -244,117 +249,41 @@ export default function BookFirst() {
               <strong>特質描述：</strong>
               {card.mbti_profile.overview}
             </p>
+
             <p style={{ marginTop: "0.8rem" }}>
               <strong>在人際與團隊中的表現：</strong>
               {card.mbti_profile.relationship}
             </p>
+
             <p style={{ marginTop: "0.8rem" }}>
               <strong>適合職業方向：</strong>
               {card.mbti_profile.career}
             </p>
           </div>
 
-          <div style={{ display: "flex", gap: "0.6rem", marginTop: "1rem" }}>
+          {/* 前往 MBTI 管理頁 */}
+          <div className={styles.menuBox} style={{ marginTop: "1rem" }}>
             <button
-              className={styles.exploreButton}
-              onClick={() =>
-                router.push(`/book/MBTI24?uid=${card.uid}&presetType=${card.mbti_profile.type}`)
-              }
+              className={styles.expandButton}
+              onClick={() => router.push(`/book/mbti?uid=${card.uid}`)}
+              style={{ background: "#007bff", color: "white" }}
             >
-              🔁 重新測驗（扣 3 點）
-            </button>
-            <button
-              className={styles.exploreButton}
-              onClick={() => setShowMBTIEdit(true)}
-            >
-              ✏️ 修改類型
+              ⚙️ 前往 MBTI 管理頁
             </button>
           </div>
         </section>
       ) : (
         <section className={styles.section}>
-          <h3>🧠 MBTI 人格特質</h3>
-          <p>尚未設定 MBTI 類型，可選擇下列方式：</p>
-          <div style={{ display: "flex", gap: "0.6rem", marginTop: "0.8rem" }}>
-            <button className={styles.exploreButton} onClick={() => setShowMBTIEdit(true)}>
-              ✏️ 手動填入
-            </button>
-            <button
-              className={styles.exploreButton}
-              onClick={() => router.push(`/book/MBTI24?uid=${card.uid}`)}
-            >
-              🧠 進行 MBTI 測驗（扣 5 點）
-            </button>
-          </div>
-        </section>
-      )}
+          <center><h3>🧠 MBTI 人格特質</h3></center>
+          <p>尚未設定 MBTI 類型。</p>
 
-      {/* ✏️ MBTI 輸入彈窗（安全 API 查表） */}
-      {showMBTIEdit && (
-        <div style={{
-          position: "fixed", top: 0, left: 0, right: 0, bottom: 0,
-          background: "rgba(0,0,0,0.5)", display: "flex",
-          alignItems: "center", justifyContent: "center", zIndex: 1000
-        }}>
-          <div style={{
-            background: "white", padding: "1.5rem", borderRadius: 12,
-            width: "90%", maxWidth: 360
-          }}>
-            <h3 style={{ marginBottom: "1rem" }}>手動設定 MBTI 類型</h3>
-            <input
-              type="text"
-              placeholder="如 INFP"
-              value={inputType}
-              maxLength={4}
-              onChange={(e) => setInputType(e.target.value.toUpperCase())}
-              style={{
-                width: "100%", padding: "0.6rem", fontSize: "1rem",
-                borderRadius: 8, border: "1px solid #ccc", textAlign: "center"
-              }}
-            />
-            <div style={{ display: "flex", gap: "0.6rem", marginTop: "1rem" }}>
-              <button
-                className={styles.exploreButton}
-                onClick={async () => {
-                  const type = inputType.toUpperCase();
-                  if (!type.match(/^[E|I][S|N][T|F][J|P]$/)) {
-                    alert("請輸入有效的 MBTI 類型，如 INFP");
-                    return;
-                  }
-                  try {
-                    const res = await fetch(`/api/mbti-profiles?type=${type}`);
-                    if (!res.ok) throw new Error("查詢失敗");
-                    const p = await res.json();
-                    const profile = {
-                      type,
-                      summary: p.summary,
-                      overview: p.overview,
-                      relationship: p.relationship,
-                      career: p.career,
-                      icon: p.icon,
-                      last_test_ts: new Date().toISOString(),
-                    };
-                    await fetch("/api/mbti-result", {
-                      method: "POST",
-                      headers: { "Content-Type": "application/json" },
-                      body: JSON.stringify({ uid: card.uid, mbti_profile: profile }),
-                    });
-                    setCard((prev) => ({ ...prev, mbti_profile: profile }));
-                    setShowMBTIEdit(false);
-                  } catch (err) {
-                    console.error("MBTI 查詢錯誤:", err);
-                    alert("查詢或儲存失敗，請稍後再試。");
-                  }
-                }}
-              >
-                儲存
-              </button>
-              <button className={styles.exploreButton} onClick={() => setShowMBTIEdit(false)}>
-                取消
-              </button>
-            </div>
-          </div>
-        </div>
+          <button
+            className={styles.exploreButton}
+            onClick={() => router.push(`/book/mbti?uid=${card.uid}`)}
+          >
+            🧠 前往 MBTI 測驗工具
+          </button>
+        </section>
       )}
 
       {/* 💠 延伸探索 */}
