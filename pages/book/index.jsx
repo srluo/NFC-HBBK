@@ -1,6 +1,6 @@
-// /pages/book/index.jsx — v3.9.13 (TXLOG Display Friendly Edition)
+// /pages/book/index.jsx — v3.9.14-secure (PIN Secure Edition)
 // Author: Roger Luo｜NFCTOGO
-// Date: 2025.11.10
+// Date: 2025.11.13
 
 "use client";
 import { useEffect, useState } from "react";
@@ -19,6 +19,12 @@ export default function Book() {
   const [pinNew, setPinNew] = useState("");
   const [pinMsg, setPinMsg] = useState("");
   const router = useRouter();
+
+  // ✅ 每次進入不同 PIN 階段時，清空暫存 PIN（防瀏覽器自動填入殘留）
+  useEffect(() => {
+    setPinInput("");
+    setPinNew("");
+  }, [pinStage]);
 
   // ------------------------------------------------------------
   // Token 驗證與 Session 儲存 (20 分鐘 TTL)
@@ -99,8 +105,9 @@ export default function Book() {
     });
     return () => document.removeEventListener("visibilitychange", onFocus);
   }, [token]);
+
   // ------------------------------------------------------------
-  // 自動上鎖：閒置 5 分鐘（僅在 PIN 啟用時）
+  // 自動上鎖：閒置 10 分鐘（僅在 PIN 啟用時）
   // ------------------------------------------------------------
   useEffect(() => {
     let timer;
@@ -172,7 +179,7 @@ export default function Book() {
     fetchDaily();
   }, [card, subStatus]);
 
-    // ------------------------------------------------------------
+  // ------------------------------------------------------------
   // 設定 / 驗證 / 修改 / 關閉 PIN
   // ------------------------------------------------------------
   const handleSetPin = async () => {
@@ -249,7 +256,7 @@ export default function Book() {
       alert("❌ 系統錯誤");
     }
   };
-  
+
   // ------------------------------------------------------------
   // 畫面狀態
   // ------------------------------------------------------------
@@ -266,6 +273,7 @@ export default function Book() {
       </div>
     );
   }
+
   // 🔒 PIN 互動階段（設定 / 驗證 / 修改）
   if (["verify", "set", "modify"].includes(pinStage)) {
     return (
@@ -284,21 +292,35 @@ export default function Book() {
             <>
               <p>請輸入原 PIN 及新 PIN 碼：</p>
               <input
-                type="password"
-                placeholder="原 PIN"
+                type="tel"
+                placeholder="原 PIN（4~6 位數字）"
                 inputMode="numeric"
+                pattern="[0-9]{4,6}"
                 maxLength="6"
+                autoComplete="off"
+                name="pin-old"
                 value={pinInput}
-                onChange={(e) => setPinInput(e.target.value)}
+                onChange={(e) => setPinInput(e.target.value.replace(/\D/g, ""))}
+                onFocus={(e) => {
+                  setPinInput("");
+                  e.target.value = "";
+                }}
                 className={styles.pinInput}
               />
               <input
-                type="password"
-                placeholder="新 PIN"
+                type="tel"
+                placeholder="新 PIN（4~6 位數字）"
                 inputMode="numeric"
+                pattern="[0-9]{4,6}"
                 maxLength="6"
+                autoComplete="off"
+                name="pin-new"
                 value={pinNew}
-                onChange={(e) => setPinNew(e.target.value)}
+                onChange={(e) => setPinNew(e.target.value.replace(/\D/g, ""))}
+                onFocus={(e) => {
+                  setPinNew("");
+                  e.target.value = "";
+                }}
                 className={styles.pinInput}
                 style={{ marginTop: "0.5rem" }}
               />
@@ -309,13 +331,20 @@ export default function Book() {
             </>
           ) : (
             <>
-              <p>請輸入 4~6 位數 PIN 碼。</p>
+              <p>請輸入 4~6 位數字 PIN 碼。</p>
               <input
-                type="password"
+                type="tel"
                 inputMode="numeric"
+                pattern="[0-9]{4,6}"
                 maxLength="6"
+                autoComplete="off"
+                name="pin-verify"
                 value={pinInput}
-                onChange={(e) => setPinInput(e.target.value)}
+                onChange={(e) => setPinInput(e.target.value.replace(/\D/g, ""))}
+                onFocus={(e) => {
+                  setPinInput("");
+                  e.target.value = "";
+                }}
                 className={styles.pinInput}
               />
               <br />
@@ -327,12 +356,12 @@ export default function Book() {
               </button>
             </>
           )}
-          {pinMsg && <p style={{ color: "#c00" }}>{pinMsg}</p>}
+          {pinMsg && <p style={{ color: "#c00", marginTop: "0.6rem" }}>{pinMsg}</p>}
         </div>
       </div>
     );
   }
-  
+
   // ------------------------------------------------------------
   // 🧾 我的紀錄 — TXLOG Display Friendly
   // ------------------------------------------------------------
@@ -347,7 +376,6 @@ export default function Book() {
   // ------------------------------------------------------------
   // 主畫面：已解鎖狀態
   // ------------------------------------------------------------
-
   return (
     <div className={styles.container}>
       {/* Header */}
@@ -452,20 +480,38 @@ export default function Book() {
         <section className={styles.toolBox}>
           <h3>🔐 生日書安全設定</h3>
           <p>您尚未啟用 PIN 上鎖。</p>
-          <button className={styles.expandBtn} style={{ background: "#b46c2a" }}
-            onClick={() => { setPinMsg(""); setPinInput(""); setPinStage("set"); }}>
+          <button
+            className={styles.expandBtn}
+            style={{ background: "#b46c2a" }}
+            onClick={() => {
+              setPinMsg("");
+              setPinInput("");
+              setPinStage("set");
+            }}
+          >
             設定 PIN 上鎖
           </button>
         </section>
       ) : (
         <section className={styles.toolBox}>
           <h3>🔒 PIN 鎖已啟用</h3>
-          <button className={styles.expandBtn}
-            onClick={() => { setPinStage("modify"); setPinMsg(""); setPinInput(""); setPinNew(""); }}>
+          <button
+            className={styles.expandBtn}
+            onClick={() => {
+              setPinStage("modify");
+              setPinMsg("");
+              setPinInput("");
+              setPinNew("");
+            }}
+          >
             修改 PIN
           </button>
           &nbsp;&nbsp;
-          <button className={styles.expandBtn} style={{ background: "#8b0000" }} onClick={handleDisablePin}>
+          <button
+            className={styles.expandBtn}
+            style={{ background: "#8b0000" }}
+            onClick={handleDisablePin}
+          >
             解除 PIN 鎖
           </button>
         </section>
@@ -528,7 +574,10 @@ export default function Book() {
 // 💎 扣點＋占卜流程控制
 async function handleService(type, card) {
   const t = sessionStorage.getItem("book_token");
-  if (!t) { alert("⚠️ Session 過期，請重新感應卡片"); return; }
+  if (!t) {
+    alert("⚠️ Session 過期，請重新感應卡片");
+    return;
+  }
 
   // ✅ 若今日已有 localStorage 結果，直接展示，不再扣點
   if (type === "fortune") {
@@ -547,7 +596,10 @@ async function handleService(type, card) {
   try {
     const res = await fetch(`/api/points-deduct?token=${t}&service=${type}`);
     const data = await res.json();
-    if (!res.ok || data.error) { alert(data.error || "扣點失敗"); return; }
+    if (!res.ok || data.error) {
+      alert(data.error || "扣點失敗");
+      return;
+    }
     if (data.message) alert(data.message);
 
     sessionStorage.setItem("book_token", data.serviceToken);
