@@ -405,8 +405,10 @@ export default function Book() {
       {/* 🌞 開通每日行動建議 */}
       {subStatus === "not_subscribed" && (
         <section className={styles.walletBox}>
-          <h3>🌞 開通每日行動建議</h3>
+          <center>
+          <h3>🌞 開通每日行動建議</h3></center>
           <p>每日早晨自動生成你的專屬行動建議，需扣除 <strong>5 點</strong>（有效期一年）。</p>
+          <center>
           <button
             className={styles.expandBtn}
             style={{ background: "#009688", marginTop: "0.6rem" }}
@@ -438,7 +440,7 @@ export default function Book() {
             }}
           >
             ☀️ 立即開通每日建議
-          </button>
+          </button></center>
         </section>
       )}
 

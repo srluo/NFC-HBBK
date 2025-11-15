@@ -162,7 +162,7 @@ export default function BookFirst() {
 
       {/* 🎁 補填提示 */}
       {isBasic && (
-        <section className={styles.menuBox}>
+        <section className={styles.toolBox}>
           <h3>🎁 填寫完整資訊可獲贈 <strong>20 點</strong>！</h3>
           <p style={{ marginTop: "0.3rem" }}>補填性別與出生時辰，開啟紫微命格分析 🔮</p>
           <button
@@ -274,15 +274,14 @@ export default function BookFirst() {
         </section>
       ) : (
         <section className={styles.section}>
-          <center><h3>🧠 MBTI 人格特質</h3></center>
+          <center><h3>🧠 MBTI 人格特質</h3>
           <p>尚未設定 MBTI 類型。</p>
-
           <button
             className={styles.exploreButton}
             onClick={() => router.push(`/book/mbti?uid=${card.uid}`)}
           >
             🧠 前往 MBTI 測驗工具
-          </button>
+          </button></center>
         </section>
       )}
 
