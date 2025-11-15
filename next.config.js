@@ -1,15 +1,11 @@
-import { fileURLToPath } from "url";
-import { dirname } from "path";
-
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = dirname(__filename);
-
-/** @type {import('next').NextConfig} */
+// next.config.js (ESM syntax)
 const nextConfig = {
-  turbopack: {
-    root: __dirname,
+  reactStrictMode: true,
+  swcMinify: true,
+  // 這一行確保使用 Node runtime
+  experimental: {
+    runtime: "nodejs",
   },
-  serverExternalPackages: ["pdfkit", "fontkit"],
 };
 
 export default nextConfig;
