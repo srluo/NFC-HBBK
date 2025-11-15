@@ -90,6 +90,7 @@ export default function Book() {
         sessionStorage.setItem("book_card_cache", JSON.stringify(parsed));
         setStatus("ok");
         setPinStage(parsed.pins?.enabled ? "verify" : "unlocked");
+        sessionStorage.removeItem("book_card_cache"); // ← 確保不再讀舊資料
       } else setStatus(`❌ ${data.error || "讀取失敗"}`);
     } catch {
       setStatus("❌ 系統錯誤");
