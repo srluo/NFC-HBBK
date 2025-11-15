@@ -85,7 +85,7 @@ export default async function handler(req, res) {
     const isUnbound = finalBirthday === "00000000";
 
     // ✅ Token 內容仍用 uid/d/ts，但 d 已校正
-    const exp = now + 10 * 60 * 1000;
+    const exp = now + 20 * 60 * 1000;
     const token = Buffer.from(`${uid}:${finalBirthday}:${now}:${ts}:${exp}`).toString("base64");
 
     const status = card.status === "ACTIVE" ? "ACTIVE" : "PENDING";

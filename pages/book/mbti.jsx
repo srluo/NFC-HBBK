@@ -140,7 +140,7 @@ export default function MBTIPage() {
     // ----------------------
     return (
       <div className={styles.section}>
-        <h3>🧠 MBTI 人格特質</h3>
+        <h3>🧠 你的 MBTI 個人特質</h3>
 
         <div style={{ display: "flex", gap: "1rem", marginBottom: "1rem" }}>
           <img
@@ -202,7 +202,7 @@ export default function MBTIPage() {
             }}
             onClick={() => handleStartTest("redo")}
           >
-            🔁 重新測驗（3 點）
+            🔁 重新進行測驗（3 點）
           </button>
 
           <button
@@ -263,7 +263,7 @@ export default function MBTIPage() {
             borderRadius: 12,
           }}
         >
-          <h3>手動設定 MBTI 類型</h3>
+          <h3>已檢測，手動設定 MBTI 類型</h3>
           <input
             type="text"
             placeholder="如 INFP"
@@ -346,7 +346,7 @@ export default function MBTIPage() {
   return (
     <div className={styles.container}>
       <div className={styles.cardHeader}>
-        <h2>🧠 MBTI 人格設定中心</h2>
+        <h2>🧠 MBTI 設定中心</h2>
         <p>在此查看或設定您的 MBTI 資料</p>
       </div>
 
