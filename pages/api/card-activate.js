@@ -1,7 +1,8 @@
-// /pages/api/card-activate.js — v2.7.5-minimalSub
-// ✅ 補填送點後不再建立 daily=false 結構
-// ✅ 若無訂閱資料則保持空值（undefined）
-// ✅ 保留 birthday lock + AI + points 流程一致
+// /pages/api/card-activate.js — v2.7.6 (with TXLOG)
+// ------------------------------------------------------------
+// 修正：補填完整資訊贈 20 點 → 正式寫入 TXLOG（保留最近 10 筆）
+// 其餘行為完全保留 v2.7.5 設計
+// ------------------------------------------------------------
 
 import { redis } from "../../lib/redis.js";
 import { fortuneCore } from "../../lib/fortuneCore.js";
@@ -11,20 +12,34 @@ export default async function handler(req, res) {
   if (req.method !== "POST") return res.status(405).end();
 
   try {
-    const { token, user_name, gender, blood_type, hobbies, birth_time, birthday } =
-      req.body || {};
+    const {
+      token,
+      user_name,
+      gender,
+      blood_type,
+      hobbies,
+      birth_time,
+      birthday,
+    } = req.body || {};
+
     if (!token || !user_name)
       return res.status(400).json({ error: "缺少必要參數" });
 
+    // ------------------------------------------------------------
+    // 解析 Token → UID
+    // ------------------------------------------------------------
     const [uid] = Buffer.from(token, "base64").toString().split(":");
     if (!uid) return res.status(400).json({ error: "Token 解析錯誤" });
 
     const cardKey = `card:${uid}`;
     const existing = (await redis.hgetall(cardKey)) || {};
 
-    // 🔒 生日鎖定
+    // ------------------------------------------------------------
+    // 生日鎖定邏輯
+    // ------------------------------------------------------------
     const existingBirthday = existing.birthday || "00000000";
     const existingStatus = existing.status || "PENDING";
+
     const isAlreadyBound = existingBirthday !== "00000000";
     const isActive = existingStatus === "ACTIVE";
 
@@ -36,21 +51,45 @@ export default async function handler(req, res) {
 
     const finalBirthday = isAlreadyBound ? existingBirthday : birthday;
 
-    // 🌕 命理與幸運數字
-    const { ok, lunar, pillars, ziwei } = await fortuneCore(finalBirthday, birth_time, gender);
+    // ------------------------------------------------------------
+    // 命理計算
+    // ------------------------------------------------------------
+    const { lunar, pillars, ziwei } = await fortuneCore(finalBirthday, birth_time, gender);
     const { lucky_number, lucky_desc } = getLuckyNumber(String(finalBirthday));
 
-    // 💎 點數邏輯
+    // ------------------------------------------------------------
+    // 點數邏輯：新卡 OR 補填完整資訊 → +20 點
+    // ------------------------------------------------------------
     const first_time = !existing.status || existing.status !== "ACTIVE";
     let points = Number(existing.points || 0);
-    if (first_time && gender && birth_time) points += 20;
-    else if (
-      gender && birth_time &&
-      (!existing.gender || !existing.birth_time) &&
-      Number(existing.points || 0) < 20
-    ) points += 20;
 
-    // 🤖 AI 摘要
+    const shouldGive20 =
+      (first_time && gender && birth_time) ||
+      (gender &&
+        birth_time &&
+        (!existing.gender || !existing.birth_time) &&
+        Number(existing.points || 0) < 20);
+
+    if (shouldGive20) {
+      points += 20;
+
+      // 🧾 TXLOG：補填完整資訊贈 20 點
+      const logKey = `card:${uid}:txlog`;
+      const entry = {
+        date: new Date().toLocaleString("zh-TW", { hour12: false }),
+        type: "bonus",
+        service: "補填完整資料贈送",
+        points_before: Number(existing.points || 0),
+        points_after: points,
+      };
+
+      await redis.lpush(logKey, JSON.stringify(entry));
+      await redis.ltrim(logKey, 0, 9); // 保留最近 10 筆
+    }
+
+    // ------------------------------------------------------------
+    // AI 摘要
+    // ------------------------------------------------------------
     let ai_summary = "";
     try {
       const aiRes = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL}/api/ai-summary`, {
@@ -72,7 +111,9 @@ export default async function handler(req, res) {
       if (aiRes.ok && aiData.summary) ai_summary = aiData.summary;
     } catch {}
 
-    const now = new Date();
+    // ------------------------------------------------------------
+    // 整理命理資料（四柱＋紫微）
+    // ------------------------------------------------------------
     const four_pillars = {
       year: pillars?.year || "",
       month: pillars?.month || "",
@@ -80,6 +121,7 @@ export default async function handler(req, res) {
       hour: pillars?.hour || "",
       jieqi_month: pillars?.jieqi_month || "",
     };
+
     const ziweis = {
       year_ganzhi: ziwei?.year_ganzhi || lunar?.year_ganzhi || "",
       bureau: ziwei?.bureau || "",
@@ -90,17 +132,24 @@ export default async function handler(req, res) {
       ming_stars: ziwei?.ming_main_stars || [],
     };
 
-    // 🔐 pins
+    // ------------------------------------------------------------
+    // PIN 初始化（保持行為）
+    // ------------------------------------------------------------
     const pins = JSON.stringify({
       enabled: false,
       attempts: 0,
       locked_until: 0,
-      updated_at: now.toISOString(),
+      updated_at: new Date().toISOString(),
     });
 
-    // 🗃 subscriptions — 僅保留既有，不建立空 daily
-    let subscriptions = existing.subscriptions || "";
+    // ------------------------------------------------------------
+    // 保留原本的 subscriptions（不建立空 daily）
+    // ------------------------------------------------------------
+    const subscriptions = existing.subscriptions || "";
 
+    // ------------------------------------------------------------
+    // 寫回 Redis
+    // ------------------------------------------------------------
     const cardData = {
       uid,
       user_name,
@@ -112,26 +161,27 @@ export default async function handler(req, res) {
       lunar_birthday: lunar?.lunar_birthday || "",
       zodiac: lunar?.zodiac || "",
       constellation: lunar?.constellation || "",
-      four_pillars: JSON.stringify(four_pillars),
-      ziweis: JSON.stringify(ziweis),
       lucky_number,
       lucky_desc,
+      four_pillars: JSON.stringify(four_pillars),
+      ziweis: JSON.stringify(ziweis),
       ai_summary,
       status: "ACTIVE",
       points,
       opened: true,
       pins,
-      subscriptions, // 🚫 不建立空 daily
+      subscriptions,
       last_seen: new Date().toLocaleString("zh-TW", { hour12: false }),
       updated_at: Date.now(),
     };
 
     await redis.hset(cardKey, cardData);
-    console.log(`🎉 開卡成功: ${user_name} (${uid}) ${lunar?.zodiac} ${lunar?.constellation}`);
+
+    console.log(`🎉 開卡成功: ${user_name} (${uid})`);
 
     return res.json({ ok: true, first_time, card: cardData });
   } catch (err) {
-    console.error("❌ card-activate fatal error:", err);
+    console.error("❌ card-activate fatal:", err);
     return res.status(500).json({ error: "伺服器錯誤" });
   }
 }
