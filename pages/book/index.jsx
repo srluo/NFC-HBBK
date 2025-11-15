@@ -55,6 +55,9 @@ export default function Book() {
       sessionStorage.setItem("book_token", tokenToUse);
       sessionStorage.setItem("book_token_exp", expFromToken.toString());
       setToken(tokenToUse);
+
++ // 🧹 強制清除舊卡片 cache，避免扣點後 UI 顯示舊資料
+      sessionStorage.removeItem("book_card_cache");
       console.log("[Book] Token validated");
     } catch {
       sessionStorage.clear();
