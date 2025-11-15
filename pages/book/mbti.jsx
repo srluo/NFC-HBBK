@@ -90,7 +90,7 @@ export default function MBTIPage() {
     if (!mbti) {
       return (
         <div className={styles.toolBox}>
-          <h3>🧠 MBTI 人格特質</h3>
+          <h3>🧠 你的 MBTI 個人風格特質</h3>
           <p>尚未設定 MBTI 類型，請選擇以下方式。</p>
 
           {/* 手動設定 2 點 */}
@@ -109,7 +109,7 @@ export default function MBTIPage() {
               setShowEdit(true);
             }}
           >
-            ✏️ 手動填入（2 點）
+            ✏️ 已有檢測，手動填入（2 點）
           </button>
 
           {/* 自動測驗 5 點（新版扣點流程） */}
@@ -140,7 +140,7 @@ export default function MBTIPage() {
     // ----------------------
     return (
       <div className={styles.section}>
-        <h3>🧠 你的 MBTI 個人特質</h3>
+        <h3>🧠 你的 MBTI 個人風格特質</h3>
 
         <div style={{ display: "flex", gap: "1rem", marginBottom: "1rem" }}>
           <img
